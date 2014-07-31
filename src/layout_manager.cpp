@@ -65,6 +65,12 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
 	// publish the estimated particle odometry
 	nav_msgs::Odometry pub_msg = getOdomFromPoseAndSigma(particle.getParticleState(), particle.getParticleSigma());
+
+    //header
+    pub_msg.header.frame_id = "robot_frame";
+    pub_msg.header.stamp = ros::Time::now();
+    pub_msg.child_frame_id = "odom_frame";
+
 	pub.publish(pub_msg);
 
 //	ROS_INFO_STREAM("Particle state (after EKF): " << endl << particle.getParticleState() << endl);
@@ -83,7 +89,7 @@ int main(int argc, char **argv)
 	layout_manager.visual_odometry.setErrorCovariance(err);
 
 	// init subscriber
-	ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 1000, odometryCallback);
+    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1000, odometryCallback);
 	pub = n.advertise<nav_msgs::Odometry>("layout_manager/particle_pose",1000);
 	ros::spin();
 
@@ -100,11 +106,8 @@ VectorXd getPoseFromOdom(const nav_msgs::Odometry& msg)
 	pose(2) = msg.pose.pose.position.z;
 
 	//orientation
-	tf::Quaternion q(
-			msg.pose.pose.orientation.x,
-			msg.pose.pose.orientation.y,
-			msg.pose.pose.orientation.z,
-			msg.pose.pose.orientation.w);
+    tf::Quaternion q;
+    tf::quaternionMsgToTF(msg.pose.pose.orientation, q);
 	tf::Matrix3x3 m(q);
 
 	double roll, pitch, yaw;
