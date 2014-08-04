@@ -8,6 +8,8 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_datatypes.h>
 #include <iostream>
@@ -17,17 +19,23 @@
 #include "particle/Particle.h"
 #include "LayoutManager.h"
 #include "VisualOdometry.h"
+#include "Eigen/Core"
+#include "Eigen/Dense"
+using namespace Eigen;
 
 // layout-manager variables
-MatrixXd err = MatrixXd::Identity(12,12) * pow(0.05,2.0);
+MatrixXd err = MatrixXd::Identity(12,12) * (0.05*0.05);
 VisualOdometry visual_odometry;
 VectorXd p_pose = VectorXd::Zero(12);
 MatrixXd p_sigma = MatrixXd::Zero(12,12);
 MotionModel mtn_model(err, 1);
-Particle particle(99, p_pose, p_sigma, mtn_model);
+Particle particle1(1, p_pose, p_sigma, mtn_model);
+Particle particle2(2, p_pose, p_sigma, mtn_model);
+Particle particle3(3, p_pose, p_sigma, mtn_model);
+Particle particle4(4, p_pose, p_sigma, mtn_model);
 LayoutManager layout_manager;
 ros::Publisher pub;
-
+ros::Publisher array_pub;
 
 /**
  * Return a 12x1 VectorXd representing the pose given
@@ -37,6 +45,10 @@ ros::Publisher pub;
  */
 VectorXd getPoseFromOdom(const nav_msgs::Odometry& msg);
 MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg);
+geometry_msgs::Pose getPoseFromVector(const VectorXd& msg);
+
+double getNoise(double err);
+VectorXd addNoiseToVectorXd(const VectorXd& pose, double position_err, double orientation_err);
 
 /**
  * Returns a message of type nav_msgs::Odometry given
@@ -50,21 +62,36 @@ nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd&
  * Callback called on nav_msg::Odometry arrival
  * @param msg
  */
+//measurementCallback
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
 	// retrieve pose from odometry
 	VectorXd p_pose = getPoseFromOdom(msg);
-	particle.setParticleState(p_pose);
+    particle1.setParticleState(p_pose);
 
 	// retrieve sigma from odometry
 	MatrixXd p_sigma = getCovFromOdom(msg);
-	particle.setParticleSigma(p_sigma);
+    particle1.setParticleSigma(p_sigma);
+
+    // adds noise to the other particles
+    particle2.setParticleSigma(p_sigma);
+    particle2.setParticleState(addNoiseToVectorXd(p_pose, 0.05, -0.005));
+
+    particle3.setParticleSigma(p_sigma);
+    particle3.setParticleState(addNoiseToVectorXd(p_pose, 0.15, 0.005));
+
+    particle4.setParticleSigma(p_sigma);
+    particle4.setParticleState(addNoiseToVectorXd(p_pose, 0.01, 0.01));
 
 	// call particle_estimation
-	layout_manager.particleEstimation(particle);
+    layout_manager.particleEstimation(particle1);
+    layout_manager.particleEstimation(particle2);
+    layout_manager.particleEstimation(particle3);
+    layout_manager.particleEstimation(particle4);
 
-	// publish the estimated particle odometry
-	nav_msgs::Odometry pub_msg = getOdomFromPoseAndSigma(particle.getParticleState(), particle.getParticleSigma());
+    // --------------------------------------------------------------------------------------
+    // publish the estimated particle odometry
+    nav_msgs::Odometry pub_msg = getOdomFromPoseAndSigma(particle1.getParticleState(), particle1.getParticleSigma());
 
     //header
     pub_msg.header.frame_id = "robot_frame";
@@ -72,9 +99,22 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     pub_msg.child_frame_id = "odom_frame";
 
 	pub.publish(pub_msg);
+    // --------------------------------------------------------------------------------------
 
-//	ROS_INFO_STREAM("Particle state (after EKF): " << endl << particle.getParticleState() << endl);
-//	ROS_INFO_STREAM("Particle sigma (after EKF): " << endl << particle.getParticleSigma() << endl);
+
+    // --------------------------------------------------------------------------------------
+    // BUILD POSEARRAY MSG
+    geometry_msgs::PoseArray array_msg;
+    array_msg.header.stamp = ros::Time::now();
+    array_msg.header.frame_id = "robot_frame";
+
+    array_msg.poses.push_back(getPoseFromVector(particle1.getParticleState()));
+    array_msg.poses.push_back(getPoseFromVector(particle2.getParticleState()));
+    array_msg.poses.push_back(getPoseFromVector(particle3.getParticleState()));
+    array_msg.poses.push_back(getPoseFromVector(particle4.getParticleState()));
+
+    array_pub.publish(array_msg);
+    // --------------------------------------------------------------------------------------
 }
 
 int main(int argc, char **argv)
@@ -84,15 +124,28 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	// init layout-manager variables
-	particle.mtn_model.setErrorCovariance(err);
+    particle1.mtn_model.setErrorCovariance(err);
+    particle2.mtn_model.setErrorCovariance(err);
+    particle3.mtn_model.setErrorCovariance(err);
+    particle4.mtn_model.setErrorCovariance(err);
+
+    // add some noise to particle poses
+    particle2.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.05, -0.005));
+    particle3.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.15, 0.005));
+    particle4.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.01, 0.01));
+
+    // init layout manager
 	layout_manager.setVisualOdometry(visual_odometry);
 	layout_manager.visual_odometry.setErrorCovariance(err);
 
 	// init subscriber
-    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1000, odometryCallback);
-	pub = n.advertise<nav_msgs::Odometry>("layout_manager/particle_pose",1000);
-	ros::spin();
+    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 2, odometryCallback);
 
+    // init publishers
+    pub = n.advertise<nav_msgs::Odometry>("layout_manager/particle_pose",1000);
+    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1000);
+
+    ros::spin();
 	return 0;
 }
 
@@ -215,3 +268,45 @@ nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd&
 	return odom;
 }
 
+
+/**
+ * @param err
+ * @return a random number between -err and err
+ */
+double getNoise(double err){
+    double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
+    return noise;
+}
+
+/**
+ * Adds a random noise to a VectorXd 12x1 representing particle's pose
+ * @param pose
+ * @param err
+ */
+VectorXd addNoiseToVectorXd(const VectorXd& pose, double position_err, double orientation_err)
+{
+    VectorXd vec = pose;
+    vec(0) += position_err;
+    vec(1) += position_err;
+    vec(2) += position_err;
+    vec(3) += orientation_err;
+    vec(4) += orientation_err;
+    vec(5) += orientation_err;
+
+    return vec;
+}
+
+geometry_msgs::Pose getPoseFromVector(const VectorXd& msg){
+   geometry_msgs::Pose pose;
+
+   //set position
+   pose.position.x = msg(0);
+   pose.position.y = msg(1);
+   pose.position.z = msg(2);
+
+   //set orientation
+   tf::Quaternion q = tf::createQuaternionFromRPY(msg(3), msg(4), msg(5));
+   tf::quaternionTFToMsg(q, pose.orientation);
+
+   return pose;
+}

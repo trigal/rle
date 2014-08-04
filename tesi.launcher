@@ -1,0 +1,23 @@
+<launch>
+    <node
+        pkg="road_layout_estimation"
+        type="visual_odometry_fake"
+        name="visual_odometry_fake"
+        respawn="true"
+        output="screen"
+    />
+    <node
+        pkg="road_layout_estimation"
+        type="layout_manager"
+        name="layout_manager"
+        required="true"
+        output="screen"
+    />
+    <node
+        pkg="rviz"
+        type="rviz"
+        name="rviz"
+        respawn="true"
+        output="screen"
+    />
+</launch>
