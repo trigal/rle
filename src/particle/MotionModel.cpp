@@ -37,7 +37,7 @@ VectorXd MotionModel::propagatePose(VectorXd& p_state){
 	vel_error = error_covariance.diagonal().tail(6);
 
 	// propagate p_pose
-	p_pose = p_pose + (p_vel * delta_t) + pose_error;
+    p_pose = p_pose + (p_vel * delta_t) + pose_error;
 	p_vel = p_vel + vel_error;
 
 	// build propagated p_state

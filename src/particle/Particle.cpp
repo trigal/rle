@@ -33,6 +33,6 @@ void Particle::calculateComponentsScore(){
 }
 
 VectorXd Particle::propagateParticlePose(){
-	return mtn_model.propagatePose(particle_state);
+    return mtn_model.propagatePose(particle_state);
 }
 

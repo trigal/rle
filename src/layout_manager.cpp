@@ -21,7 +21,9 @@
 #include "VisualOdometry.h"
 #include "Eigen/Core"
 #include "Eigen/Dense"
+#include <vector>
 using namespace Eigen;
+using namespace std;
 
 // layout-manager variables
 MatrixXd err = MatrixXd::Identity(12,12) * (0.05*0.05);
@@ -36,6 +38,8 @@ Particle particle4(4, p_pose, p_sigma, mtn_model);
 LayoutManager layout_manager;
 ros::Publisher pub;
 ros::Publisher array_pub;
+vector<Particle> particle_set;
+nav_msgs::Odometry old_msg;
 
 /**
  * Return a 12x1 VectorXd representing the pose given
@@ -48,7 +52,7 @@ MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg);
 geometry_msgs::Pose getPoseFromVector(const VectorXd& msg);
 
 double getNoise(double err);
-VectorXd addNoiseToVectorXd(const VectorXd& pose, double position_err, double orientation_err);
+VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_err, double orientation_err);
 
 /**
  * Returns a message of type nav_msgs::Odometry given
@@ -65,37 +69,27 @@ nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd&
 //measurementCallback
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
-	// retrieve pose from odometry
-	VectorXd p_pose = getPoseFromOdom(msg);
-    particle1.setParticleState(p_pose);
+    //calculate delta_t
+    double time_diff = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
-	// retrieve sigma from odometry
-	MatrixXd p_sigma = getCovFromOdom(msg);
-    particle1.setParticleSigma(p_sigma);
+    // retrieve measurement from odometry
+    VectorXd msr_pose = getPoseFromOdom(msg);
+    MatrixXd msr_cov = getCovFromOdom(msg);
 
-    // adds noise to the other particles
-    particle2.setParticleSigma(p_sigma);
-    particle2.setParticleState(addNoiseToVectorXd(p_pose, 0.05, -0.005));
-
-    particle3.setParticleSigma(p_sigma);
-    particle3.setParticleState(addNoiseToVectorXd(p_pose, 0.15, 0.005));
-
-    particle4.setParticleSigma(p_sigma);
-    particle4.setParticleState(addNoiseToVectorXd(p_pose, 0.01, 0.01));
+    layout_manager.setParticlesDelta(time_diff);
+    layout_manager.setCurrentMeasurement(msr_pose);
+    layout_manager.visual_odometry.setErrorCovariance(msr_cov);
 
 	// call particle_estimation
-    layout_manager.particleEstimation(particle1);
-    layout_manager.particleEstimation(particle2);
-    layout_manager.particleEstimation(particle3);
-    layout_manager.particleEstimation(particle4);
+    layout_manager.layoutEstimation();
 
     // --------------------------------------------------------------------------------------
     // publish the estimated particle odometry
     nav_msgs::Odometry pub_msg = getOdomFromPoseAndSigma(particle1.getParticleState(), particle1.getParticleSigma());
 
     //header
-    pub_msg.header.frame_id = "robot_frame";
     pub_msg.header.stamp = ros::Time::now();
+    pub_msg.header.frame_id = "robot_frame";
     pub_msg.child_frame_id = "odom_frame";
 
 	pub.publish(pub_msg);
@@ -108,10 +102,19 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     array_msg.header.stamp = ros::Time::now();
     array_msg.header.frame_id = "robot_frame";
 
-    array_msg.poses.push_back(getPoseFromVector(particle1.getParticleState()));
-    array_msg.poses.push_back(getPoseFromVector(particle2.getParticleState()));
-    array_msg.poses.push_back(getPoseFromVector(particle3.getParticleState()));
-    array_msg.poses.push_back(getPoseFromVector(particle4.getParticleState()));
+    vector<Particle> particles = layout_manager.getCurrentLayout();
+
+    cout << "--------------------------------------------------------------------------------" << endl;
+    for(int i = 0; i<4; i++)
+    {
+        Particle p = particles.at(i);
+        VectorXd p_pose = p.getParticleState();
+        cout << "[id: " << p.getId() << "] [pose: " << p_pose(0) << ", " <<  p_pose(1)<< ", " << p_pose(2) << "] ";
+        cout << "[orientation: " << p_pose(3) << ", " << p_pose(4) << ", " << p_pose(5) << "] " << endl;
+
+        array_msg.poses.push_back( getPoseFromVector(p.getParticleState()) );
+    }
+    cout << "--------------------------------------------------------------------------------" << endl << endl;
 
     array_pub.publish(array_msg);
     // --------------------------------------------------------------------------------------
@@ -123,27 +126,55 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "layout_manager");
 	ros::NodeHandle n;
 
-	// init layout-manager variables
+    // init particle variables
     particle1.mtn_model.setErrorCovariance(err);
     particle2.mtn_model.setErrorCovariance(err);
     particle3.mtn_model.setErrorCovariance(err);
     particle4.mtn_model.setErrorCovariance(err);
 
-    // add some noise to particle poses
-    particle2.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.05, -0.005));
-    particle3.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.15, 0.005));
-    particle4.setParticleState(addNoiseToVectorXd(particle1.getParticleState(), 0.01, 0.01));
+    // add an offset to particle poses
+    particle2.setParticleState(addOffsetToVectorXd(particle1.getParticleState(), 2, -0.005));
+    particle3.setParticleState(addOffsetToVectorXd(particle1.getParticleState(), 0.15, 0.005));
+    particle4.setParticleState(addOffsetToVectorXd(particle1.getParticleState(), 0.01, 0.01));
 
-    // init layout manager
-	layout_manager.setVisualOdometry(visual_odometry);
-	layout_manager.visual_odometry.setErrorCovariance(err);
+    // create particle vector
+    particle_set.push_back(particle1);
+    particle_set.push_back(particle2);
+    particle_set.push_back(particle3);
+    particle_set.push_back(particle4);
+
+    // init layout manager variables
+    layout_manager.setCurrentLayout(particle_set);
+    layout_manager.setVisualOdometry(visual_odometry);
+    layout_manager.visual_odometry.setErrorCovariance(err);
+
+
+    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << "Inizio" << endl;
+    vector<Particle> p_set = layout_manager.getCurrentLayout();
+    for(int i = 0; i<4; i++)
+    {
+        Particle p = p_set.at(i);
+        VectorXd p_pose = p.getParticleState();
+        cout << "[id: " << p.getId() << "] [pose: " << p_pose(0) << ", " <<  p_pose(1)<< ", " << p_pose(2) << "] ";
+        cout << "[orientation: " << p_pose(3) << ", " << p_pose(4) << ", " << p_pose(5) << "] " << endl;
+        cout << "mtn_model cov:" << endl;
+        cout << p.mtn_model.getErrorCovariance() << endl;
+    }
+    cout << "visual_odometry cov:" << endl;
+    cout << layout_manager.visual_odometry.getErrorCovariance() << endl;
+
+    cout << "--------------------------------------------------------------------------------" << endl << endl;
+
+    // init header timestamp
+    old_msg.header.stamp = ros::Time::now();
 
 	// init subscriber
     ros::Subscriber sub = n.subscribe("visual_odometry/odom", 2, odometryCallback);
 
     // init publishers
-    pub = n.advertise<nav_msgs::Odometry>("layout_manager/particle_pose",1000);
-    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1000);
+    pub = n.advertise<nav_msgs::Odometry>("layout_manager/particle_pose",2);
+    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",2);
 
     ros::spin();
 	return 0;
@@ -283,15 +314,15 @@ double getNoise(double err){
  * @param pose
  * @param err
  */
-VectorXd addNoiseToVectorXd(const VectorXd& pose, double position_err, double orientation_err)
+VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_offset, double orientation_offset)
 {
     VectorXd vec = pose;
-    vec(0) += position_err;
-    vec(1) += position_err;
-    vec(2) += position_err;
-    vec(3) += orientation_err;
-    vec(4) += orientation_err;
-    vec(5) += orientation_err;
+    vec(0) += position_offset;
+    vec(1) += position_offset;
+    vec(2) += position_offset;
+    vec(3) += orientation_offset;
+    vec(4) += orientation_offset;
+    vec(5) += orientation_offset;
 
     return vec;
 }

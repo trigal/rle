@@ -11,7 +11,10 @@
 #include "VisualOdometry.h"
 #include "particle/Particle.h"
 #include <vector>
+#include "nav_msgs/Odometry.h"
 #include <Eigen/Dense>	//used for motion threshold matrix
+#include <Eigen/Core>
+using namespace Eigen;
 using Eigen::MatrixXd;
 using std::vector;
 
@@ -67,25 +70,17 @@ using std::vector;
 class LayoutManager {
 public:
 	//da far tornare private
-	void particleEstimation(Particle& particle);
+    void particleEstimation(Particle & particle);
 	VisualOdometry visual_odometry;	/// used for getting car motion
 
 private:
 
-	bool is_new_detection;				/// indicates detectors found new detections
-	vector<double> score_vector;		/// stores the score of every particle-component in the set
-	vector<Particle> current_layout;	/// stores the current layout
+    bool is_new_detection;				/// indicates detectors found new detections
+    vector<double> score_vector;
+    vector<Particle> current_layout;	/// stores the current layout
+    VectorXd current_measurement;
+    double motion_threshold;
 
-	double motion_threshold; 		/// threshold level used for considering car stopped or moving
-
-	/**
-	 * Used by layout-manager for getting results from HighLevelDetectors /
-	 * LowLevelDetector / Detector3D
-	 * @param detector
-	 * @return detector results
-	 */
-	template<typename DETECTOR, typename RESULTS>
-	RESULTS getDetectorResults(DETECTOR detector);
 
 	/**
 	 * Sampling from the state transition p(x_t | u_t , x_t-1):
@@ -106,13 +101,21 @@ private:
 
 	bool checkHasMoved();
 
-
-
 	void componentsEstimation();
 
 	void calculateScore();
 
 public:
+
+    void setParticlesDelta(double delta);
+
+    VectorXd getCurrentMeasurement(){
+        return current_measurement;
+    }
+
+    void setCurrentMeasurement(VectorXd & msr){
+        current_measurement = msr;
+    }
 
 	VisualOdometry getVisualOdometry(){
 		return visual_odometry;
@@ -179,7 +182,7 @@ public:
 	~LayoutManager(){
 		score_vector.resize(0);
 		//currentLayout.resize(0);
-	};
+    }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);
 };

@@ -16,14 +16,25 @@ using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
 
+
+void LayoutManager::setParticlesDelta(double delta){
+    vector<Particle>::iterator itr;
+    for (itr = current_layout.begin(); itr != current_layout.end(); itr++){
+        Particle p = *itr;
+        p.mtn_model.delta_t = delta;
+    }
+}
+
 /**
  * Check if car has moved or not by confronting odometry matrix and motion threshold matrix
  * @return true if car has moved beyond the the threshold matrix
  */
 bool LayoutManager::checkHasMoved(){
 	//MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
-	MatrixXd diff_matrix = MatrixXd::Ones(12,12);
-	return diff_matrix.count() > 0; //every position over the threshold will count as 1
+//	MatrixXd diff_matrix = MatrixXd::Ones(12,12);
+//	return diff_matrix.count() > 0; //every position over the threshold will count as 1
+
+    return true;
 }
 
 /**
@@ -47,7 +58,7 @@ void LayoutManager::componentsPerturbation(){
 }
 
 
-void LayoutManager::particleEstimation(Particle& particle){
+void LayoutManager::particleEstimation(Particle & particle){
 
 	// initialize variables
 	VectorXd stato_t = particle.getParticleState();	/// initial state
@@ -59,6 +70,12 @@ void LayoutManager::particleEstimation(Particle& particle){
 	MatrixXd R_t = particle.mtn_model.getErrorCovariance();	/// motion error covariance
 	MatrixXd Q_t = visual_odometry.getErrorCovariance();	/// measure error covariance
 
+    cout << "mtn_model cov:" << endl;
+    cout << R_t << endl;
+
+    cout << "visual_odometry cov:" << endl;
+    cout << Q_t << endl;
+
 	MatrixXd G_t = MatrixXd::Zero(12,12);	/// motion equations jacobian
 	MatrixXd H_t = MatrixXd::Zero(12,12);	/// measure equations jacobian
 	MatrixXd K_t = MatrixXd::Zero(12,12);	/// Kalman gain
@@ -67,7 +84,7 @@ void LayoutManager::particleEstimation(Particle& particle){
 //
 //	% calcolo belief predetto:
 //	stato_t_predetto = transiz_stato(stato_prec, controllo, zeros(3,3), b);
-	stato_t_predetto = particle.propagateParticlePose();
+    stato_t_predetto = particle.propagateParticlePose();
 
 //	% applicazione proprietà gaussiane:
 //	G_t = jacobiana_g(stato_prec, controllo, b);
@@ -88,9 +105,9 @@ void LayoutManager::particleEstimation(Particle& particle){
 
 //  % calcolo belief:
 //  stato_t = stato_t_predetto' + K_t * (misura_t - eq_misura(stato_t_predetto, zeros(4,4), h, f, d))';
-	VectorXd measure_t = visual_odometry.measurePose(stato_t);
-	VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto);
-	stato_t = stato_t_predetto + K_t * (measure_t - measure_t_pred);
+    //VectorXd measure_t = visual_odometry.measurePose(stato_t); // QUESTO E' PARAMETRO DELLA FUNZIONE
+    VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto);  //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
+    stato_t = stato_t_predetto + K_t * (current_measurement - measure_t_pred);
 
 //  E_t = (eye(3) - K_t * H_t) * E_t_pred;
 	E_t = (MatrixXd::Identity(12,12) - K_t * H_t) * E_t_pred;
@@ -123,8 +140,6 @@ vector<Particle> LayoutManager::layoutEstimation(){
 	// Check if car has moved, if it has moved then estimate new layout
 	if( checkHasMoved() )
 	{
-		cout << endl << "Has moved!" << endl;
-
 		// ----------------- predict and update layout poses using E.K.F ----------------- //
 		vector<Particle>::iterator particle_itr;
 		for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
