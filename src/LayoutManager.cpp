@@ -84,7 +84,8 @@ void LayoutManager::particleEstimation(Particle & particle){
 //
 //	% calcolo belief predetto:
 //	stato_t_predetto = transiz_stato(stato_prec, controllo, zeros(3,3), b);
-    stato_t_predetto = particle.propagateParticlePose();
+    VectorXd p_state = particle.getParticleState();
+    stato_t_predetto = particle.mtn_model.propagatePose(p_state);
 
 //	% applicazione proprietà gaussiane:
 //	G_t = jacobiana_g(stato_prec, controllo, b);
@@ -97,7 +98,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 //  %% ------- UPDATE STEP -------
 //  % calcolo Kalman gain sull'innovazione:
 //  H_t = jacobiana_h(stato_t_predetto, h, f, d);
-	H_t = particle.mtn_model.measurementJacobi(stato_t_predetto);
+    H_t = visual_odometry.measurementJacobi(stato_t_predetto);
 
 //  K_t = E_t_pred * H_t' * inv(H_t * E_t_pred * H_t' + Q_t);
 	MatrixXd temp = H_t * E_t_pred * H_t.transpose() + Q_t;
@@ -107,7 +108,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 //  stato_t = stato_t_predetto' + K_t * (misura_t - eq_misura(stato_t_predetto, zeros(4,4), h, f, d))';
     //VectorXd measure_t = visual_odometry.measurePose(stato_t); // QUESTO E' PARAMETRO DELLA FUNZIONE
     VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto);  //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
-    stato_t = stato_t_predetto + K_t * (current_measurement - measure_t_pred);
+    stato_t = stato_t_predetto + K_t * (visual_odometry.getCurrentMeasurement() - measure_t_pred);
 
 //  E_t = (eye(3) - K_t * H_t) * E_t_pred;
 	E_t = (MatrixXd::Identity(12,12) - K_t * H_t) * E_t_pred;

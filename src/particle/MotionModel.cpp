@@ -76,29 +76,3 @@ MatrixXd MotionModel::motionJacobi(VectorXd& p_state_predicted){
 
 	return G_t;
 }
-
-
-MatrixXd MotionModel::measurementJacobi(VectorXd& p_state_predicted){
-	/**
-	 * H_t:
-	 *
-	 *  | 1 0 0 0 0 0  0 0 0 0 0 0 |
-	 *  | 0 1 0 0 0 0  0 0 0 0 0 0 |
-	 *  | 0 0 1 0 0 0  0 0 0 0 0 0 |
-	 *  | 0 0 0 1 0 0  0 0 0 0 0 0 |
-	 *  | 0 0 0 0 1 0  0 0 0 0 0 0 |
-	 *  | 0 0 0 0 0 1  0 0 0 0 0 0 |
-	 *
-	 * 	| 0 0 0 0 0 0  1 0 0 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 1 0 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 1 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 1 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 0 1 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 0 0 1 |
-	 */
-
-	// Create an identity 12x12 matrix
-	MatrixXd H_t = MatrixXd::Identity(12,12);
-
-	return H_t;
-}

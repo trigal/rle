@@ -18,7 +18,7 @@
 #include "particle/MotionModel.h"
 #include "particle/Particle.h"
 #include "LayoutManager.h"
-#include "VisualOdometry.h"
+#include "Odometry.h"
 #include "Eigen/Core"
 #include "Eigen/Dense"
 #include <vector>
@@ -27,7 +27,7 @@ using namespace std;
 
 // layout-manager variables
 MatrixXd err = MatrixXd::Identity(12,12) * (0.05*0.05);
-VisualOdometry visual_odometry;
+Odometry visual_odometry;
 VectorXd p_pose = VectorXd::Zero(12);
 MatrixXd p_sigma = MatrixXd::Zero(12,12);
 MotionModel mtn_model(err, 1);
@@ -69,7 +69,7 @@ nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd&
 //measurementCallback
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
-    //calculate delta_t
+    // calculate delta_t
     double time_diff = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
     // retrieve measurement from odometry
@@ -77,7 +77,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     MatrixXd msr_cov = getCovFromOdom(msg);
 
     layout_manager.setParticlesDelta(time_diff);
-    layout_manager.setCurrentMeasurement(msr_pose);
+    layout_manager.visual_odometry.setCurrentMeasurement(msr_pose);
     layout_manager.visual_odometry.setErrorCovariance(msr_cov);
 
 	// call particle_estimation

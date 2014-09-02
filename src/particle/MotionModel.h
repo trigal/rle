@@ -46,8 +46,7 @@ public:
 
     VectorXd propagatePose(VectorXd& particle_state);
 
-	MatrixXd motionJacobi(VectorXd& p_state_predicted);
-	MatrixXd measurementJacobi(VectorXd& p_state_predicted);
+    MatrixXd motionJacobi(VectorXd& p_state_predicted);
 
 	/**
 	 * @return current error covariance

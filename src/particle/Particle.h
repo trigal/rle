@@ -36,8 +36,6 @@ public:
 	 * This function will use "motion-model" class to propagate particle pose
 	 */
 	VectorXd propagateParticlePose();
-	MatrixXd motionJacobi(VectorXd& p_state_predicted);
-	MatrixXd measurementJacobi(VectorXd& p_state_predicted);
 
 	/**
 	 * This function will calculate all the components' score

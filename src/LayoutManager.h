@@ -54,11 +54,8 @@ using std::vector;
  *
  *----------------------------------------------------------------------------------------------
  *
- * DA CHIEDERE:
- *
- * - le equazioni di misura (usate x calcolare parte dello score) sono in visual odometry?
- *		da mettere su particle-component
- *
+ * DA FARE:
+ * - rinominare visual odometry in "odometry", e spostarci dentro la misura (insieme a sigma) e il calcolo del delta
  *----------------------------------------------------------------------------------------------
  */
 
@@ -78,7 +75,6 @@ private:
     bool is_new_detection;				/// indicates detectors found new detections
     vector<double> score_vector;
     vector<Particle> current_layout;	/// stores the current layout
-    VectorXd current_measurement;
     double motion_threshold;
 
 
@@ -108,14 +104,6 @@ private:
 public:
 
     void setParticlesDelta(double delta);
-
-    VectorXd getCurrentMeasurement(){
-        return current_measurement;
-    }
-
-    void setCurrentMeasurement(VectorXd & msr){
-        current_measurement = msr;
-    }
 
 	VisualOdometry getVisualOdometry(){
 		return visual_odometry;
