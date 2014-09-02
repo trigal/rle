@@ -100,7 +100,7 @@ add_executable(visual_odometry_fake src/visual_odometry_fake.cpp)
 add_executable(layout_manager 
 	src/layout_manager.cpp 
 	src/LayoutManager.cpp 
-	src/VisualOdometry.cpp 
+        src/Odometry.cpp
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp
 	src/particle/ParticleComponent.cpp

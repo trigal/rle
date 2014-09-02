@@ -5,7 +5,7 @@
  *      Author: dario
  */
 
-#include "VisualOdometry.h"
+#include "Odometry.h"
 #include "LayoutManager.h"
 #include "particle/Particle.h"
 #include <vector>	//used for vector

@@ -8,7 +8,7 @@
 #ifndef LAYOUTMANAGER_H_
 #define LAYOUTMANAGER_H_
 
-#include "VisualOdometry.h"
+#include "Odometry.h"
 #include "particle/Particle.h"
 #include <vector>
 #include "nav_msgs/Odometry.h"
@@ -68,7 +68,7 @@ class LayoutManager {
 public:
 	//da far tornare private
     void particleEstimation(Particle & particle);
-	VisualOdometry visual_odometry;	/// used for getting car motion
+    Odometry visual_odometry;	/// used for getting car motion
 
 private:
 
@@ -105,11 +105,11 @@ public:
 
     void setParticlesDelta(double delta);
 
-	VisualOdometry getVisualOdometry(){
+    Odometry getVisualOdometry(){
 		return visual_odometry;
 	}
 
-	void setVisualOdometry(VisualOdometry& v_odom){
+    void setVisualOdometry(Odometry& v_odom){
 		visual_odometry = v_odom;
 	}
 
@@ -159,11 +159,11 @@ public:
 		is_new_detection = false;
 		motion_threshold  = 0.05;
 	};
-//	LayoutManager(bool p1, vector<double>& p2, vector<Particle>& p3, VisualOdometry& p4) :
+//	LayoutManager(bool p1, vector<double>& p2, vector<Particle>& p3, Odometry& p4) :
 //		is_new_detection(p1), score_vector(p2), current_layout(p3), visual_odometry(p4) {
 //		motion_threshold  = 0.05;
 //	};
-//	LayoutManager(vector<Particle>& p3, VisualOdometry& p4) :
+//	LayoutManager(vector<Particle>& p3, Odometry& p4) :
 //			is_new_detection(false), score_vector(0), current_layout(p3), visual_odometry(p4) {
 //		motion_threshold  = 0.05;
 //	};
