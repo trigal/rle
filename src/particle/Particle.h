@@ -38,9 +38,9 @@ public:
 	VectorXd propagateParticlePose();
 
 	/**
-	 * This function will calculate all the components' score
+     * This function will calculate all the components' weight
 	 */
-	void calculateComponentsScore();
+    void calculateComponentsWeight();
 
 	/**
 	 * Add new component to the particle

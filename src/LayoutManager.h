@@ -24,15 +24,15 @@ using std::vector;
  * - pose particle -> filtro EKF
  * 	 pose componenti -> filtro particelle
  *
- * - score -> confronto tra predict ed eq. di misura
- * 	 weight -> quanto pesa nella somma di tutte le componenti
+                 // - score -> confronto tra predict ed eq. di misura
+                 // - weight -> quanto pesa nella somma di tutte le componenti
  *
  *		pose: 12x1 6DoF + 6 speed
  *		covarianza 12x12
  *
- *		controllo se mi sono mosso: norm(pose_t - pose_t-1) < threshold
+ * - CHECK HAS MOVED: norm(pose_t - pose_t-1) < threshold
  *
- *		SCORE = SCORE_MOTION_MODEL(kalman gain) + sum(SCORE_COMPONENTS)
+ *  SCORE = SCORE_MOTION_MODEL(kalman gain) + sum(SCORE_COMPONENTS)
  *
  *	EQUAZIONE DI MISURA:
  *		mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
@@ -55,7 +55,8 @@ using std::vector;
  *----------------------------------------------------------------------------------------------
  *
  * DA FARE:
- * - rinominare visual odometry in "odometry", e spostarci dentro la misura (insieme a sigma) e il calcolo del delta
+ * - trovare il bug dell'angolo
+ * - ritrovare la mail con la specifica del calcolo score
  *----------------------------------------------------------------------------------------------
  */
 
@@ -99,6 +100,23 @@ private:
 
 	void componentsEstimation();
 
+    /**
+     * FORMULA CALCOLO SCORE
+     *
+     * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
+     *  1- Kalman gain sulla pose della particella
+     *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
+     *
+     * Cardinalità >= 2
+     *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
+     *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
+     *
+     * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+     * essa sarà mantenuta in vita nonostante lo score sia basso.
+     * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
+     * uno score di valore basso per motivi di natura diversa.
+     *
+     */
 	void calculateScore();
 
 public:
@@ -137,23 +155,6 @@ public:
 		current_layout = p_set;
 	}
 
-	/**
-	 * @return current odometry
-	 */
-	MatrixXd getOdometry(){
-		return visual_odometry.getOdometry();
-	}
-
-	/**
-	 * Sets current odometry
-	 * @param odm
-	 */
-	void setOdometry(MatrixXd& odm){
-		visual_odometry.setOdometry(odm);
-	}
-
-
-
 	// costructor, destructor, copy costr, assignment
 	LayoutManager(){
 		is_new_detection = false;
@@ -167,6 +168,7 @@ public:
 //			is_new_detection(false), score_vector(0), current_layout(p3), visual_odometry(p4) {
 //		motion_threshold  = 0.05;
 //	};
+
 	~LayoutManager(){
 		score_vector.resize(0);
 		//currentLayout.resize(0);

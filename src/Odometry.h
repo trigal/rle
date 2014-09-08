@@ -17,7 +17,6 @@ class Odometry {
 private:
     MatrixXd error_covariance; 		/// this is a 12x12 matrix representing the error covariance on the measurement
     VectorXd current_measurement;	/// particle measurement (12x1: 6DoF pose + 6 Speed Derivates)
-    MatrixXd odometry;
 
     class Tracker{
 
@@ -72,34 +71,18 @@ public:
         this->error_covariance = err;
     }
 
-    /**
-     * @return current odometry
-     */
-    MatrixXd getOdometry(){
-        return odometry;
-    }
-
-    /**
-     * Sets current odometry
-     * @param odm
-     */
-    void setOdometry(MatrixXd& odm){
-        this->odometry = odm;
-    }
-
     Odometry(){
         // Sets all the values to zero
         MatrixXd cov = MatrixXd::Zero(12,12);
         VectorXd msr = VectorXd::Zero(12);
-        MatrixXd odm = MatrixXd::Zero(12,12);
 
         this->error_covariance = cov;
         this->current_measurement = msr;
-        this->odometry = odm;
     }
 
     ~Odometry(){
-        this->odometry.resize(0,0);
+        this->current_measurement.resize(0);
+        this->error_covariance(0,0);
     }
 };
 

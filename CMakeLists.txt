@@ -4,10 +4,13 @@ project(road_layout_estimation)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs pcl_ros pcl_conversions pcl_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+
+SET (CMAKE_BUILD_TYPE Debug)
+SET (CMAKE_CXX_FLAGS "-O0")
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -95,8 +98,10 @@ catkin_package(
 #   src/${PROJECT_NAME}/road_layout_estimation.cpp
 # )
 
-## Declare a cpp executable
-add_executable(visual_odometry_fake src/visual_odometry_fake.cpp)
+## Declare cpp executables
+add_executable(visual_odometry_fake 
+	src/visual_odometry_fake.cpp 
+)
 add_executable(layout_manager 
 	src/layout_manager.cpp 
 	src/LayoutManager.cpp 

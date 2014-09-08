@@ -13,15 +13,50 @@
 using namespace std;
 using namespace Eigen;
 
+const double PI = 3.14159265358979323846;
+const double PI_TIMES_2 = 2.0 * PI;
+/**
+ * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
+ * @param angle	the angle to normalize
+ * @return an equivalent angle in the range (-Pi, Pi]
+ */
+double normalize(double angle)
+{
+    while (angle > PI)
+        angle -= PI_TIMES_2;
+    while (angle <= -PI)
+        angle += PI_TIMES_2;
+    return angle;
+}
+
+/**
+ * @param err
+ * @return a random number between -err and err
+ */
+double getError(double err){
+    double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
+    return noise;
+}
+
+/**
+ * @brief this function is used by the particle filter in order to propagate components poses
+ * @param p_component
+ */
 void MotionModel::propagateComponent(ParticleComponent* p_component){
 	//motion-model
 	cout << "Propagating component" << endl;
 }
 
+
+/**
+ * @brief this function is used by EKF in order to propagate particle's pose
+ * @param p_state
+ * @return p_state_predicted
+ */
 VectorXd MotionModel::propagatePose(VectorXd& p_state){
-	// X_t ----> X_t+1
-	//
+    // MOTION EQUATION:
 	// s_t+1 = s_t + v_t * Delta_t + R
+    // v_t+1 = v_t + R
 
 	// initialize values
 	VectorXd p_pose = VectorXd::Zero(6);
@@ -36,9 +71,26 @@ VectorXd MotionModel::propagatePose(VectorXd& p_state){
 	pose_error = error_covariance.diagonal().head(6);
 	vel_error = error_covariance.diagonal().tail(6);
 
+    // get a random error value from error_covariance matrix
+    for(int i=0; i<pose_error.size(); i++)
+    {
+        // temp variables
+        double p_err = pose_error(i);
+        double v_err = vel_error(i);
+
+        // rand values that will be added to calculated pose/vel
+        pose_error(i) = getError(p_err);
+        vel_error(i) = getError(v_err);
+    }
+
 	// propagate p_pose
-    p_pose = p_pose + (p_vel * delta_t) + pose_error;
-	p_vel = p_vel + vel_error;
+    p_pose = p_pose + (p_vel * delta_t) + pose_error; //random
+    p_vel = p_vel + vel_error;
+
+    // normalize angles -PI, PI
+    p_pose(3) = normalize(p_pose(3));
+    p_pose(4) = normalize(p_pose(4));
+    p_pose(5) = normalize(p_pose(5));
 
 	// build propagated p_state
 	p_state_propagated << p_pose, p_vel;

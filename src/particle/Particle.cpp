@@ -23,7 +23,7 @@ void Particle::propagateParticleComponents(){
 	}
 }
 
-void Particle::calculateComponentsScore(){
+void Particle::calculateComponentsWeight(){
 	vector<ParticleComponent*>::iterator itr;
 	for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
 		ParticleComponent* p_comp = *itr;

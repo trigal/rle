@@ -8,6 +8,7 @@
 // This header defines the standard ROS classes
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_broadcaster.h>
@@ -20,28 +21,47 @@
 #include <vector>
 #include <stdlib.h>
 #include <ctime>
+
 using std::vector;
 using namespace Eigen;
 using namespace std;
 using namespace ros;
 
-// common variables for steps building -----------------------------------------
+// common variables for steps building ***********************************************************
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
-// ------------------------------------------------------------------------------
+// ***********************************************************************************************
 
-// const ------------------------------------------------------------------------
-double err = 0.05*0.05; 	 /// error covariance 0.05^2
-double odom_rate = 0.5;		 /// odometry fps (Hz)
-// ------------------------------------------------------------------------------
+// const *****************************************************************************************
+double odom_err = 0.05*0.05; 	 /// error covariance 0.05^2
+double odom_rate = 2;		 /// odometry fps (Hz)
+// ***********************************************************************************************
 
-// functions --------------------------------------------------------------------
+// functions *************************************************************************************
 nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step);
-float getNoise(float err);
-geometry_msgs::Twist getSpeed(const double & odom_rate, const tf::Transform & temp_t, const tf::Transform & t);
-// ------------------------------------------------------------------------------
+double getNoise(double odom_err);
+geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t);
+double rad2deg (double alpha) { return (alpha * 57.29578); }    /// from PCL library
+double deg2rad (double alpha) { return (alpha * 0.017453293); } /// from PCL library
+double diff(double ang1, double ang2);  /// from GEOS library
+double normalizePositive(double angle); /// from GEOS library
+double normalize(double angle);         /// from GEOS library
+const double PI = 3.14159265358979323846;
+const double PI_TIMES_2 = 2.0 * 3.14159265358979323846;
+double angleDiff(double firstAngle, double secondAngle)
+{
+    double difference = secondAngle - firstAngle;
+    while (difference < -PI) difference += PI_TIMES_2;
+    while (difference > PI) difference -= PI_TIMES_2;
+    return difference;
+}
+// ***********************************************************************************************
 
-
+/**
+ *************************************************************************************************
+ * @brief main
+ *************************************************************************************************
+ */
 int main(int argc, char **argv)
 {
 	// Initialize the ROS system
@@ -53,6 +73,7 @@ int main(int argc, char **argv)
     // Create publisher object
     ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom_no_error",1000);
     ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom",1000);
+    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/pose_array_no_error",1000);
 
     // 30fps -> 30Hz
     ros::Rate rate(odom_rate);
@@ -71,10 +92,13 @@ int main(int argc, char **argv)
     tf::Pose a,b,c;
     a.setOrigin(tf::Vector3(0,0,0)); a.setRotation(tf::createIdentityQuaternion());
     b.setOrigin(tf::Vector3(1,0,0)); b.setRotation(tf::createQuaternionFromYaw(90.0f*3.14f/180.0f));
-    c.setOrigin(tf::Vector3(0.2,0,0)); c.setRotation(tf::createQuaternionFromYaw(5.0f*3.14f/180.0f));
+    c.setOrigin(tf::Vector3(0.2,0,0)); c.setRotation(tf::createQuaternionFromYaw(-5.0f*3.14f/180.0f));
     t=a.inverseTimes(b);
     tfb_->sendTransform(tf::StampedTransform(t, ros::Time::now(), "robot_frame", "odom_frame"));
     t.setRotation(t.getRotation().normalized());
+
+
+    ros::Duration(2).sleep(); // sleep for two seconds, system startup
 
     while(ros::ok()){
         current_time = ros::Time::now();
@@ -102,13 +126,24 @@ int main(int argc, char **argv)
         tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
 
         // set speed
-        msg.twist.twist = getSpeed(odom_rate, temp_t, t);
+        msg.twist.twist = getSpeed( 1/odom_rate, temp_t, t);
 
         // publish message on topic "visual_odometry/odom_no_error"
         pub1.publish(msg);
 
         // publish message on topic "visual_odometry/odom"
-        pub2.publish(addNoiseToOdom(msg));
+        nav_msgs::Odometry noisy_msg = addNoiseToOdom(msg);
+        pub2.publish(noisy_msg);
+
+        // publish single posearray with no error on topic "visual_odometry/pose_array_no_err"
+        geometry_msgs::PoseArray p_array;
+        geometry_msgs::Pose p_pose;
+        p_pose = noisy_msg.pose.pose;
+        p_array.poses.push_back(p_pose);
+        p_array.header.stamp = ros::Time::now();
+        p_array.header.frame_id = "robot_frame";
+
+        pub3.publish(p_array);
 
         // write message on ROSOUT
 //        ROS_INFO_STREAM("***************************************************");
@@ -129,13 +164,21 @@ int main(int argc, char **argv)
 }
 
 
+
+
+
+
+// ***********************************************************************************************
+// FUNCTIONS IMPLEMENTATIONS
+// ***********************************************************************************************
+
 /**
  * @param err
  * @return a random number between -err and err
  */
 double getNoise(double err){
     double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
-	return noise;
+    return noise;
 }
 
 /**
@@ -148,19 +191,19 @@ nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step)
 
     nav_msgs::Odometry noisy_step = step;
     //set covariance
-    noisy_step.twist.covariance =  boost::assign::list_of  (err) (0)   (0)  (0)  (0)  (0)
-                                                           (0)  (err)  (0)  (0)  (0)  (0)
-                                                           (0)   (0)  (err) (0)  (0)  (0)
-                                                           (0)   (0)   (0) (err) (0)  (0)
-                                                           (0)   (0)   (0)  (0) (err) (0)
-                                                           (0)   (0)   (0)  (0)  (0)  (err) ;
+    noisy_step.twist.covariance =  boost::assign::list_of  (odom_err) (0)   (0)  (0)  (0)  (0)
+                                                           (0)  (odom_err)  (0)  (0)  (0)  (0)
+                                                           (0)   (0)  (odom_err) (0)  (0)  (0)
+                                                           (0)   (0)   (0) (odom_err) (0)  (0)
+                                                           (0)   (0)   (0)  (0) (odom_err) (0)
+                                                           (0)   (0)   (0)  (0)  (0)  (odom_err) ;
 
-    noisy_step.pose.covariance =  boost::assign::list_of  (err) (0)  ( 0)  (0)  (0)  (0)
-                                                          (0) (err)   (0)  (0)  (0)  (0)
-                                                          (0)   (0)  (err) (0)  (0)  (0)
-                                                          (0)   (0)   (0) (err) (0)  (0)
-                                                          (0)   (0)   (0)  (0) (err) (0)
-                                                          (0)   (0)   (0)  (0)  (0)  (err) ;
+    noisy_step.pose.covariance =  boost::assign::list_of  (odom_err) (0)  ( 0)  (0)  (0)  (0)
+                                                          (0) (odom_err)   (0)  (0)  (0)  (0)
+                                                          (0)   (0)  (odom_err) (0)  (0)  (0)
+                                                          (0)   (0)   (0) (odom_err) (0)  (0)
+                                                          (0)   (0)   (0)  (0) (odom_err) (0)
+                                                          (0)   (0)   (0)  (0)  (0)  (odom_err) ;
     // rand seed
     srand(time(0));
 
@@ -182,13 +225,13 @@ nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step)
     return noisy_step;
 }
 
-geometry_msgs::Twist getSpeed(const double & odom_rate, const tf::Transform & temp_t, const tf::Transform & t){
+geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t){
 
     geometry_msgs::Twist speed;
 
-    speed.linear.x = (temp_t.getOrigin().getX() - t.getOrigin().getX()) / odom_rate;
-    speed.linear.y = (temp_t.getOrigin().getY() - t.getOrigin().getY()) / odom_rate;
-    speed.linear.z = (temp_t.getOrigin().getZ() - t.getOrigin().getZ()) / odom_rate;
+    speed.linear.x = (temp_t.getOrigin().getX() - t.getOrigin().getX()) / rate;
+    speed.linear.y = (temp_t.getOrigin().getY() - t.getOrigin().getY()) / rate;
+    speed.linear.z = (temp_t.getOrigin().getZ() - t.getOrigin().getZ()) / rate;
 
     // Quaternion to RPY (step_prec)
     tf::Matrix3x3 m(temp_t.getRotation());
@@ -200,9 +243,73 @@ geometry_msgs::Twist getSpeed(const double & odom_rate, const tf::Transform & te
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
-    speed.angular.x = (roll_t - roll_prec) / odom_rate;
-    speed.angular.y = (pitch_t - pitch_prec) / odom_rate;
-    speed.angular.z = (yaw_t - yaw_prec) / odom_rate;
+    speed.angular.x = ( angleDiff(normalize(roll_t), normalize(roll_prec)) ) / rate;
+    speed.angular.y = ( angleDiff(normalize(pitch_t), normalize(pitch_prec)) ) / rate;
+    speed.angular.z = ( angleDiff(normalize(yaw_t), normalize(yaw_prec)) ) / rate;
 
     return speed;
+}
+
+
+/**
+ * Computes the unoriented smallest difference between two angles.
+ * The angles are assumed to be normalized to the range [-Pi, Pi]. The result will be in the range [0, Pi].
+ *
+ * @param ang1 the angle of one vector (in [-Pi, Pi] )
+ * @param ang2 	the angle of the other vector (in range [-Pi, Pi] )
+ * @return the angle (in radians) between the two vectors (in range [0, Pi] )
+ */
+double diff(double ang1, double ang2) /// from GEOS library
+{
+    double delAngle;
+
+    if (ang1 < ang2) {
+        delAngle = ang2 - ang1;
+    } else {
+        delAngle = ang1 - ang2;
+    }
+
+    if (delAngle > PI) {
+        delAngle = (2 * PI) - delAngle;
+    }
+
+    return delAngle;
+}
+
+/**
+ * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
+ * @param angle	the angle to normalize
+ * @return an equivalent angle in the range (-Pi, Pi]
+ */
+double normalize(double angle)
+{
+    while (angle > PI)
+        angle -= PI_TIMES_2;
+    while (angle <= -PI)
+        angle += PI_TIMES_2;
+    return angle;
+}
+
+/**
+ * Computes the normalized positive value of an angle, which is the equivalent angle in the range [ 0, 2*Pi ).
+ * @param angle the angle to normalize, in radians
+ * @return an equivalent positive angle
+ */
+double normalizePositive(double angle) /// from GEOS library
+{
+    if (angle < 0.0) {
+        while (angle < 0.0)
+            angle += PI_TIMES_2;
+        // in case round-off error bumps the value over
+        if (angle >= PI_TIMES_2)
+            angle = 0.0;
+    }
+    else {
+        while (angle >= PI_TIMES_2)
+            angle -= PI_TIMES_2;
+        // in case round-off error bumps the value under
+        if (angle < 0.0)
+            angle = 0.0;
+    }
+    return angle;
 }
