@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
         new_pose(3) = 0;
         new_pose(4) = 0;
-        new_pose(5) = 0.0872222;
+        new_pose(5) = 1.57; //0.0872222;
 
         new_pose(6) = 0.01;
         new_pose(7) = 0.01;
@@ -204,6 +204,7 @@ int main(int argc, char **argv)
     old_msg.header.stamp = ros::Time::now();
 
 	// init subscriber
+    //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 2, odometryCallback);
     ros::Subscriber sub = n.subscribe("visual_odometry/odom", 2, odometryCallback);
 
     // init publishers

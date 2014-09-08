@@ -4,7 +4,11 @@ project(road_layout_estimation)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs pcl_ros pcl_conversions pcl_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs pcl_ros pcl_conversions pcl_msgs cmake_modules)
+
+find_package(Eigen REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS})
+add_definitions(${EIGEN_DEFINITIONS})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

@@ -182,9 +182,9 @@ void LayoutManager::particleEstimation(Particle & particle){
 
 
     // fix difference between angles
-    double diff_roll = angle_diff( roll_pred, roll);
-    double diff_pitch = angle_diff( pitch_pred, pitch );
-    double diff_yaw = angle_diff( yaw_pred, yaw );
+    double diff_roll = angle_diff( roll,roll_pred);
+    double diff_pitch = angle_diff(  pitch ,pitch_pred);
+    double diff_yaw = angle_diff( yaw ,yaw_pred);
 
 //    cout << "[norm orient: " << normalize_2(roll) << ", "<< normalize_2(pitch) << ", "<< normalize_2(yaw) << "] " << endl;
 //    cout << "[orient_prec: " << normalize_2(roll_pred) << ", "<< normalize_2(pitch_pred) << ", "<< normalize_2(yaw_pred) << "] [norm orient: " << normalize_2(measure_t_pred(3)) << ", "<< normalize_2(measure_t_pred(4)) << ", "<< normalize_2(measure_t_pred(5)) << "] " << endl;

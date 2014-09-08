@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     tf::Pose a,b,c;
     a.setOrigin(tf::Vector3(0,0,0)); a.setRotation(tf::createIdentityQuaternion());
     b.setOrigin(tf::Vector3(1,0,0)); b.setRotation(tf::createQuaternionFromYaw(90.0f*3.14f/180.0f));
-    c.setOrigin(tf::Vector3(0.2,0,0)); c.setRotation(tf::createQuaternionFromYaw(-5.0f*3.14f/180.0f));
+    c.setOrigin(tf::Vector3(0.1,0,0)); c.setRotation(tf::createQuaternionFromYaw(5.0f*3.14f/180.0f));
     t=a.inverseTimes(b);
     tfb_->sendTransform(tf::StampedTransform(t, ros::Time::now(), "robot_frame", "odom_frame"));
     t.setRotation(t.getRotation().normalized());
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         // rotate (before rotation, save T into a temp variable)
         temp_t = t;
         t=t*c;
-        t.setRotation(t.getRotation().normalized());
+        //t.setRotation(t.getRotation().normalized());
         tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
         // build msg
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         // write message on ROSOUT
 //        ROS_INFO_STREAM("***************************************************");
 //        ROS_INFO_STREAM("Sending odometry:");
-//        ROS_INFO_STREAM("state: "<< msg.pose.pose);
+//        ROS_INFO_STREAM("state: "<< tf::getYaw((msg.pose.pose.orientation)));
 //        ROS_INFO_STREAM("speed: " << msg.twist.twist);
 //        ROS_INFO_STREAM("***************************************************");
 
@@ -160,6 +160,9 @@ int main(int argc, char **argv)
 
         // wait until next iteration
         rate.sleep();
+//        int tmp;
+//        cin >> tmp;
+//        cin.get();
     }
 }
 
