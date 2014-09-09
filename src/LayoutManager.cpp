@@ -112,6 +112,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // ------- PREDICTION STEP -------
     // calcolo belief predetto:
+
     stato_t_predetto = particle.mtn_model.propagatePose(stato_t);
 
     // applicazione proprietà gaussiane:
@@ -128,7 +129,9 @@ void LayoutManager::particleEstimation(Particle & particle){
     // prepare belief calculation values:
     //VectorXd measure_t = visual_odometry.measurePose(stato_t);
     VectorXd measure_t = visual_odometry.getCurrentMeasurement();
+
     VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto); //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
+
 
     // save temp variables before difference
     double roll = measure_t(3); double roll_pred = measure_t_pred(3);

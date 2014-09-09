@@ -33,7 +33,7 @@ tf::TransformListener* tf_;
 // ***********************************************************************************************
 
 // const *****************************************************************************************
-double odom_err = 0.05*0.05; 	 /// error covariance 0.05^2
+double odom_err = 0.05*0.05; 	 /// error covariance 0.5^2
 double odom_rate = 2;		 /// odometry fps (Hz)
 // ***********************************************************************************************
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     b.setOrigin(tf::Vector3(1,0,0)); b.setRotation(tf::createQuaternionFromYaw(90.0f*3.14f/180.0f));
     c.setOrigin(tf::Vector3(0.1,0,0)); c.setRotation(tf::createQuaternionFromYaw(5.0f*3.14f/180.0f));
     t=a.inverseTimes(b);
-    tfb_->sendTransform(tf::StampedTransform(t, ros::Time::now(), "robot_frame", "odom_frame"));
+    //tfb_->sendTransform(tf::StampedTransform(t, ros::Time::now(), "robot_frame", "odom_frame"));
     t.setRotation(t.getRotation().normalized());
 
 
@@ -232,9 +232,9 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
 
     geometry_msgs::Twist speed;
 
-    speed.linear.x = (temp_t.getOrigin().getX() - t.getOrigin().getX()) / rate;
-    speed.linear.y = (temp_t.getOrigin().getY() - t.getOrigin().getY()) / rate;
-    speed.linear.z = (temp_t.getOrigin().getZ() - t.getOrigin().getZ()) / rate;
+    speed.linear.x = (t.getOrigin().getX() - temp_t.getOrigin().getX()) / rate;
+    speed.linear.y = (t.getOrigin().getY() - temp_t.getOrigin().getY()) / rate;
+    speed.linear.z = (t.getOrigin().getZ() - temp_t.getOrigin().getZ()) / rate;
 
     // Quaternion to RPY (step_prec)
     tf::Matrix3x3 m(temp_t.getRotation());
@@ -246,9 +246,9 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
-    speed.angular.x = ( angleDiff(normalize(roll_t), normalize(roll_prec)) ) / rate;
-    speed.angular.y = ( angleDiff(normalize(pitch_t), normalize(pitch_prec)) ) / rate;
-    speed.angular.z = ( angleDiff(normalize(yaw_t), normalize(yaw_prec)) ) / rate;
+    speed.angular.x = ( angleDiff(normalize(roll_prec), normalize(roll_t)) ) / rate;
+    speed.angular.y = ( angleDiff(normalize(pitch_prec), normalize(pitch_t)) ) / rate;
+    speed.angular.z = ( angleDiff(normalize(yaw_prec), normalize(yaw_t)) ) / rate;
 
     return speed;
 }

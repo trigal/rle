@@ -27,11 +27,12 @@ using namespace std;
 
 // layout-manager variables
 bool first_msg = true;
-int num_particles = 10;
+int num_particles = 100;
 int step = 0;
-double uncertainty = 0.05;
-MatrixXd mtn_err = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); /// used for initialize mtn_model
-MatrixXd odom_err = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); /// used for initialize visual_odometry
+double mtn_uncertainty = 0.05;
+double measure_uncertainty = 0.5;
+MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_uncertainty*mtn_uncertainty); /// used for initialize mtn_model
+MatrixXd odom_err = MatrixXd::Identity(12,12) * (measure_uncertainty*measure_uncertainty); /// used for initialize visual_odometry
 Odometry visual_odometry;
 VectorXd p_pose = VectorXd::Zero(12);
 MatrixXd p_sigma = MatrixXd::Zero(12,12);
@@ -112,7 +113,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
             // our first particle will have same position of the odom msg
             if(i!=0){
                 // add some random noise
-                new_pose = addOffsetToVectorXd(new_pose, uncertainty, uncertainty, uncertainty);
+                new_pose = addOffsetToVectorXd(new_pose, measure_uncertainty, measure_uncertainty, measure_uncertainty);
 
                 // update cov
                 MatrixXd new_cov = getCovFromOdom(msg);
@@ -151,7 +152,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     // --------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
     geometry_msgs::PoseArray array_msg;
-    array_msg.header.stamp = ros::Time::now();
+    array_msg.header.stamp = msg.header.stamp; //ros::Time::now();
     array_msg.header.frame_id = "robot_frame";
 
     vector<Particle> particles = layout_manager.getCurrentLayout();
@@ -342,7 +343,6 @@ double getNoise(double err){
 VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_offset, double orientation_offset, double speed_offset)
 {
     VectorXd vec = pose;
-
     vec(0) += getNoise(position_offset);
     vec(1) += getNoise(position_offset);
     vec(2) += getNoise(position_offset);
