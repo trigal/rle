@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /PoseArray1
         - /PoseArray2
+        - /Odometry1
       Splitter Ratio: 0.5
     Tree Height: 540
   - Class: rviz/Selection
@@ -114,12 +115,22 @@ Visualization Manager:
       Name: PoseArray
       Topic: /layout_manager/particle_pose_array
       Value: true
-    - Arrow Length: 0.3
+    - Arrow Length: 1
       Class: rviz/PoseArray
       Color: 255; 25; 0
       Enabled: true
       Name: PoseArray
-      Topic: /visual_odometry/pose_array_no_error
+      Topic: /layout_manager/particle_pose_array
+      Value: true
+    - Angle Tolerance: 0.1
+      Class: rviz/Odometry
+      Color: 255; 25; 0
+      Enabled: true
+      Keep: 1
+      Length: 1
+      Name: Odometry
+      Position Tolerance: 0.1
+      Topic: /visual_odometry/odom
       Value: true
   Enabled: true
   Global Options:
@@ -153,11 +164,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 195.546
+      Scale: 166.708
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: -0.131235
-      Y: 0.00225242
+      X: -0.184511
+      Y: -0.250481
     Saved: ~
 Window Geometry:
   Displays:

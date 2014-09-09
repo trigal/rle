@@ -69,9 +69,9 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom_no_error",1000);
-    ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom",1000);
-    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/pose_array_no_error",1000);
+    ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom_no_error",1);
+    ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom",1);
+    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/pose_array_no_error",1);
 
     // 30fps -> 30Hz
     ros::Rate rate(odom_rate);
@@ -138,10 +138,12 @@ int main(int argc, char **argv)
         geometry_msgs::Pose p_pose;
         p_pose = noisy_msg.pose.pose;
         p_array.poses.push_back(p_pose);
-        p_array.header.stamp = ros::Time::now();
+        p_array.header.stamp = current_time;
         p_array.header.frame_id = "robot_frame";
 
         pub3.publish(p_array);
+
+        ros::spinOnce();
 
         // write message on ROSOUT
 //        ROS_INFO_STREAM("***************************************************");
