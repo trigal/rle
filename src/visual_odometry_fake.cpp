@@ -43,8 +43,6 @@ double getNoise(double odom_err);
 geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t);
 double rad2deg (double alpha) { return (alpha * 57.29578); }    /// from PCL library
 double deg2rad (double alpha) { return (alpha * 0.017453293); } /// from PCL library
-double diff(double ang1, double ang2);  /// from GEOS library
-double normalizePositive(double angle); /// from GEOS library
 double normalize(double angle);         /// from GEOS library
 const double PI = 3.14159265358979323846;
 const double PI_TIMES_2 = 2.0 * 3.14159265358979323846;
@@ -255,31 +253,6 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
 
 
 /**
- * Computes the unoriented smallest difference between two angles.
- * The angles are assumed to be normalized to the range [-Pi, Pi]. The result will be in the range [0, Pi].
- *
- * @param ang1 the angle of one vector (in [-Pi, Pi] )
- * @param ang2 	the angle of the other vector (in range [-Pi, Pi] )
- * @return the angle (in radians) between the two vectors (in range [0, Pi] )
- */
-double diff(double ang1, double ang2) /// from GEOS library
-{
-    double delAngle;
-
-    if (ang1 < ang2) {
-        delAngle = ang2 - ang1;
-    } else {
-        delAngle = ang1 - ang2;
-    }
-
-    if (delAngle > PI) {
-        delAngle = (2 * PI) - delAngle;
-    }
-
-    return delAngle;
-}
-
-/**
  * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
  * @param angle	the angle to normalize
  * @return an equivalent angle in the range (-Pi, Pi]
@@ -290,29 +263,5 @@ double normalize(double angle)
         angle -= PI_TIMES_2;
     while (angle <= -PI)
         angle += PI_TIMES_2;
-    return angle;
-}
-
-/**
- * Computes the normalized positive value of an angle, which is the equivalent angle in the range [ 0, 2*Pi ).
- * @param angle the angle to normalize, in radians
- * @return an equivalent positive angle
- */
-double normalizePositive(double angle) /// from GEOS library
-{
-    if (angle < 0.0) {
-        while (angle < 0.0)
-            angle += PI_TIMES_2;
-        // in case round-off error bumps the value over
-        if (angle >= PI_TIMES_2)
-            angle = 0.0;
-    }
-    else {
-        while (angle >= PI_TIMES_2)
-            angle -= PI_TIMES_2;
-        // in case round-off error bumps the value under
-        if (angle < 0.0)
-            angle = 0.0;
-    }
     return angle;
 }

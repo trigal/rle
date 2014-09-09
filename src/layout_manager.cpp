@@ -26,10 +26,12 @@ using namespace Eigen;
 using namespace std;
 
 // layout-manager variables
-int num_particles = 1;
+bool first_msg = true;
+int num_particles = 10;
 int step = 0;
-MatrixXd mtn_err = MatrixXd::Identity(12,12) * (0.05*0.05); /// used for initialize mtn_model
-MatrixXd odom_err = MatrixXd::Identity(12,12) * (0.05*0.05); /// used for initialize visual_odometry
+double uncertainty = 0.05;
+MatrixXd mtn_err = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); /// used for initialize mtn_model
+MatrixXd odom_err = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); /// used for initialize visual_odometry
 Odometry visual_odometry;
 VectorXd p_pose = VectorXd::Zero(12);
 MatrixXd p_sigma = MatrixXd::Zero(12,12);
@@ -95,6 +97,39 @@ VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_err, double o
  */
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
+    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << "[step: " << step << "]" << endl; step++;
+
+    // if it's our first incoming odometry msg, just use it as particle-set poses initializer
+    // (filter won't be called)
+    if(first_msg){
+        // generate particle set
+        for(int i=0; i<num_particles; i++)
+        {
+            Particle part(i, p_pose, p_sigma, mtn_model);
+            VectorXd new_pose = getPoseVectorFromOdom(msg);
+
+            // our first particle will have same position of the odom msg
+            if(i!=0){
+                // add some random noise
+                new_pose = addOffsetToVectorXd(new_pose, uncertainty, uncertainty, uncertainty);
+
+                // update cov
+                MatrixXd new_cov = getCovFromOdom(msg);
+                part.setParticleSigma(new_cov);
+            }
+
+            // push the particle into the p_set
+            part.setParticleState(new_pose);
+            particle_set.push_back(part);
+
+            // set layout manager particle set
+            layout_manager.setCurrentLayout(particle_set);
+        }
+        first_msg=false;
+        return;
+    }
+
     // retrieve measurement from odometry
     VectorXd msr_pose = getPoseVectorFromOdom(msg);
     MatrixXd msr_cov = getCovFromOdom(msg);
@@ -106,12 +141,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     layout_manager.visual_odometry.setErrorCovariance(msr_cov);
 
     // DEBUG:
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "[step: " << step << "]" << endl; step++;
-    cout << "[msr] [pose: " << msr_pose(0) << ", " <<  msr_pose(1) <<  ", " << msr_pose(2) << "] [orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
+    //cout << "[msr] [pose: " << msr_pose(0) << ", " <<  msr_pose(1) <<  ", " << msr_pose(2) << "] [orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
     //cout << "[msr orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
     //cout << "[msr] [vel: " << msr_pose(6) << ", " <<  msr_pose(7) <<  ", " << msr_pose(8) << ", " << msr_pose(9) <<  ", " << msr_pose(10) <<  ", " << msr_pose(11) << "] "<< endl;
-
 
 	// call particle_estimation
     layout_manager.layoutEstimation();
@@ -129,14 +161,10 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     {
         Particle p = particles.at(i);
         VectorXd p_pose = p.getParticleState();
-//        // DEBUG:
-//        cout << "[id: " << p.getId() << "] [pose: " << p_pose(0) << ", " <<  p_pose(1)<< ", " << p_pose(2) << "] ";
-//        cout << "[orientation: " << p_pose(3) << ", " << p_pose(4) << ", " << p_pose(5) << "] " << endl;
-
         array_msg.poses.push_back( getPoseFromVector(p_pose) );
     }
-//    cout << "--------------------------------------------------------------------------------" << endl << endl;
 
+    // Publish it!
     array_pub.publish(array_msg);
     // --------------------------------------------------------------------------------------
 }
@@ -152,53 +180,9 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "layout_manager");
 	ros::NodeHandle n;
 
-    // generate particle set
-    for(int i=0; i<num_particles; i++)
-    {
-        Particle part(i, p_pose, p_sigma, mtn_model);
-
-        // add some random noise to initial position
-        //VectorXd new_pose = addOffsetToVectorXd(p_pose, 3, 3, 3);
-        VectorXd new_pose = VectorXd::Zero(12);
-        new_pose(0) = 1;
-        new_pose(1) = 0.2;
-        new_pose(2) = 0;
-
-        new_pose(3) = 0;
-        new_pose(4) = 0;
-        new_pose(5) = 1.57; //0.0872222;
-
-        new_pose(6) = 0.01;
-        new_pose(7) = 0.01;
-        new_pose(8) = 0.01;
-
-        new_pose(9) = 0;
-        new_pose(10) = 0;
-        new_pose(11) = 0.01;
-
-
-        part.setParticleState(new_pose);
-
-        // push the particle into the p_set
-        particle_set.push_back(part);
-    }
-
     // init layout manager variables
-    layout_manager.setCurrentLayout(particle_set);
     layout_manager.setVisualOdometry(visual_odometry);
     layout_manager.visual_odometry.setErrorCovariance(odom_err);
-
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "Inizio" << endl;
-    vector<Particle> p_set = layout_manager.getCurrentLayout();
-    for(int i = 0; i<num_particles; i++)
-    {
-        Particle p = p_set[i];
-        VectorXd p_pose = p.getParticleState();
-        cout << "[id: " << p.getId() << "] [pose: " << p_pose(0) << ", " <<  p_pose(1)<< ", " << p_pose(2) << "] ";
-        cout << "[orientation: " << p_pose(3) << ", " << p_pose(4) << ", " << p_pose(5) << "] " << endl;
-    }
-    cout << "--------------------------------------------------------------------------------" << endl << endl;
 
     // init header timestamp
     old_msg.header.stamp = ros::Time::now();

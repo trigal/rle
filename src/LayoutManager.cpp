@@ -15,18 +15,30 @@
 using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
-const double PI = 3.14159265358979323846;
-const double PI_TIMES_2 = 2.0 * PI;
 
-double normalize_augusto(double z)
+
+/**
+ * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
+ * @param z	the angle to normalize
+ * @return an equivalent angle in the range (-Pi, Pi]
+ */
+double normalize_angle(double z)
 {
   return atan2(sin(z),cos(z));
 }
+
+/**
+ * Computes the unoriented smallest difference between two angles.
+ *
+ * @param a the angle of one vector
+ * @param b the angle of the other vector
+ * @return the angle (in radians) between the two vectors (in range [0, Pi] )
+ */
 double angle_diff(double a, double b)
 {
   double d1, d2;
-  a = normalize_augusto(a);
-  b = normalize_augusto(b);
+  a = normalize_angle(a);
+  b = normalize_angle(b);
   d1 = a-b;
   d2 = 2*M_PI - fabs(d1);
   if(d1 > 0)
@@ -36,54 +48,6 @@ double angle_diff(double a, double b)
   else
     return(d2);
 }
-
-double angleDiff(double firstAngle, double secondAngle)
-{
-    double difference = secondAngle - firstAngle;
-    while (difference < -PI) difference += PI_TIMES_2;
-    while (difference > PI) difference -= PI_TIMES_2;
-    return difference;
-}
-
-/**
- * Computes the unoriented smallest difference between two angles.
- * The angles are assumed to be normalized to the range [-Pi, Pi]. The result will be in the range [0, Pi].
- *
- * @param ang1 the angle of one vector (in [-Pi, Pi] )
- * @param ang2 	the angle of the other vector (in range [-Pi, Pi] )
- * @return the angle (in radians) between the two vectors (in range [0, Pi] )
- */
-double diff_2(double ang1, double ang2) /// from GEOS library
-{
-    double delAngle;
-
-    if (ang1 < ang2) {
-        delAngle = ang2 - ang1;
-    } else {
-        delAngle = ang1 - ang2;
-    }
-
-    if (delAngle > PI) {
-        delAngle = (2 * PI) - delAngle;
-    }
-
-    return delAngle;
-}
-
-/**
- * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
- * @param angle	the angle to normalize
- * @return an equivalent angle in the range (-Pi, Pi]
- */
-double normalize_2(double angle)
-{
-    while (angle > PI)
-        angle -= PI_TIMES_2;
-    while (angle <= -PI)
-        angle += PI_TIMES_2;
-    return angle;
-}
-
 
 /**
  * @brief LayoutManager::setParticlesDelta
@@ -175,19 +139,16 @@ void LayoutManager::particleEstimation(Particle & particle){
     VectorXd measure_difference = measure_t - measure_t_pred;
 
     // DEBUG:
-    cout << endl << "[measure_t orientation: " << measure_t(3) << ", " << measure_t(4) << ", " << measure_t(5) << "] "  << endl;// << measure_t(3) << ", " << endl;<< measure_t(4) << ", " << measure_t(5) << ", " << measure_t(6) << ", " << measure_t(7) << ", " << measure_t(8) << ", " << measure_t(9) << ", " << measure_t(10) << ", " << measure_t(11) << "] "  << endl;
-    cout << "[measure_t_pred orientation: " << measure_t_pred(3) << ", " << measure_t_pred(4) << ", " << measure_t_pred(5) << "] " << endl; // << measure_t_pred(3) << ", " << measure_t_pred(4) << ", " << measure_t_pred(5) << ", " << measure_t_pred(6) << ", " << measure_t_pred(7) << ", " << measure_t_pred(8) << ", " << measure_t_pred(9) << ", " << measure_t_pred(10) << ", " << measure_t_pred(11) << "] "  << endl;
+//    cout << endl << "[measure_t orientation: " << measure_t(3) << ", " << measure_t(4) << ", " << measure_t(5) << "] "  << endl;// << measure_t(3) << ", " << endl;<< measure_t(4) << ", " << measure_t(5) << ", " << measure_t(6) << ", " << measure_t(7) << ", " << measure_t(8) << ", " << measure_t(9) << ", " << measure_t(10) << ", " << measure_t(11) << "] "  << endl;
+//    cout << "[measure_t_pred orientation: " << measure_t_pred(3) << ", " << measure_t_pred(4) << ", " << measure_t_pred(5) << "] " << endl; // << measure_t_pred(3) << ", " << measure_t_pred(4) << ", " << measure_t_pred(5) << ", " << measure_t_pred(6) << ", " << measure_t_pred(7) << ", " << measure_t_pred(8) << ", " << measure_t_pred(9) << ", " << measure_t_pred(10) << ", " << measure_t_pred(11) << "] "  << endl;
 //    cout << "[K_t] " << endl << K_t << endl << endl;
-    cout << "[K_t orientation: " << K_t(3,3) << ", " << K_t(4,4) << ", " << K_t(5,5) << "] " << endl;
+//    cout << "[K_t orientation: " << K_t(3,3) << ", " << K_t(4,4) << ", " << K_t(5,5) << "] " << endl;
 
 
     // fix difference between angles
     double diff_roll = angle_diff( roll,roll_pred);
     double diff_pitch = angle_diff(  pitch ,pitch_pred);
     double diff_yaw = angle_diff( yaw ,yaw_pred);
-
-//    cout << "[norm orient: " << normalize_2(roll) << ", "<< normalize_2(pitch) << ", "<< normalize_2(yaw) << "] " << endl;
-//    cout << "[orient_prec: " << normalize_2(roll_pred) << ", "<< normalize_2(pitch_pred) << ", "<< normalize_2(yaw_pred) << "] [norm orient: " << normalize_2(measure_t_pred(3)) << ", "<< normalize_2(measure_t_pred(4)) << ", "<< normalize_2(measure_t_pred(5)) << "] " << endl;
 
     // fix angles differences
     measure_difference(3) = diff_roll;
@@ -196,21 +157,21 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // kalman gain
     VectorXd kalman_per_msr_diff = K_t * measure_difference;
-    kalman_per_msr_diff(3) = normalize_2(kalman_per_msr_diff(3));
-    kalman_per_msr_diff(4) = normalize_2(kalman_per_msr_diff(4));
-    kalman_per_msr_diff(5) = normalize_2(kalman_per_msr_diff(5));
+    kalman_per_msr_diff(3) =    (kalman_per_msr_diff(3));
+    kalman_per_msr_diff(4) = normalize_angle(kalman_per_msr_diff(4));
+    kalman_per_msr_diff(5) = normalize_angle(kalman_per_msr_diff(5));
 
-    cout << "[measure_difference orientation: " << measure_difference(3) << ", " << measure_difference(4) << ", " << measure_difference(5) << "] " << endl;
-    cout << "[K_t * msr. diff. orientation: " << kalman_per_msr_diff(3) << ", " << kalman_per_msr_diff(4) << ", " << kalman_per_msr_diff(5) << "] " << endl;
+//    cout << "[measure_difference orientation: " << measure_difference(3) << ", " << measure_difference(4) << ", " << measure_difference(5) << "] " << endl;
+//    cout << "[K_t * msr. diff. orientation: " << kalman_per_msr_diff(3) << ", " << kalman_per_msr_diff(4) << ", " << kalman_per_msr_diff(5) << "] " << endl;
 
     // calculate belief
     VectorXd stato_filtrato = stato_t_predetto + kalman_per_msr_diff;
 	E_t = (MatrixXd::Identity(12,12) - K_t * H_t) * E_t_pred;
 
     // normalize angles between -PI and PI because of the sum: stato_t_predetto + (...)
-    stato_filtrato(3) = normalize_2(stato_filtrato(3));
-    stato_filtrato(4) = normalize_2(stato_filtrato(4));
-    stato_filtrato(5) = normalize_2(stato_filtrato(5));
+    stato_filtrato(3) = normalize_angle(stato_filtrato(3));
+    stato_filtrato(4) = normalize_angle(stato_filtrato(4));
+    stato_filtrato(5) = normalize_angle(stato_filtrato(5));
 
     // update particle values
     particle.setParticleState(stato_filtrato);
@@ -218,10 +179,10 @@ void LayoutManager::particleEstimation(Particle & particle){
 
 
     //DEBUG:stampare stato_t_predetto
-    cout << endl << "[stato_t ] [pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << "] [orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << "] "<< endl;
-    cout << "[stato_t_predetto ] [pose: " << stato_t_predetto(0) << ", " <<  stato_t_predetto(1) <<  ", " << stato_t_predetto(2) << "] [orientation: " << stato_t_predetto(3) <<  ", " << stato_t_predetto(4) <<  ", " << stato_t_predetto(5) << "] "<< endl;
     cout << "[stato_t_filtrato ] [pose: " << stato_filtrato(0) << ", " <<  stato_filtrato(1) <<  ", " << stato_filtrato(2) << "] [orientation: " << stato_filtrato(3) <<  ", " << stato_filtrato(4) <<  ", " << stato_filtrato(5) << "] "<< endl;
-    cout << "--------------------------------------------------------------------------------" << endl;
+//    cout << endl << "[stato_t ] [pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << "] [orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << "] "<< endl;
+//    cout << "[stato_t_predetto ] [pose: " << stato_t_predetto(0) << ", " <<  stato_t_predetto(1) <<  ", " << stato_t_predetto(2) << "] [orientation: " << stato_t_predetto(3) <<  ", " << stato_t_predetto(4) <<  ", " << stato_t_predetto(5) << "] "<< endl;
+//    cout << "--------------------------------------------------------------------------------" << endl;
 }
 
 
