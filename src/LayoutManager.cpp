@@ -6,6 +6,7 @@
  */
 
 #include "Odometry.h"
+#include "Utils.h"
 #include "LayoutManager.h"
 #include "particle/Particle.h"
 #include <vector>	//used for vector
@@ -15,39 +16,6 @@
 using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
-
-
-/**
- * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
- * @param z	the angle to normalize
- * @return an equivalent angle in the range (-Pi, Pi]
- */
-double normalize_angle(double z)
-{
-  return atan2(sin(z),cos(z));
-}
-
-/**
- * Computes the unoriented smallest difference between two angles.
- *
- * @param a the angle of one vector
- * @param b the angle of the other vector
- * @return the angle (in radians) between the two vectors (in range [0, Pi] )
- */
-double angle_diff(double a, double b)
-{
-  double d1, d2;
-  a = normalize_angle(a);
-  b = normalize_angle(b);
-  d1 = a-b;
-  d2 = 2*M_PI - fabs(d1);
-  if(d1 > 0)
-    d2 *= -1.0;
-  if(fabs(d1) < fabs(d2))
-    return(d1);
-  else
-    return(d2);
-}
 
 /**
  * @brief LayoutManager::setParticlesDelta
@@ -75,7 +43,6 @@ bool LayoutManager::checkHasMoved(){
 
 /**
  *  cicle through all the particles, and call their function "propagate-components"
- *  that propagate every component of the particle
  */
 void LayoutManager::sampling(){
 	vector<Particle>::iterator itr;
@@ -93,7 +60,10 @@ void LayoutManager::componentsPerturbation(){
 
 }
 
-
+/**
+ * @brief Implementation of E.K.F. used for particle Odometry estimation
+ * @param particle
+ */
 void LayoutManager::particleEstimation(Particle & particle){
 
 	// initialize variables
@@ -104,7 +74,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 	MatrixXd E_t_pred = MatrixXd::Zero(12,12);		/// predicted sigma (state error covariance)
 
 	MatrixXd R_t = particle.mtn_model.getErrorCovariance();	/// motion error covariance
-	MatrixXd Q_t = visual_odometry.getErrorCovariance();	/// measure error covariance
+    MatrixXd Q_t = visual_odometry.getErrorCovariance();	/// measure error covariance
 
 	MatrixXd G_t = MatrixXd::Zero(12,12);	/// motion equations jacobian
 	MatrixXd H_t = MatrixXd::Zero(12,12);	/// measure equations jacobian
@@ -112,7 +82,6 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // ------- PREDICTION STEP -------
     // calcolo belief predetto:
-
     stato_t_predetto = particle.mtn_model.propagatePose(stato_t);
 
     // applicazione proprietà gaussiane:
@@ -129,7 +98,6 @@ void LayoutManager::particleEstimation(Particle & particle){
     // prepare belief calculation values:
     //VectorXd measure_t = visual_odometry.measurePose(stato_t);
     VectorXd measure_t = visual_odometry.getCurrentMeasurement();
-
     VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto); //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
 
 
@@ -149,9 +117,9 @@ void LayoutManager::particleEstimation(Particle & particle){
 
 
     // fix difference between angles
-    double diff_roll = angle_diff( roll,roll_pred);
-    double diff_pitch = angle_diff(  pitch ,pitch_pred);
-    double diff_yaw = angle_diff( yaw ,yaw_pred);
+    double diff_roll = angle_diff(roll,roll_pred);
+    double diff_pitch = angle_diff(pitch, pitch_pred);
+    double diff_yaw = angle_diff(yaw, yaw_pred);
 
     // fix angles differences
     measure_difference(3) = diff_roll;
@@ -160,7 +128,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // kalman gain
     VectorXd kalman_per_msr_diff = K_t * measure_difference;
-    kalman_per_msr_diff(3) =    (kalman_per_msr_diff(3));
+    kalman_per_msr_diff(3) = normalize_angle(kalman_per_msr_diff(3));
     kalman_per_msr_diff(4) = normalize_angle(kalman_per_msr_diff(4));
     kalman_per_msr_diff(5) = normalize_angle(kalman_per_msr_diff(5));
 
@@ -182,8 +150,13 @@ void LayoutManager::particleEstimation(Particle & particle){
 
 
     //DEBUG:stampare stato_t_predetto
-    cout << "[stato_t_filtrato ] [pose: " << stato_filtrato(0) << ", " <<  stato_filtrato(1) <<  ", " << stato_filtrato(2) << "] [orientation: " << stato_filtrato(3) <<  ", " << stato_filtrato(4) <<  ", " << stato_filtrato(5) << "] "<< endl;
-//    cout << endl << "[stato_t ] [pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << "] [orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << "] "<< endl;
+//    cout << "[stato_t ]" << endl;
+//    cout << "   pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << " orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << endl;
+//    cout << "   linear: " << stato_t(6) << ", " <<  stato_t(7) <<  ", " << stato_t(8) << " angular: " << stato_t(9) <<  ", " << stato_t(10) <<  ", " << stato_t(11) << endl;
+//    cout << endl << endl;
+//    cout << "[stato_t_filtrato ]" << endl;
+//    cout << "   pose: " << stato_filtrato(0) << ", " <<  stato_filtrato(1) <<  ", " << stato_filtrato(2) << " orientation: " << stato_filtrato(3) <<  ", " << stato_filtrato(4) <<  ", " << stato_filtrato(5) << endl;
+//    cout << "   linear: " << stato_filtrato(6) << ", " <<  stato_filtrato(7) <<  ", " << stato_filtrato(8) << " angular: " << stato_filtrato(9) <<  ", " << stato_filtrato(10) <<  ", " << stato_filtrato(11) << endl;
 //    cout << "[stato_t_predetto ] [pose: " << stato_t_predetto(0) << ", " <<  stato_t_predetto(1) <<  ", " << stato_t_predetto(2) << "] [orientation: " << stato_t_predetto(3) <<  ", " << stato_t_predetto(4) <<  ", " << stato_t_predetto(5) << "] "<< endl;
 //    cout << "--------------------------------------------------------------------------------" << endl;
 }
@@ -200,7 +173,8 @@ void LayoutManager::componentsEstimation(){
 	// STEP 3: WEIGHT LAYOUT-COMPONENTS
 	vector<Particle>::iterator itr;
 	for( itr = current_layout.begin(); itr != current_layout.end(); itr++ ){
-        itr->calculateComponentsWeight();  /// andiamo a vedere quanto bene fitta la componente della singola particella nella realtà
+        /// andiamo a vedere quanto bene fitta la componente della singola particella nella realtà
+        itr->calculateComponentsWeight();
 	}
 }
 
@@ -217,7 +191,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
 		// ------------------------------------------------------------------------------- //
 
 		// -------------- sampling + perturbation + weight layout-components ------------- //
-		//this->componentsEstimation();
+        this->componentsEstimation();
 		// ------------------------------------------------------------------------------- //
 
 		// ------------------------------ calculate score -------------------------------- //

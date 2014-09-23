@@ -27,8 +27,6 @@ using std::vector;
                  // - score -> confronto tra predict ed eq. di misura
                  // - weight -> quanto pesa nella somma di tutte le componenti
  *
- *		pose: 12x1 6DoF + 6 speed
- *		covarianza 12x12
  *
  * - CHECK HAS MOVED: norm(pose_t - pose_t-1) < threshold
  *
@@ -37,8 +35,6 @@ using std::vector;
  *	EQUAZIONE DI MISURA:
  *		mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
  *		L'equazione di misura sarà una matrice (vedi foglio). La derivata è paro paro
- *
- *		correggere descrizione calcolo score
  *
  *--------------------------------------------------------------------------------------------------------
  *	CALCOLO V_t+1
@@ -55,8 +51,8 @@ using std::vector;
  *----------------------------------------------------------------------------------------------
  *
  * DA FARE:
- * - trovare il bug dell'angolo
- * - ritrovare la mail con la specifica del calcolo score
+ * - trovare nuovo motion model
+ * - implementare particle filter
  *----------------------------------------------------------------------------------------------
  */
 
@@ -72,7 +68,6 @@ public:
     Odometry visual_odometry;	/// used for getting car motion
 
 private:
-
     bool is_new_detection;				/// indicates detectors found new detections
     vector<double> score_vector;
     vector<Particle> current_layout;	/// stores the current layout

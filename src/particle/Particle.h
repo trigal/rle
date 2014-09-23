@@ -22,7 +22,7 @@ private:
 	unsigned int id;			/// particle id
 	VectorXd particle_state;	/// particle state (12x1: 6DoF pose + 6 Speed Derivates)
 	MatrixXd particle_sigma;	/// particle state error covariance (12x12)
-	vector<ParticleComponent*> particle_components; /// array of particle-components
+    vector<ParticleComponent> particle_components; /// array of particle-components
 
 public:
 	MotionModel mtn_model;	/// particle motion model
@@ -46,7 +46,7 @@ public:
 	 * Add new component to the particle
 	 * @param component
 	 */
-	void addComponent(ParticleComponent* component){
+    void addComponent(ParticleComponent component){
 		this->particle_components.push_back(component);
 	}
 
@@ -54,7 +54,7 @@ public:
 	 * Remove the selected component from the particle
 	 * @param component
 	 */
-	void removeComponent(ParticleComponent* component){
+    void removeComponent(ParticleComponent component){
 //		this->particleComponents.erase(component);
 //
 //
@@ -74,7 +74,7 @@ public:
 		this->id = id;
 	}
 
-	vector<ParticleComponent*> getParticleComponents(){
+    vector<ParticleComponent> getParticleComponents(){
 		return particle_components;
 	}
 
@@ -99,12 +99,12 @@ public:
 		this->id = 0;
 		this->particle_state = VectorXd::Zero(12);
 		this->particle_sigma = MatrixXd::Zero(12,12);
-	};
-	Particle(unsigned int num, MotionModel& mt_md) : id(num), mtn_model(mt_md) {};
+    }
+    Particle(unsigned int num, MotionModel& mt_md) : id(num), mtn_model(mt_md) {}
 	Particle(unsigned int num, VectorXd& state, MotionModel& mt_md )
-		: id(num), particle_state(state), mtn_model(mt_md)  {};
+        : id(num), particle_state(state), mtn_model(mt_md)  {}
 	Particle(unsigned int num, VectorXd& state, MatrixXd& state_sigma, MotionModel& mt_md)
-		: id(num), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {};
+        : id(num), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {}
 
 	//destructor
 	virtual ~Particle() {

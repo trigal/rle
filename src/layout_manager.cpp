@@ -27,10 +27,10 @@ using namespace std;
 
 // layout-manager variables
 bool first_msg = true;
-int num_particles = 100;
+int num_particles = 1;
 int step = 0;
 double mtn_uncertainty = 0.05;
-double measure_uncertainty = 0.5;
+double measure_uncertainty = 0.05;
 MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_uncertainty*mtn_uncertainty); /// used for initialize mtn_model
 MatrixXd odom_err = MatrixXd::Identity(12,12) * (measure_uncertainty*measure_uncertainty); /// used for initialize visual_odometry
 Odometry visual_odometry;
@@ -88,6 +88,7 @@ double getNoise(double err);
  * @return
  */
 VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_err, double orientation_err, double speed_err);
+
 /******************************************************************************************************/
 
 /**
@@ -101,6 +102,29 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     cout << "--------------------------------------------------------------------------------" << endl;
     cout << "[step: " << step << "]" << endl; step++;
 
+
+/** stampo misura arrivata ************************************************************************** */
+    std::cout << " ******* MSG ARRIVED. *******" << std::endl;
+    std::cout << " Position:" << std::endl;
+    std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+    std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+    std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+    std::cout << " Orientation quaternion: " << std::endl;
+    std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+    std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+    std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+    std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+    std::cout << " Linear speed: " << std::endl;
+    std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+    std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+    std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+    std::cout << " Angular speed: " << std::endl;
+    std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+    std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+    std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+    std::cout << std::endl;
+/** ************************************************************************************************* */
+
     // if it's our first incoming odometry msg, just use it as particle-set poses initializer
     // (filter won't be called)
     if(first_msg){
@@ -112,7 +136,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
             // our first particle will have same position of the odom msg
             if(i!=0){
+
                 // add some random noise
+                srand(time(0));
                 new_pose = addOffsetToVectorXd(new_pose, measure_uncertainty, measure_uncertainty, measure_uncertainty);
 
                 // update cov
@@ -122,12 +148,33 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
             // push the particle into the p_set
             part.setParticleState(new_pose);
+
+            // let's add a sample component in same position of the particle
+            ParticleComponent p_comp0(part.getId(), 0, new_pose);
+            part.addComponent(p_comp0);
+            ParticleComponent p_comp1(part.getId(), 1, new_pose);
+            part.addComponent(p_comp1);
+            ParticleComponent p_comp2(part.getId(), 2, new_pose);
+            part.addComponent(p_comp2);
+
+            // push created particle into particle-set
             particle_set.push_back(part);
 
             // set layout manager particle set
             layout_manager.setCurrentLayout(particle_set);
         }
         first_msg=false;
+
+        // update old_msg
+        old_msg = msg;
+
+        // publish it!
+        geometry_msgs::PoseArray array_msg;
+        array_msg.header.stamp = msg.header.stamp;
+        array_msg.header.frame_id = "robot_frame";
+        array_msg.poses.push_back(msg.pose.pose);
+        array_pub.publish(array_msg);
+
         return;
     }
 
@@ -167,6 +214,37 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     // Publish it!
     array_pub.publish(array_msg);
+
+
+    /** stampo misura filtrata ************************************************************************** */
+        nav_msgs::Odometry odom;
+        Particle p = particles.at(0);
+        odom = getOdomFromPoseAndSigma(p.getParticleState(), p.getParticleSigma());
+        std::cout << " ******* FILTRO *******" << std::endl;
+        std::cout << " Position:" << std::endl;
+        std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
+        std::cout << "  y: " << odom.pose.pose.position.y << std::endl;
+        std::cout << "  z: " << odom.pose.pose.position.z << std::endl;
+        std::cout << " Orientation quaternion: " << std::endl;
+        std::cout << "  w: " << odom.pose.pose.orientation.w << std::endl;
+        std::cout << "  x: " << odom.pose.pose.orientation.x << std::endl;
+        std::cout << "  y: " << odom.pose.pose.orientation.y << std::endl;
+        std::cout << "  z: " << odom.pose.pose.orientation.z << std::endl;
+        std::cout << " Linear speed: " << std::endl;
+        std::cout << "  x: " << odom.twist.twist.linear.x << std::endl;
+        std::cout << "  y: " << odom.twist.twist.linear.y << std::endl;
+        std::cout << "  z: " << odom.twist.twist.linear.z << std::endl;
+        std::cout << " Angular speed: " << std::endl;
+        std::cout << "  x: " << odom.twist.twist.angular.x << std::endl;
+        std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
+        std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
+        std::cout << std::endl;
+    /** ************************************************************************************************* */
+
+
+
+
+
     // --------------------------------------------------------------------------------------
 }
 
@@ -177,6 +255,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
  */
 int main(int argc, char **argv)
 {
+    ROS_INFO_STREAM("LAYOUT MANAGER STARTED");
 	// init ROS and NodeHandle
 	ros::init(argc, argv, "layout_manager");
 	ros::NodeHandle n;
@@ -190,11 +269,11 @@ int main(int argc, char **argv)
 
 	// init subscriber
     //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 2, odometryCallback);
-    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 2, odometryCallback);
+//    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
+    ros::Subscriber sub = n.subscribe("mapper/odometry", 1, odometryCallback);
 
     // init publishers
-    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",2);
-
+    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
     ros::spin();
 	return 0;
 }
@@ -273,7 +352,6 @@ MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg){
 	return cov;
 }
 
-
 nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd& sigma){
 
 	// istantiate odom
@@ -346,9 +424,10 @@ VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_offset, doubl
     vec(0) += getNoise(position_offset);
     vec(1) += getNoise(position_offset);
     vec(2) += getNoise(position_offset);
-    vec(3) += getNoise(orientation_offset);
-    vec(4) += getNoise(orientation_offset);
-    vec(5) += getNoise(orientation_offset);
+
+    vec(3) += getNoise(orientation_offset); vec(3) = atan2(sin(vec(3)),cos(vec(3)));
+    vec(4) += getNoise(orientation_offset); vec(4) = atan2(sin(vec(4)),cos(vec(4)));
+    vec(5) += getNoise(orientation_offset); vec(5) = atan2(sin(vec(5)),cos(vec(5)));
 
     vec(6) += getNoise(speed_offset);
     vec(7) += getNoise(speed_offset);
@@ -368,8 +447,13 @@ geometry_msgs::Pose getPoseFromVector(const VectorXd& msg){
    pose.position.y = msg(1);
    pose.position.z = msg(2);
 
+   //normalize orientation
+   double roll = atan2(sin(msg(3)),cos(msg(3)));
+   double pitch = atan2(sin(msg(4)),cos(msg(4)));
+   double yaw = atan2(sin(msg(5)),cos(msg(5)));
+
    //set orientation
-   tf::Quaternion q = tf::createQuaternionFromRPY(msg(3), msg(4), msg(5));
+   tf::Quaternion q = tf::createQuaternionFromRPY(roll, pitch, yaw);
    tf::quaternionTFToMsg(q, pose.orientation);
 
    return pose;

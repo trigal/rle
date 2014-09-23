@@ -42,9 +42,36 @@ double getError(double err){
  * @brief this function is used by the particle filter in order to propagate components poses
  * @param p_component
  */
-void MotionModel::propagateComponent(ParticleComponent* p_component){
+VectorXd MotionModel::propagateComponent(ParticleComponent p_component){
 	//motion-model
-	cout << "Propagating component" << endl;
+    cout << "Propagating component ID: " << p_component.getComponentId()
+         << ", living in Particle ID: "<< p_component.getParticleId() << endl;
+
+    VectorXd pose = p_component.getComponentPose();
+    pose = this->propagatePose(pose);
+
+
+//    std::cout << " ******* PROPAGATED COMPONENT *******" << std::endl;
+//    std::cout << " Position:" << std::endl;
+//    std::cout << "  x: " << pose(0) << std::endl;
+//    std::cout << "  y: " << pose(1) << std::endl;
+//    std::cout << "  z: " << pose(2) << std::endl;
+//    std::cout << " Orientation quaternion: " << std::endl;
+//    std::cout << "  roll: " << pose(3) << std::endl;
+//    std::cout << "  pitch: " << pose(4) << std::endl;
+//    std::cout << "  yaw: " << pose(5) << std::endl;
+////    std::cout << "  z: " << pose(6) << std::endl;
+//    std::cout << " Linear speed: " << std::endl;
+//    std::cout << "  x: " << pose(6) << std::endl;
+//    std::cout << "  y: " << pose(7) << std::endl;
+//    std::cout << "  z: " << pose(8) << std::endl;
+//    std::cout << " Angular speed: " << std::endl;
+//    std::cout << "  x: " << pose(9) << std::endl;
+//    std::cout << "  y: " << pose(10) << std::endl;
+//    std::cout << "  z: " << pose(11) << std::endl;
+//    std::cout << std::endl;
+
+    return pose;
 }
 
 
@@ -84,8 +111,8 @@ VectorXd MotionModel::propagatePose(VectorXd& p_state){
     }
 
 	// propagate p_pose
-    p_pose = p_pose + (p_vel * delta_t) + pose_error; //random
-    p_vel = p_vel + vel_error;
+    p_pose = p_pose + (p_vel * delta_t);// + pose_error; //random
+    p_vel = p_vel;// + vel_error;
 
     // normalize angles -PI, PI
     p_pose(3) = normalize(p_pose(3));

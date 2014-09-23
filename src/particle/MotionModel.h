@@ -37,15 +37,26 @@ private:
 
 public:
     double delta_t;	/// Time interval between t and t+1 (seconds)
+
 	/**
 	 * This function will propagate the particle component using the defined
 	 * motion-model inside MotionModel.cpp
 	 * @param p_component
 	 */
-	void propagateComponent(ParticleComponent* p_component);
+    VectorXd propagateComponent(ParticleComponent p_component);
 
+    /**
+     * @brief propagatePose
+     * @param particle_state
+     * @return
+     */
     VectorXd propagatePose(VectorXd& particle_state);
 
+    /**
+     * @brief motionJacobi
+     * @param p_state_predicted
+     * @return
+     */
     MatrixXd motionJacobi(VectorXd& p_state_predicted);
 
 	/**

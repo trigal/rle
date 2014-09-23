@@ -5,7 +5,7 @@
  *      Author: dario
  */
 
-// This header defines the standard ROS classes
+#include "Utils.h"
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseArray.h>
@@ -33,26 +33,14 @@ tf::TransformListener* tf_;
 // ***********************************************************************************************
 
 // const *****************************************************************************************
-double odom_err = 0.05*0.05; 	 /// error covariance 0.5^2
-double odom_rate = 2;		 /// odometry fps (Hz)
+double odom_err = 0.05*0.05; /// error covariance (uncertainty^2)
+double odom_rate = 1;		 /// odometry fps (Hz)
 // ***********************************************************************************************
 
 // functions *************************************************************************************
 nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step);
 double getNoise(double odom_err);
 geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t);
-double rad2deg (double alpha) { return (alpha * 57.29578); }    /// from PCL library
-double deg2rad (double alpha) { return (alpha * 0.017453293); } /// from PCL library
-double normalize(double angle);         /// from GEOS library
-const double PI = 3.14159265358979323846;
-const double PI_TIMES_2 = 2.0 * 3.14159265358979323846;
-double angleDiff(double firstAngle, double secondAngle)
-{
-    double difference = secondAngle - firstAngle;
-    while (difference < -PI) difference += PI_TIMES_2;
-    while (difference > PI) difference -= PI_TIMES_2;
-    return difference;
-}
 // ***********************************************************************************************
 
 /**
@@ -71,7 +59,8 @@ int main(int argc, char **argv)
     // Create publisher object
     ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom_no_error",1);
     ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odom",1);
-    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/pose_array_no_error",1);
+    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/single_pose_array",1);
+    ros::Publisher pub4 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/single_pose_array_no_err",1);
 
     // 30fps -> 30Hz
     ros::Rate rate(odom_rate);
@@ -104,7 +93,7 @@ int main(int argc, char **argv)
         // rotate (before rotation, save T into a temp variable)
         temp_t = t;
         t=t*c;
-        //t.setRotation(t.getRotation().normalized());
+        t.setRotation(t.getRotation().normalized());
         tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
         // build msg
@@ -121,7 +110,7 @@ int main(int argc, char **argv)
         msg.pose.pose.position.z = t.getOrigin().getZ();
 
         // set orientation
-        tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
+        tf::quaternionTFToMsg(t.getRotation().normalized(), msg.pose.pose.orientation);
 
         // set speed
         msg.twist.twist = getSpeed( 1/odom_rate, temp_t, t);
@@ -133,7 +122,17 @@ int main(int argc, char **argv)
         nav_msgs::Odometry noisy_msg = addNoiseToOdom(msg);
         pub2.publish(noisy_msg);
 
-        // publish single posearray with no error on topic "visual_odometry/pose_array_no_err"
+        // publish single posearray with no error on topic "visual_odometry/single_pose_array_no_err"
+        geometry_msgs::PoseArray array;
+        geometry_msgs::Pose p;
+        p = msg.pose.pose;
+        array.poses.push_back(p);
+        array.header.stamp = current_time;
+        array.header.frame_id = "robot_frame";
+
+        pub4.publish(array);
+
+        // publish single posearray with error on topic "visual_odometry/single_pose_array"
         geometry_msgs::PoseArray p_array;
         geometry_msgs::Pose p_pose;
         p_pose = noisy_msg.pose.pose;
@@ -142,6 +141,7 @@ int main(int argc, char **argv)
         p_array.header.frame_id = "robot_frame";
 
         pub3.publish(p_array);
+
 
         ros::spinOnce();
 
@@ -160,9 +160,6 @@ int main(int argc, char **argv)
 
         // wait until next iteration
         rate.sleep();
-//        int tmp;
-//        cin >> tmp;
-//        cin.get();
     }
 }
 
@@ -218,6 +215,11 @@ nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step)
     noisy_step.pose.pose.orientation.y += getNoise(noisy_step.pose.covariance.elems[28]);
     noisy_step.pose.pose.orientation.z += getNoise(noisy_step.pose.covariance.elems[35]);
 
+    //normalize angles
+    noisy_step.pose.pose.orientation.x = normalize_angle(noisy_step.pose.pose.orientation.x);
+    noisy_step.pose.pose.orientation.y = normalize_angle(noisy_step.pose.pose.orientation.y);
+    noisy_step.pose.pose.orientation.z = normalize_angle(noisy_step.pose.pose.orientation.z);
+
     noisy_step.twist.twist.angular.x += getNoise(noisy_step.twist.covariance.elems[0]);
     noisy_step.twist.twist.angular.y += getNoise(noisy_step.twist.covariance.elems[7]);
     noisy_step.twist.twist.angular.z += getNoise(noisy_step.twist.covariance.elems[14]);
@@ -246,24 +248,9 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
-    speed.angular.x = ( angleDiff(normalize(roll_prec), normalize(roll_t)) ) / rate;
-    speed.angular.y = ( angleDiff(normalize(pitch_prec), normalize(pitch_t)) ) / rate;
-    speed.angular.z = ( angleDiff(normalize(yaw_prec), normalize(yaw_t)) ) / rate;
+    speed.angular.x = ( angle_diff(roll_t, roll_prec) ) / rate;
+    speed.angular.y = ( angle_diff(pitch_t, pitch_prec) ) / rate;
+    speed.angular.z = ( angle_diff(yaw_t, yaw_prec) ) / rate;
 
     return speed;
-}
-
-
-/**
- * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
- * @param angle	the angle to normalize
- * @return an equivalent angle in the range (-Pi, Pi]
- */
-double normalize(double angle)
-{
-    while (angle > PI)
-        angle -= PI_TIMES_2;
-    while (angle <= -PI)
-        angle += PI_TIMES_2;
-    return angle;
 }

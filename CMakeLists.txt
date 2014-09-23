@@ -10,6 +10,11 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
+#find_package( PCL REQUIRED )
+#include_directories(  ${catkin_INCLUDE_DIRS}  ${PCL_INCLUDE_DIRS} )
+#link_directories(${PCL_LIBRARY_DIRS})
+#add_definitions(${PCL_DEFINITIONS})
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -106,6 +111,7 @@ catkin_package(
 add_executable(visual_odometry_fake 
 	src/visual_odometry_fake.cpp 
 )
+
 add_executable(layout_manager 
 	src/layout_manager.cpp 
 	src/LayoutManager.cpp 
@@ -113,6 +119,10 @@ add_executable(layout_manager
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp
 	src/particle/ParticleComponent.cpp
+)
+
+add_executable(nvm
+	src/nvm_publisher.cpp
 )
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -124,6 +134,11 @@ target_link_libraries(visual_odometry_fake
 )
 target_link_libraries(layout_manager
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(nvm
+#	${PCL_LIBRARIES}
+  	${catkin_LIBRARIES}
 )
 
 #############

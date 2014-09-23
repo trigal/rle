@@ -14,21 +14,28 @@
 using namespace Eigen;
 using std::vector;
 
-void Particle::propagateParticleComponents(){
-	vector<ParticleComponent*>::iterator itr;
-	for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
-		ParticleComponent* p_comp = *itr;
 
-		mtn_model.propagateComponent(p_comp);
-	}
+/**
+ * Update every particle's components pose using motion model equations
+ */
+void Particle::propagateParticleComponents(){
+    vector<ParticleComponent>::iterator itr;
+    for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
+
+        // propagate component pose with motion model equations
+        VectorXd new_pose = mtn_model.propagateComponent(*itr);
+
+        // update pose with predicted one
+        itr->setComponentPose(new_pose);
+    }
 }
 
 void Particle::calculateComponentsWeight(){
-	vector<ParticleComponent*>::iterator itr;
-	for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
-		ParticleComponent* p_comp = *itr;
+//	vector<ParticleComponent*>::iterator itr;
+//	for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
+//		ParticleComponent* p_comp = *itr;
 
-		p_comp->calculateScore();
-	}
+//		p_comp->calculateScore();
+//	}
 }
 
