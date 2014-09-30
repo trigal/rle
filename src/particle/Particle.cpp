@@ -5,7 +5,7 @@
  *      Author: dario
  */
 
-#include "ParticleComponent.h"
+#include "LayoutComponent.h"
 #include "Particle.h"
 #include "MotionModel.h"
 #include <vector>
@@ -18,24 +18,17 @@ using std::vector;
 /**
  * Update every particle's components pose using motion model equations
  */
-void Particle::propagateParticleComponents(){
-    vector<ParticleComponent>::iterator itr;
+void Particle::propagateLayoutComponents(){
+    vector<LayoutComponent*>::iterator itr;
     for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
 
         // propagate component pose with motion model equations
-        VectorXd new_pose = mtn_model.propagateComponent(*itr);
+        VectorXd pc_state = (*itr)->getComponentState();
+        VectorXd new_pose = mtn_model.propagateComponent(pc_state);
 
         // update pose with predicted one
-        itr->setComponentPose(new_pose);
+        (*itr)->setComponentState(new_pose);
     }
 }
 
-void Particle::calculateComponentsWeight(){
-//	vector<ParticleComponent*>::iterator itr;
-//	for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
-//		ParticleComponent* p_comp = *itr;
-
-//		p_comp->calculateScore();
-//	}
-}
 

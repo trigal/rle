@@ -8,7 +8,7 @@
 #ifndef MOTIONMODEL_H_
 #define MOTIONMODEL_H_
 
-#include "ParticleComponent.h"
+#include "LayoutComponent.h"
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <iostream>
@@ -36,14 +36,13 @@ private:
 	void decadencyMotionModel();
 
 public:
-    double delta_t;	/// Time interval between t and t+1 (seconds)
 
 	/**
 	 * This function will propagate the particle component using the defined
 	 * motion-model inside MotionModel.cpp
 	 * @param p_component
 	 */
-    VectorXd propagateComponent(ParticleComponent p_component);
+    VectorXd propagateComponent(VectorXd& pc_state);
 
     /**
      * @brief propagatePose
@@ -78,33 +77,28 @@ public:
 	 * Returns on console a string of current motion model values
 	 */
 	void toString(){
-		cout << "Motion model, delta_t = " << delta_t << " error covariance = " << endl;
+        cout << "Motion model, error covariance = " << endl;
 		cout << error_covariance << endl;
 	}
 
 	/**
-	 * Istantiate MotionModel with the given error covariance, and delta_t to 30fps if it's not passed as argument
-	 * @param cov
-	 * @param dt
+     * Istantiate MotionModel with the given error covariance
+     * @param cov
 	 */
-    MotionModel(const MatrixXd& cov) : error_covariance(cov), delta_t(0.03333){}
-    MotionModel(const MatrixXd& cov, const double dt) : error_covariance(cov), delta_t(dt){}
+    MotionModel(const MatrixXd& cov) : error_covariance(cov) {}
 
 	/**
 	 * Default constructor
 	 */
-	MotionModel() {
-		// Sets delta_t as 30fps -> 33.33 milliseconds = 0.03333 seconds
-		delta_t = 0.03333;
-
+    MotionModel() {
 		// Sets the error covariance to zero
 		MatrixXd cov = MatrixXd::Zero(12,12);
 		error_covariance = cov;
     }
 
 	//destructor
-	virtual ~MotionModel(){
-		//error_covariance.resize(0,0);
+    ~MotionModel(){
+        error_covariance.resize(0,0);
     }
 };
 

@@ -50,6 +50,8 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
  */
 int main(int argc, char **argv)
 {
+    ROS_INFO_STREAM("VISUAL ODOMETRY FAKE STARTED");
+
 	// Initialize the ROS system
 	ros::init(argc, argv, "visual_odometry");
 

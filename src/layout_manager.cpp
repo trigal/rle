@@ -15,6 +15,9 @@
 #include <iostream>
 #include <math.h>
 #include <boost/assign.hpp>
+#include "particle/LayoutComponent_Building.h"
+#include "particle/LayoutComponent_RoadLane.h"
+#include "particle/LayoutComponent_Crossing.h"
 #include "particle/MotionModel.h"
 #include "particle/Particle.h"
 #include "LayoutManager.h"
@@ -25,22 +28,27 @@
 using namespace Eigen;
 using namespace std;
 
-// layout-manager variables
-bool first_msg = true;
+// layout-manager settings
 int num_particles = 1;
-int step = 0;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
+
+// init variables
+bool first_msg = true;
+int step = 0;
 MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_uncertainty*mtn_uncertainty); /// used for initialize mtn_model
 MatrixXd odom_err = MatrixXd::Identity(12,12) * (measure_uncertainty*measure_uncertainty); /// used for initialize visual_odometry
 Odometry visual_odometry;
 VectorXd p_pose = VectorXd::Zero(12);
 MatrixXd p_sigma = MatrixXd::Zero(12,12);
-MotionModel mtn_model(mtn_err, 1);
+MotionModel mtn_model(mtn_err);
 LayoutManager layout_manager;
 ros::Publisher array_pub;
 vector<Particle> particle_set;
-nav_msgs::Odometry old_msg;
+nav_msgs::Odometry old_msg; /// used for delta_t calculation by header.stamp difference
+LayoutComponent_Building p_comp0;
+LayoutComponent_RoadLane p_comp1;
+LayoutComponent_Crossing p_comp2;
 
 /******************************************************************************************************/
 /**
@@ -150,12 +158,23 @@ void odometryCallback(const nav_msgs::Odometry& msg)
             part.setParticleState(new_pose);
 
             // let's add a sample component in same position of the particle
-            ParticleComponent p_comp0(part.getId(), 0, new_pose);
-            part.addComponent(p_comp0);
-            ParticleComponent p_comp1(part.getId(), 1, new_pose);
-            part.addComponent(p_comp1);
-            ParticleComponent p_comp2(part.getId(), 2, new_pose);
-            part.addComponent(p_comp2);
+            p_comp0.particle_id = part.getId();
+            p_comp0.component_id = 0;
+            p_comp0.component_state = new_pose;
+            p_comp0.component_cov = p_sigma;
+            part.addComponent(&p_comp0);
+
+            p_comp1.particle_id = part.getId();
+            p_comp1.component_id = 1;
+            p_comp1.component_state = new_pose;
+            p_comp1.component_cov = p_sigma;
+            part.addComponent(&p_comp1);
+
+            p_comp2.particle_id = part.getId();
+            p_comp2.component_id = 2;
+            p_comp2.component_state = new_pose;
+            p_comp2.component_cov = p_sigma;
+            part.addComponent(&p_comp2);
 
             // push created particle into particle-set
             particle_set.push_back(part);
@@ -184,9 +203,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     // calculate delta_t
     double p_delta = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
-    layout_manager.setParticlesDelta(p_delta);
-    layout_manager.visual_odometry.setCurrentMeasurement(msr_pose);
-    layout_manager.visual_odometry.setErrorCovariance(msr_cov);
+    LayoutManager::delta_t = p_delta;
+    layout_manager.setMeasureState(msr_pose);
+    layout_manager.setMeasureCov(msr_cov);
 
     // DEBUG:
     //cout << "[msr] [pose: " << msr_pose(0) << ", " <<  msr_pose(1) <<  ", " << msr_pose(2) << "] [orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
@@ -240,12 +259,6 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
         std::cout << std::endl;
     /** ************************************************************************************************* */
-
-
-
-
-
-    // --------------------------------------------------------------------------------------
 }
 
 /**
@@ -255,7 +268,6 @@ void odometryCallback(const nav_msgs::Odometry& msg)
  */
 int main(int argc, char **argv)
 {
-    ROS_INFO_STREAM("LAYOUT MANAGER STARTED");
 	// init ROS and NodeHandle
 	ros::init(argc, argv, "layout_manager");
 	ros::NodeHandle n;
@@ -268,9 +280,11 @@ int main(int argc, char **argv)
     old_msg.header.stamp = ros::Time::now();
 
 	// init subscriber
-    //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 2, odometryCallback);
-//    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
-    ros::Subscriber sub = n.subscribe("mapper/odometry", 1, odometryCallback);
+    //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 1, odometryCallback);
+    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
+    //ros::Subscriber sub = n.subscribe("mapper/odometry", 1, odometryCallback);
+
+    ROS_INFO_STREAM("LAYOUT MANAGER STARTED, LISTENING TO: " << sub.getTopic());
 
     // init publishers
     array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);

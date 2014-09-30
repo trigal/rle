@@ -118,7 +118,11 @@ add_executable(layout_manager
         src/Odometry.cpp
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp
-	src/particle/ParticleComponent.cpp
+        src/particle/LayoutComponent.cpp
+        src/particle/LayoutComponent_Building.cpp
+        src/particle/LayoutComponent_Crossing.cpp
+        src/particle/LayoutComponent_RoadLane.cpp
+        src/Utils.h
 )
 
 add_executable(nvm

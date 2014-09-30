@@ -66,20 +66,36 @@ public:
 	//da far tornare private
     void particleEstimation(Particle & particle);
     Odometry visual_odometry;	/// used for getting car motion
+    static double delta_t;
 
 private:
-    bool is_new_detection;				/// indicates detectors found new detections
+    bool new_detections;				/// indicates detectors found new detections
     vector<double> score_vector;
     vector<Particle> current_layout;	/// stores the current layout
     double motion_threshold;
+    VectorXd msr_state;
+    MatrixXd msr_cov;
 
 
-	/**
+    bool checkHasMoved();
+
+    /**
+     * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+     * STEP 2: PERTURBATE COMPONENT POSES
+     * STEP 3: WEIGHT LAYOUT-COMPONENTS
+     */
+    void componentsEstimation();
+
+    /**
 	 * Sampling from the state transition p(x_t | u_t , x_t-1):
 	 * we propagate the particle and its components with the motion model
-	 * and generate a predicted particle-set
+     * and genera//currentLayout.resize(0);te a predicted particle-set
 	 */
 	void sampling();
+
+    void componentsPerturbation();
+
+    void calculateLayoutComponentsWeight();
 
 	/**
 	 * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
@@ -89,11 +105,6 @@ private:
 	 */
 	void resampling();
 
-	void componentsPerturbation();
-
-	bool checkHasMoved();
-
-	void componentsEstimation();
 
     /**
      * FORMULA CALCOLO SCORE
@@ -116,7 +127,21 @@ private:
 
 public:
 
-    void setParticlesDelta(double delta);
+    void setMeasureState(VectorXd& msrstate){
+        msr_state = msrstate;
+    }
+
+    VectorXd getMeasureState(){
+        return msr_state;
+    }
+
+    void setMeasureCov(MatrixXd& msrcov){
+        msr_cov = msrcov;
+    }
+
+    MatrixXd getMeasureCov(){
+        return msr_cov;
+    }
 
     Odometry getVisualOdometry(){
 		return visual_odometry;
@@ -150,28 +175,21 @@ public:
 		current_layout = p_set;
 	}
 
-	// costructor, destructor, copy costr, assignment
+    // costructor
 	LayoutManager(){
-		is_new_detection = false;
+		new_detections = false;
 		motion_threshold  = 0.05;
-	};
-//	LayoutManager(bool p1, vector<double>& p2, vector<Particle>& p3, Odometry& p4) :
-//		is_new_detection(p1), score_vector(p2), current_layout(p3), visual_odometry(p4) {
-//		motion_threshold  = 0.05;
-//	};
-//	LayoutManager(vector<Particle>& p3, Odometry& p4) :
-//			is_new_detection(false), score_vector(0), current_layout(p3), visual_odometry(p4) {
-//		motion_threshold  = 0.05;
-//	};
+    }
 
+    // destructor
 	~LayoutManager(){
 		score_vector.resize(0);
-		//currentLayout.resize(0);
+        current_layout.resize(0);
+        msr_state.resize(0);
+        msr_cov.resize(0,0);
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);
 };
-
-
 
 #endif /* LAYOUTMANAGER_H_ */
