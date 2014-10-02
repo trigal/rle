@@ -28,7 +28,9 @@ using namespace std;
 using namespace ros;
 
 // vars -----------------------------------------------------------------------------------------
-unsigned int odom_rate = 1;
+unsigned int odom_rate = 1; /// rate of msgs published by this node
+double movement_rate = 0.1; /// rate of movement between each step
+
 ros::Time current_time;
 
 // functions ------------------------------------------------------------------------------------
@@ -76,7 +78,9 @@ int main(int argc, char **argv)
     msg.pose.pose.position.x = 0;
     msg.pose.pose.position.y = 0;
     msg.pose.pose.position.z = 0;
-    msg.twist.twist.linear.x = 1;
+    tf::Quaternion q = tf::createQuaternionFromYaw(0);
+    tf::quaternionTFToMsg(q, msg.pose.pose.orientation);
+    msg.twist.twist.linear.x = movement_rate / odom_rate;
 
     pub.publish(msg);
     rate.sleep();
@@ -87,7 +91,7 @@ int main(int argc, char **argv)
         current_time = ros::Time::now();
 
         // move on X axis by 1
-        msg.pose.pose.position.x += 1;
+        msg.pose.pose.position.x += movement_rate;
 
         std::cout << "--------------------------------------------------------------------------------" << endl;
         std::cout << "[ Sent msg " << i << "]:" << std::endl;

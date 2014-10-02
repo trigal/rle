@@ -185,10 +185,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         first_msg=false;
 
         // update old_msg
-
-        cout << "ciao1" << endl;
         old_msg = msg;
-        cout << "ciao2" << endl;
 
         // publish it!
         geometry_msgs::PoseArray array_msg;
@@ -231,7 +228,17 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     {
         Particle p = particles.at(i);
         VectorXd p_pose = p.getParticleState();
-        array_msg.poses.push_back( getPoseFromVector(p_pose) );
+
+        geometry_msgs::Pose pose = getPoseFromVector(p_pose);
+
+        // normalize quaternion
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(pose.orientation,q);
+        q = q.normalize();
+        tf::quaternionTFToMsg(q, pose.orientation);
+
+        // push it!
+        array_msg.poses.push_back( pose );
     }
 
     // Publish it!
