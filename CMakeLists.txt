@@ -19,7 +19,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 # find_package(Boost REQUIRED COMPONENTS system)
 
 SET (CMAKE_BUILD_TYPE Debug)
-SET (CMAKE_CXX_FLAGS "-O0")
+SET (ROS_BUILD_TYPE Debug)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -112,6 +112,10 @@ add_executable(visual_odometry_fake
 	src/visual_odometry_fake.cpp 
 )
 
+add_executable(visual_odometry_test
+        src/visual_odometry_test.cpp
+)
+
 add_executable(layout_manager 
 	src/layout_manager.cpp 
 	src/LayoutManager.cpp 
@@ -136,6 +140,11 @@ add_executable(nvm
 target_link_libraries(visual_odometry_fake
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(visual_odometry_test
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(layout_manager
   ${catkin_LIBRARIES}
 )

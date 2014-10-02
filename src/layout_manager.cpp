@@ -185,7 +185,10 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         first_msg=false;
 
         // update old_msg
+
+        cout << "ciao1" << endl;
         old_msg = msg;
+        cout << "ciao2" << endl;
 
         // publish it!
         geometry_msgs::PoseArray array_msg;
@@ -281,8 +284,9 @@ int main(int argc, char **argv)
 
 	// init subscriber
     //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 1, odometryCallback);
-    ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
+    //ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
     //ros::Subscriber sub = n.subscribe("mapper/odometry", 1, odometryCallback);
+    ros::Subscriber sub = n.subscribe("visual_odom_test/test", 1, odometryCallback);
 
     ROS_INFO_STREAM("LAYOUT MANAGER STARTED, LISTENING TO: " << sub.getTopic());
 
