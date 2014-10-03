@@ -28,21 +28,27 @@ using namespace std;
 using namespace ros;
 
 // vars -----------------------------------------------------------------------------------------
-unsigned int odom_rate = 1; /// rate of msgs published by this node
-double movement_rate = 0.1; /// rate of movement between each step
+unsigned int publish_rate = 10;  /// rate of msgs published by this node
+double movement_rate = 0.1;     /// rate of movement between each step
+double msr_cov = 0.05*0.05;     /// msr cov.
 
 ros::Time current_time;
+tf::TransformBroadcaster* tfb_;
+tf::TransformListener* tf_;
+nav_msgs::Odometry msg;
 
 // functions ------------------------------------------------------------------------------------
 nav_msgs::Odometry getXMsg();
 nav_msgs::Odometry getYMsg();
 nav_msgs::Odometry getZMsg();
+nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t);
 
 /**
  *************************************************************************************************
  * @brief main
  *************************************************************************************************
  */
+
 int main(int argc, char **argv)
 {
     ROS_INFO_STREAM("VISUAL ODOMETRY TEST STARTED");
@@ -59,8 +65,8 @@ int main(int argc, char **argv)
     ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("visual_odom_test/axis_z",1);
     ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("visual_odom_test/test",1);
 
-    // 30fps -> 30Hz
-    ros::Rate rate(odom_rate);
+    // Node publish rate
+    ros::Rate rate(publish_rate);
 
     // --------- Publish first msg ------------------------------
     unsigned int i = 0;
@@ -70,28 +76,35 @@ int main(int argc, char **argv)
     nav_msgs::Odometry msg_y = getYMsg();
     nav_msgs::Odometry msg_z = getZMsg();
 
-    nav_msgs::Odometry msg;
-    msg.header.stamp = current_time;
-    msg.header.frame_id = "robot_frame";
-    msg.child_frame_id = "odom_frame";
+    // tf variables
+    tfb_ = new tf::TransformBroadcaster();
+    tf_ = new tf::TransformListener();
+    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 
-    msg.pose.pose.position.x = 0;
-    msg.pose.pose.position.y = 0;
-    msg.pose.pose.position.z = 0;
-    tf::Quaternion q = tf::createQuaternionFromYaw(0);
-    tf::quaternionTFToMsg(q, msg.pose.pose.orientation);
-    msg.twist.twist.linear.x = movement_rate / odom_rate;
+    // move on x axis with movement_rate transform
+    tf::Transform move_x(tf::createIdentityQuaternion(), tf::Vector3(movement_rate,0,0));
 
+    // send transform_msg
+    tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
+
+    // init & send odom_msg
+    msg = createOdomMsgFromTF(t);
     pub.publish(msg);
+
     rate.sleep();
     // ----------------------------------------------------------
 
     while(ros::ok()){
-        // Set current time for msg header
+
+        // apply transform
+        t = t * move_x;
+
+        // update current time
         current_time = ros::Time::now();
 
-        // move on X axis by 1
-        msg.pose.pose.position.x += movement_rate;
+        // create msg from transform
+        msg = createOdomMsgFromTF(t);
+        tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
         std::cout << "--------------------------------------------------------------------------------" << endl;
         std::cout << "[ Sent msg " << i << "]:" << std::endl;
@@ -180,12 +193,51 @@ nav_msgs::Odometry getZMsg(){
     msg.pose.pose.position.y = 0;
     msg.pose.pose.position.z = 0;
 
+    tf::Quaternion q1 = tf::createQuaternionFromYaw(0);
     tf::Quaternion q = tf::createQuaternionFromRPY(0, -M_PI/2, 0);
-    tf::quaternionTFToMsg(q, msg.pose.pose.orientation);
+
+
+    tf::quaternionTFToMsg(q1*q, msg.pose.pose.orientation);
 
     return msg;
 }
 
+nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
+{
+    nav_msgs::Odometry msg;
+    msg.header.stamp = current_time;
+    msg.header.frame_id = "robot_frame";
+    msg.child_frame_id = "odom_frame";
+
+    // set initial position
+    msg.pose.pose.position.x = t.getOrigin().getX();
+    msg.pose.pose.position.y = t.getOrigin().getY();
+    msg.pose.pose.position.z = t.getOrigin().getZ();
+
+    // set orientation
+    t.setRotation(t.getRotation().normalized());
+    tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
+
+    // set speed (it will be constant for all the execution)
+    msg.twist.twist.linear.x = movement_rate / publish_rate;
+
+    // set covs (they will be constant for all the execution)
+    msg.twist.covariance =  boost::assign::list_of  (msr_cov) (0)   (0)  (0)  (0)  (0)
+                                                       (0)  (msr_cov)  (0)  (0)  (0)  (0)
+                                                       (0)   (0)  (msr_cov) (0)  (0)  (0)
+                                                       (0)   (0)   (0) (msr_cov) (0)  (0)
+                                                       (0)   (0)   (0)  (0) (msr_cov) (0)
+                                                       (0)   (0)   (0)  (0)  (0)  (msr_cov) ;
+
+    msg.pose.covariance =  boost::assign::list_of  (msr_cov) (0)  (0)  (0)  (0)  (0)
+                                                      (0) (msr_cov)   (0)  (0)  (0)  (0)
+                                                      (0)   (0)  (msr_cov) (0)  (0)  (0)
+                                                      (0)   (0)   (0) (msr_cov) (0)  (0)
+                                                      (0)   (0)   (0)  (0) (msr_cov) (0)
+                                                      (0)   (0)   (0)  (0)  (0)  (msr_cov) ;
+
+    return msg;
+}
 
 
 

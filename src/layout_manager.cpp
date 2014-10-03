@@ -25,6 +25,8 @@
 #include "Eigen/Core"
 #include "Eigen/Dense"
 #include <vector>
+#include <string>
+
 using namespace Eigen;
 using namespace std;
 
@@ -32,6 +34,10 @@ using namespace std;
 int num_particles = 1;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
+//string topic = "mapper/odometry";
+//string topic = "visual_odometry/odom_no_error";
+//string topic = "visual_odometry/odom";
+string topic = "visual_odom_test/test";
 
 // init variables
 bool first_msg = true;
@@ -203,7 +209,11 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     // calculate delta_t
     double p_delta = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+    cout << "p_delta " << p_delta << endl;
     LayoutManager::delta_t = p_delta;
+    cout << "layout_manager delta_t: " << LayoutManager::delta_t << endl;
+
+
     layout_manager.setMeasureState(msr_pose);
     layout_manager.setMeasureCov(msr_cov);
 
@@ -244,6 +254,8 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     // Publish it!
     array_pub.publish(array_msg);
 
+
+    old_msg = msg;
 
     /** stampo misura filtrata ************************************************************************** */
         nav_msgs::Odometry odom;
@@ -290,10 +302,8 @@ int main(int argc, char **argv)
     old_msg.header.stamp = ros::Time::now();
 
 	// init subscriber
-    //ros::Subscriber sub = n.subscribe("visual_odometry/odom_no_error", 1, odometryCallback);
-    //ros::Subscriber sub = n.subscribe("visual_odometry/odom", 1, odometryCallback);
-    //ros::Subscriber sub = n.subscribe("mapper/odometry", 1, odometryCallback);
-    ros::Subscriber sub = n.subscribe("visual_odom_test/test", 1, odometryCallback);
+    ros::Subscriber sub = n.subscribe(topic, 1, odometryCallback);
+
 
     ROS_INFO_STREAM("LAYOUT MANAGER STARTED, LISTENING TO: " << sub.getTopic());
 

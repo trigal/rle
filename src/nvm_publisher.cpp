@@ -19,9 +19,10 @@ using namespace std;
 
 #define CAMERAS_NUMBER 360
 
-// vars
+// vars -----------------------------------------------------------
 vector<geometry_msgs::PoseStamped> pose_vec;
-double FREQUENCY=2;
+double FREQUENCY=25;
+double msr_err = 0.05 * 0.05;
 
 /**
  * @brief loadNVM
@@ -60,6 +61,7 @@ int loadNVM(const char* path) {
 
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
+            pose.header.stamp = ros::Time::now();
             pose.pose.position.x = t[0];
             pose.pose.position.y = t[1];
             pose.pose.position.z = t[2];
@@ -86,6 +88,8 @@ int loadNVM(const char* path) {
 geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t){
     geometry_msgs::Twist speed;
     double rate = 1 / FREQUENCY;
+
+    // calculate linear speeds
     speed.linear.x = (pose_t.pose.position.x - pose_prec.pose.position.x) / rate;
     speed.linear.y = (pose_t.pose.position.y - pose_prec.pose.position.y) / rate;
     speed.linear.z = (pose_t.pose.position.z - pose_prec.pose.position.z) / rate;
@@ -103,6 +107,7 @@ geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, cons
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
+    // calculate angular speeds
     speed.angular.x = ( angle_diff(roll_t, roll_prec) ) / rate;
     speed.angular.y = ( angle_diff(pitch_t, pitch_prec) ) / rate;
     speed.angular.z = ( angle_diff(yaw_t, yaw_prec) ) / rate;
@@ -162,19 +167,19 @@ int main(int argc, char *argv[]) {
             odom.header.stamp = pose.header.stamp;
             odom.pose.pose = pose.pose;
             odom.twist.twist = getSpeed(old_pose, pose);
-            double odom_err = 0.05*0.05;
-            odom.twist.covariance =  boost::assign::list_of  (odom_err) (0)   (0)  (0)  (0)  (0)
-                                                                   (0)  (odom_err)  (0)  (0)  (0)  (0)
-                                                                   (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                                   (0)   (0)   (0) (odom_err) (0)  (0)
-                                                                   (0)   (0)   (0)  (0) (odom_err) (0)
-                                                                   (0)   (0)   (0)  (0)  (0)  (odom_err) ;
-            odom.pose.covariance =  boost::assign::list_of  (odom_err) (0)  ( 0)  (0)  (0)  (0)
-                                                                  (0) (odom_err)   (0)  (0)  (0)  (0)
-                                                                  (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                                  (0)   (0)   (0) (odom_err) (0)  (0)
-                                                                  (0)   (0)   (0)  (0) (odom_err) (0)
-                                                                  (0)   (0)   (0)  (0)  (0)  (odom_err) ;
+
+            odom.twist.covariance =  boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
+                                                                   (0)  (msr_err)  (0)  (0)  (0)  (0)
+                                                                   (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                                   (0)   (0)   (0) (msr_err) (0)  (0)
+                                                                   (0)   (0)   (0)  (0) (msr_err) (0)
+                                                                   (0)   (0)   (0)  (0)  (0)  (msr_err) ;
+            odom.pose.covariance =  boost::assign::list_of  (msr_err) (0)  ( 0)  (0)  (0)  (0)
+                                                                  (0) (msr_err)   (0)  (0)  (0)  (0)
+                                                                  (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                                  (0)   (0)   (0) (msr_err) (0)  (0)
+                                                                  (0)   (0)   (0)  (0) (msr_err) (0)
+                                                                  (0)   (0)   (0)  (0)  (0)  (msr_err) ;
             odom_publisher.publish(odom);
             // -----------------------------------------------------------------------------------------------
 

@@ -71,13 +71,13 @@ int main(int argc, char **argv)
     ros::Time current_time;
     current_time = ros::Time::now();
 
-    // rotation variables
+    // tf variables
     tfb_ = new tf::TransformBroadcaster();
     tf_ = new tf::TransformListener();
 
     // rotation set-up
     tf::Transform temp_t; //used for getting particle speed
-    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0));
+    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
     tf::Pose a,b,c;
     a.setOrigin(tf::Vector3(0,0,0)); a.setRotation(tf::createIdentityQuaternion());
     b.setOrigin(tf::Vector3(1,0,0)); b.setRotation(tf::createQuaternionFromYaw(90.0f*3.14f/180.0f));
