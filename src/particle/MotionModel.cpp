@@ -101,13 +101,14 @@ VectorXd MotionModel::propagatePose(VectorXd& p_state){
         double v_err = vel_error(i);
 
         // rand values that will be added to calculated pose/vel
+        srand(0);
         pose_error(i) = getError(p_err);
         vel_error(i) = getError(v_err);
     }
 
 	// propagate p_pose
-    p_pose = p_pose + (p_vel * LayoutManager::delta_t) + pose_error; //random
-    p_vel = p_vel + vel_error;
+    p_pose = p_pose + (p_vel * LayoutManager::delta_t);// + pose_error; //random
+    p_vel = p_vel;// + vel_error;
 
     // normalize angles -PI, PI
     p_pose(3) = normalize(p_pose(3));

@@ -129,13 +129,13 @@ void LayoutManager::particleEstimation(Particle & particle){
     // calcolo belief predetto:
     stato_t_predetto = particle.mtn_model.propagatePose(stato_t);
 
-//    cout << "[delta t] " << delta_t << endl;
-//    cout << "[stato_t ]" << endl;
-//    cout << "   pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << " orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << endl;
-//    cout << "   linear: " << stato_t(6) << ", " <<  stato_t(7) <<  ", " << stato_t(8) << " angular: " << stato_t(9) <<  ", " << stato_t(10) <<  ", " << stato_t(11) << endl;
-//    cout << "[stato_t_predetto ]" << endl;
-//    cout << "   pose: " << stato_t_predetto(0) << ", " <<  stato_t_predetto(1) <<  ", " << stato_t_predetto(2) << " orientation: " << stato_t_predetto(3) <<  ", " << stato_t_predetto(4) <<  ", " << stato_t_predetto(5) << endl;
-//    cout << "   linear: " << stato_t_predetto(6) << ", " <<  stato_t_predetto(7) <<  ", " << stato_t_predetto(8) << " angular: " << stato_t_predetto(9) <<  ", " << stato_t_predetto(10) <<  ", " << stato_t_predetto(11) << endl << endl;
+    cout << "[delta t] " << delta_t << endl;
+    cout << "[stato_t ]" << endl;
+    cout << "   pose: " << stato_t(0) << ", " <<  stato_t(1) <<  ", " << stato_t(2) << " orientation: " << stato_t(3) <<  ", " << stato_t(4) <<  ", " << stato_t(5) << endl;
+    cout << "   linear: " << stato_t(6) << ", " <<  stato_t(7) <<  ", " << stato_t(8) << " angular: " << stato_t(9) <<  ", " << stato_t(10) <<  ", " << stato_t(11) << endl;
+    cout << "[stato_t_predetto ]" << endl;
+    cout << "   pose: " << stato_t_predetto(0) << ", " <<  stato_t_predetto(1) <<  ", " << stato_t_predetto(2) << " orientation: " << stato_t_predetto(3) <<  ", " << stato_t_predetto(4) <<  ", " << stato_t_predetto(5) << endl;
+    cout << "   linear: " << stato_t_predetto(6) << ", " <<  stato_t_predetto(7) <<  ", " << stato_t_predetto(8) << " angular: " << stato_t_predetto(9) <<  ", " << stato_t_predetto(10) <<  ", " << stato_t_predetto(11) << endl << endl;
 
     // applicazione proprietà gaussiane:
     G_t = particle.mtn_model.motionJacobi(stato_t_predetto);

@@ -30,16 +30,18 @@
 using namespace Eigen;
 using namespace std;
 
-// layout-manager settings
-int num_particles = 1;
+// layout-manager settings ----------------------------------------------------------------------------
+unsigned int num_particles = 1;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
-//string topic = "mapper/odometry";
-//string topic = "visual_odometry/odom_no_error";
-//string topic = "visual_odometry/odom";
-string topic = "visual_odom_test/test";
+string topic =
+"mapper/odometry"
+//"visual_odometry/odom_no_error"
+//"visual_odometry/odom"
+//"visual_odom_test/test"
+ ;
 
-// init variables
+// vars -----------------------------------------------------------------------------------------------
 bool first_msg = true;
 int step = 0;
 MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_uncertainty*mtn_uncertainty); /// used for initialize mtn_model
@@ -208,11 +210,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     MatrixXd msr_cov = getCovFromOdom(msg);
 
     // calculate delta_t
-    double p_delta = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
-    cout << "p_delta " << p_delta << endl;
-    LayoutManager::delta_t = p_delta;
-    cout << "layout_manager delta_t: " << LayoutManager::delta_t << endl;
-
+    LayoutManager::delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
     layout_manager.setMeasureState(msr_pose);
     layout_manager.setMeasureCov(msr_cov);

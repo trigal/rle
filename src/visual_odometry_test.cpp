@@ -30,12 +30,17 @@ using namespace ros;
 // vars -----------------------------------------------------------------------------------------
 unsigned int publish_rate = 10;  /// rate of msgs published by this node
 double movement_rate = 0.1;     /// rate of movement between each step
-double msr_cov = 0.05*0.05;     /// msr cov.
+double msr_cov = 0.05*0.05;     /// measure uncertainty ^ 2
+double change_direction = 20;
 
 ros::Time current_time;
+ros::Time last_msg_time;
+double time_diff;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 nav_msgs::Odometry msg;
+double current_speed;
+unsigned int msg_num;
 
 // functions ------------------------------------------------------------------------------------
 nav_msgs::Odometry getXMsg();
@@ -68,10 +73,15 @@ int main(int argc, char **argv)
     // Node publish rate
     ros::Rate rate(publish_rate);
 
-    // --------- Publish first msg ------------------------------
-    unsigned int i = 0;
+    // move on X, Y or Z axis with movement_rate transform
+    tf::Transform move_x(tf::createIdentityQuaternion(), tf::Vector3(movement_rate,0,0));
+    tf::Transform move_y(tf::createIdentityQuaternion(), tf::Vector3(0,movement_rate,0));
+    tf::Transform move_z(tf::createIdentityQuaternion(), tf::Vector3(0,0,movement_rate));
+    tf::Transform move_neg_x(tf::createIdentityQuaternion(), tf::Vector3(-movement_rate,0,0));
+    tf::Transform move_neg_y(tf::createIdentityQuaternion(), tf::Vector3(0,-movement_rate,0));
+    tf::Transform move_neg_z(tf::createIdentityQuaternion(), tf::Vector3(0,0,-movement_rate));
+
     // build axis message
-    current_time = ros::Time::now();
     nav_msgs::Odometry msg_x = getXMsg();
     nav_msgs::Odometry msg_y = getYMsg();
     nav_msgs::Odometry msg_z = getZMsg();
@@ -79,35 +89,63 @@ int main(int argc, char **argv)
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
     tf_ = new tf::TransformListener();
-    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 
-    // move on x axis with movement_rate transform
-    tf::Transform move_x(tf::createIdentityQuaternion(), tf::Vector3(movement_rate,0,0));
+    // --------- Publish first msg ------------------------------
+    msg_num = 0;
+    current_speed = movement_rate / publish_rate;
+    current_time = ros::Time::now();
+    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 
     // send transform_msg
     tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
     // init & send odom_msg
+    last_msg_time = current_time;
     msg = createOdomMsgFromTF(t);
-    pub.publish(msg);
 
+    pub.publish(msg);
     rate.sleep();
     // ----------------------------------------------------------
 
     while(ros::ok()){
 
         // apply transform
-        t = t * move_x;
+        if(msg_num >= 0 && msg_num<change_direction){
+            t = t * move_x;
+        }
+        else if(msg_num>=change_direction && msg_num<(2*change_direction)){
+            t = t * move_neg_x;
+        }
+        else if(msg_num >= (2*change_direction) && msg_num<(3*change_direction)){
+            t = t * move_y;
+        }
+        else if(msg_num>=(3*change_direction) && msg_num<(4*change_direction)){
+            t = t * move_neg_y;
+        }
+        else if(msg_num >= (4*change_direction) && msg_num<(5*change_direction)){
+            t = t * move_z;
+        }
+        else if(msg_num>= (5*change_direction) && msg_num<(6*change_direction)){
+            t = t * move_neg_z;
+        }
+        else
+            t = t * move_x;
+
 
         // update current time
         current_time = ros::Time::now();
+        time_diff = current_time.toSec() - last_msg_time.toSec();
+        current_speed = movement_rate / time_diff;
 
         // create msg from transform
         msg = createOdomMsgFromTF(t);
+
+        // publish it
         tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
         std::cout << "--------------------------------------------------------------------------------" << endl;
-        std::cout << "[ Sent msg " << i << "]:" << std::endl;
+        std::cout << "[ Time diff ] " << time_diff << endl;
+        std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
         std::cout << " Position:" << std::endl;
         std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
         std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
@@ -139,8 +177,9 @@ int main(int argc, char **argv)
         ros::spinOnce();
 
         // wait until next iteration
+        last_msg_time = current_time;
         rate.sleep();
-        i++;
+        msg_num++;
     }
 }
 
@@ -219,7 +258,44 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
     tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
 
     // set speed (it will be constant for all the execution)
-    msg.twist.twist.linear.x = movement_rate / publish_rate;
+
+    // apply transform
+    if(msg_num >= 0 && msg_num<(change_direction)){
+        msg.twist.twist.linear.x = current_speed;
+        msg.twist.twist.linear.y = 0;
+        msg.twist.twist.linear.z = 0;
+    }
+    else if(msg_num>=(change_direction) && msg_num< (2*change_direction)){
+        msg.twist.twist.linear.x = -current_speed;
+        msg.twist.twist.linear.y = 0;
+        msg.twist.twist.linear.z = 0;
+    }
+    else if(msg_num >= (2*change_direction) && msg_num< (3*change_direction)){
+        msg.twist.twist.linear.x = 0;
+        msg.twist.twist.linear.y = current_speed;
+        msg.twist.twist.linear.z = 0;
+    }
+    else if(msg_num>= (3*change_direction) && msg_num< (4*change_direction)){
+        msg.twist.twist.linear.x = 0;
+        msg.twist.twist.linear.y = -current_speed;
+        msg.twist.twist.linear.z = 0;
+    }
+    else if(msg_num >= (4*change_direction) && msg_num< (5*change_direction)){
+        msg.twist.twist.linear.x = 0;
+        msg.twist.twist.linear.y = 0;
+        msg.twist.twist.linear.z = current_speed;
+    }
+    else if(msg_num>=(5*change_direction) && msg_num< (6*change_direction)){
+        msg.twist.twist.linear.x = 0;
+        msg.twist.twist.linear.y = 0;
+        msg.twist.twist.linear.z = -current_speed;
+    }
+    else{
+        msg.twist.twist.linear.x = current_speed;
+        msg.twist.twist.linear.y = 0;
+        msg.twist.twist.linear.z = 0;
+    }
+
 
     // set covs (they will be constant for all the execution)
     msg.twist.covariance =  boost::assign::list_of  (msr_cov) (0)   (0)  (0)  (0)  (0)

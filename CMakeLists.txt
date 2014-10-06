@@ -129,8 +129,8 @@ add_executable(layout_manager
         src/Utils.h
 )
 
-add_executable(nvm
-	src/nvm_publisher.cpp
+add_executable(visual_odometry_nvm
+        src/visual_odometry_nvm.cpp
 )
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -149,7 +149,7 @@ target_link_libraries(layout_manager
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(nvm
+target_link_libraries(visual_odometry_nvm
 #	${PCL_LIBRARIES}
   	${catkin_LIBRARIES}
 )

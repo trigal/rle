@@ -13,6 +13,7 @@
 #include <Eigen/Eigen>
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include <boost/array.hpp>
 
 using namespace boost::filesystem;
 using namespace std;
@@ -21,9 +22,10 @@ using namespace std;
 
 // vars -----------------------------------------------------------
 vector<geometry_msgs::PoseStamped> pose_vec;
-double FREQUENCY=25;
+double FREQUENCY=10;
 double msr_err = 0.05 * 0.05;
 
+/***************************************************************************************************************/
 /**
  * @brief loadNVM
  * @param path
@@ -83,11 +85,22 @@ int loadNVM(const char* path) {
  * @brief getSpeed
  * @param pose_prec
  * @param pose_t
- * @return
+ * @return current_speed
  */
 geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t){
     geometry_msgs::Twist speed;
-    double rate = 1 / FREQUENCY;
+    double rate = pose_prec.header.stamp.toSec() - pose_t.header.stamp.toSec();
+
+    if(rate == 0){
+        speed.linear.x = 0;
+        speed.linear.y = 0;
+        speed.linear.z = 0;
+        speed.angular.x = 0;
+        speed.angular.y = 0;
+        speed.angular.z = 0;
+
+        return speed;
+    }
 
     // calculate linear speeds
     speed.linear.x = (pose_t.pose.position.x - pose_prec.pose.position.x) / rate;
@@ -118,12 +131,11 @@ geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, cons
 
 /***************************************************************************************************************/
 int main(int argc, char *argv[]) {
-    ros::init(argc, argv, "nvm_publisher");
+    ros::init(argc, argv, "visual_odometry_nvm");
     ros::NodeHandle nh;
 
     ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("mapper/pose", 1);
     ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("mapper/odometry", 1);
-    ros::Publisher p_array_publisher = nh.advertise<geometry_msgs::PoseArray>("mapper/pose_array", 1);
 
     if(argc <= 1)
     {
@@ -143,47 +155,91 @@ int main(int argc, char *argv[]) {
 
         ros::Rate loop_rate(FREQUENCY);
 
-        geometry_msgs::PoseStamped old_pose = pose_vec[0];
-
+        // build first msg ------------------------------------------------------------------------------------
         int i=0;
+        geometry_msgs::PoseStamped old_pose = pose_vec[0];
+        pose_publisher.publish(old_pose);
+
+        // odometry msg ----------------------------------------------------------------------------------
+        nav_msgs::Odometry odom;
+        odom.child_frame_id = "odom_frame";
+        odom.header.frame_id = "robot_frame";
+        odom.header.stamp = ros::Time::now();
+        odom.pose.pose = old_pose.pose;
+        odom.twist.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
+                                                            (0)  (msr_err)  (0)  (0)  (0)  (0)
+                                                            (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                            (0)   (0)   (0) (msr_err) (0)  (0)
+                                                            (0)   (0)   (0)  (0) (msr_err) (0)
+                                                            (0)   (0)   (0)  (0)  (0)  (msr_err) ;
+        odom.pose.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
+                                                            (0)  (msr_err)  (0)  (0)  (0)  (0)
+                                                            (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                            (0)   (0)   (0) (msr_err) (0)  (0)
+                                                            (0)   (0)   (0)  (0) (msr_err) (0)
+                                                            (0)   (0)   (0)  (0)  (0)  (msr_err) ;
+        odom_publisher.publish(odom);
+        std::cout << "[ Sent msg " << i << "]:" << std::endl;
+        std::cout << " Position:" << std::endl;
+        std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
+        std::cout << "  y: " << odom.pose.pose.position.y << std::endl;
+        std::cout << "  z: " << odom.pose.pose.position.z << std::endl;
+        std::cout << " Orientation quaternion: " << std::endl;
+        std::cout << "  w: " << odom.pose.pose.orientation.w << std::endl;
+        std::cout << "  x: " << odom.pose.pose.orientation.x << std::endl;
+        std::cout << "  y: " << odom.pose.pose.orientation.y << std::endl;
+        std::cout << "  z: " << odom.pose.pose.orientation.z << std::endl;
+        std::cout << " Linear speed: " << std::endl;
+        std::cout << "  x: " << odom.twist.twist.linear.x << std::endl;
+        std::cout << "  y: " << odom.twist.twist.linear.y << std::endl;
+        std::cout << "  z: " << odom.twist.twist.linear.z << std::endl;
+        std::cout << " Angular speed: " << std::endl;
+        std::cout << "  x: " << odom.twist.twist.angular.x << std::endl;
+        std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
+        std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
+        std::cout << std::endl;
+
+        // aggiorno i valori
+        i=i+1;
+        loop_rate.sleep();
+        // ----------------------------------------------------------------------------------------------------
+
+
+
         while(ros::ok()) {
 
             // pose msg ---------------------------------------------------------------------------------------
             geometry_msgs::PoseStamped pose = pose_vec[i%CAMERAS_NUMBER];
+            pose.header.stamp = ros::Time::now();
             pose_publisher.publish(pose);
-
-            // pose array msg ---------------------------------------------------------------------------------
-            geometry_msgs::PoseArray p_array;
-            p_array.poses.push_back(pose.pose);
-            p_array.header.stamp = pose.header.stamp;
-            p_array.header.frame_id = "robot_frame";
-            p_array_publisher.publish(p_array);
-
 
             // odometry msg ----------------------------------------------------------------------------------
             nav_msgs::Odometry odom;
             odom.child_frame_id = "odom_frame";
             odom.header.frame_id = "robot_frame";
             odom.header.stamp = pose.header.stamp;
+
             odom.pose.pose = pose.pose;
             odom.twist.twist = getSpeed(old_pose, pose);
 
-            odom.twist.covariance =  boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
-                                                                   (0)  (msr_err)  (0)  (0)  (0)  (0)
-                                                                   (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                                   (0)   (0)   (0) (msr_err) (0)  (0)
-                                                                   (0)   (0)   (0)  (0) (msr_err) (0)
-                                                                   (0)   (0)   (0)  (0)  (0)  (msr_err) ;
-            odom.pose.covariance =  boost::assign::list_of  (msr_err) (0)  ( 0)  (0)  (0)  (0)
-                                                                  (0) (msr_err)   (0)  (0)  (0)  (0)
-                                                                  (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                                  (0)   (0)   (0) (msr_err) (0)  (0)
-                                                                  (0)   (0)   (0)  (0) (msr_err) (0)
-                                                                  (0)   (0)   (0)  (0)  (0)  (msr_err) ;
+            odom.twist.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
+                                                                (0)  (msr_err)  (0)  (0)  (0)  (0)
+                                                                (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                                (0)   (0)   (0) (msr_err) (0)  (0)
+                                                                (0)   (0)   (0)  (0) (msr_err) (0)
+                                                                (0)   (0)   (0)  (0)  (0)  (msr_err);
+            odom.pose.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
+                                                                (0)  (msr_err)  (0)  (0)  (0)  (0)
+                                                                (0)   (0)  (msr_err) (0)  (0)  (0)
+                                                                (0)   (0)   (0) (msr_err) (0)  (0)
+                                                                (0)   (0)   (0)  (0) (msr_err) (0)
+                                                                (0)   (0)   (0)  (0)  (0)  (msr_err);
+
             odom_publisher.publish(odom);
             // -----------------------------------------------------------------------------------------------
 
             std::cout << "--------------------------------------------------------------------------------" << endl;
+            std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
             std::cout << "[ Sent msg " << i << "]:" << std::endl;
             std::cout << " Position:" << std::endl;
             std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
