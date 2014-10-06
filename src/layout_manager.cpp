@@ -35,9 +35,9 @@ unsigned int num_particles = 1;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
 string topic =
-"mapper/odometry"
+//"mapper/odometry"
 //"visual_odometry/odom_no_error"
-//"visual_odometry/odom"
+"visual_odometry/odom"
 //"visual_odom_test/test"
  ;
 
