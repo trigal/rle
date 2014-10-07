@@ -39,7 +39,6 @@ double odom_rate = 30;		 /// odometry fps (Hz)
 
 // functions *************************************************************************************
 nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step);
-double getNoise(double odom_err);
 geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t);
 // ***********************************************************************************************
 
@@ -173,16 +172,6 @@ int main(int argc, char **argv)
 /** **********************************************************************************************
 /* FUNCTIONS IMPLEMENTATIONS
 /************************************************************************************************/
-
-/**
- * @param err
- * @return a random number between -err and err
- */
-double getNoise(double err){
-    double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
-    return noise;
-}
-
 /**
  * Adds a random noise to odometry SINGLE step
  * @param steps
@@ -204,30 +193,26 @@ nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step)
                                                           (0) (odom_err)   (0)  (0)  (0)  (0)
                                                           (0)   (0)  (odom_err) (0)  (0)  (0)
                                                           (0)   (0)   (0) (odom_err) (0)  (0)
-                                                          (0)   (0)   (0)  (0) (odom_err) (0)
-                                                          (0)   (0)   (0)  (0)  (0)  (odom_err) ;
-    // rand seed
-    srand(time(0));
-
+                                                          (0)   (0)   (0)  (0) (odom_err) (0);
     // adds noise to the step
-    noisy_step.pose.pose.position.x += getNoise(noisy_step.pose.covariance.elems[0]);
-    noisy_step.pose.pose.position.y += getNoise(noisy_step.pose.covariance.elems[7]);
-    noisy_step.pose.pose.position.z += getNoise(noisy_step.pose.covariance.elems[14]);
-    noisy_step.pose.pose.orientation.x += getNoise(noisy_step.pose.covariance.elems[21]);
-    noisy_step.pose.pose.orientation.y += getNoise(noisy_step.pose.covariance.elems[28]);
-    noisy_step.pose.pose.orientation.z += getNoise(noisy_step.pose.covariance.elems[35]);
+    noisy_step.pose.pose.position.x += Utils::getNoise(noisy_step.pose.covariance.elems[0]);
+    noisy_step.pose.pose.position.y += Utils::getNoise(noisy_step.pose.covariance.elems[7]);
+    noisy_step.pose.pose.position.z += Utils::getNoise(noisy_step.pose.covariance.elems[14]);
+    noisy_step.pose.pose.orientation.x += Utils::getNoise(noisy_step.pose.covariance.elems[21]);
+    noisy_step.pose.pose.orientation.y += Utils::getNoise(noisy_step.pose.covariance.elems[28]);
+    noisy_step.pose.pose.orientation.z += Utils::getNoise(noisy_step.pose.covariance.elems[35]);
 
     //normalize angles
-    noisy_step.pose.pose.orientation.x = normalize_angle(noisy_step.pose.pose.orientation.x);
-    noisy_step.pose.pose.orientation.y = normalize_angle(noisy_step.pose.pose.orientation.y);
-    noisy_step.pose.pose.orientation.z = normalize_angle(noisy_step.pose.pose.orientation.z);
+    noisy_step.pose.pose.orientation.x = Utils::normalize_angle(noisy_step.pose.pose.orientation.x);
+    noisy_step.pose.pose.orientation.y = Utils::normalize_angle(noisy_step.pose.pose.orientation.y);
+    noisy_step.pose.pose.orientation.z = Utils::normalize_angle(noisy_step.pose.pose.orientation.z);
 
-    noisy_step.twist.twist.angular.x += getNoise(noisy_step.twist.covariance.elems[0]);
-    noisy_step.twist.twist.angular.y += getNoise(noisy_step.twist.covariance.elems[7]);
-    noisy_step.twist.twist.angular.z += getNoise(noisy_step.twist.covariance.elems[14]);
-    noisy_step.twist.twist.linear.x += getNoise(noisy_step.twist.covariance.elems[21]);
-    noisy_step.twist.twist.linear.y += getNoise(noisy_step.twist.covariance.elems[28]);
-    noisy_step.twist.twist.linear.z += getNoise(noisy_step.twist.covariance.elems[35]);
+    noisy_step.twist.twist.angular.x += Utils::getNoise(noisy_step.twist.covariance.elems[0]);
+    noisy_step.twist.twist.angular.y += Utils::getNoise(noisy_step.twist.covariance.elems[7]);
+    noisy_step.twist.twist.angular.z += Utils::getNoise(noisy_step.twist.covariance.elems[14]);
+    noisy_step.twist.twist.linear.x += Utils::getNoise(noisy_step.twist.covariance.elems[21]);
+    noisy_step.twist.twist.linear.y += Utils::getNoise(noisy_step.twist.covariance.elems[28]);
+    noisy_step.twist.twist.linear.z += Utils::getNoise(noisy_step.twist.covariance.elems[35]);
 
     return noisy_step;
 }
@@ -250,9 +235,9 @@ geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t,
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
-    speed.angular.x = ( angle_diff(roll_t, roll_prec) ) / rate;
-    speed.angular.y = ( angle_diff(pitch_t, pitch_prec) ) / rate;
-    speed.angular.z = ( angle_diff(yaw_t, yaw_prec) ) / rate;
+    speed.angular.x = ( Utils::angle_diff(roll_t, roll_prec) ) / rate;
+    speed.angular.y = ( Utils::angle_diff(pitch_t, pitch_prec) ) / rate;
+    speed.angular.z = ( Utils::angle_diff(yaw_t, yaw_prec) ) / rate;
 
     return speed;
 }

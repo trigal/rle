@@ -171,9 +171,9 @@ void LayoutManager::particleEstimation(Particle & particle){
 
 
     // fix difference between angles
-    double diff_roll = angle_diff(roll,roll_pred);
-    double diff_pitch = angle_diff(pitch, pitch_pred);
-    double diff_yaw = angle_diff(yaw, yaw_pred);
+    double diff_roll = Utils::angle_diff(roll,roll_pred);
+    double diff_pitch = Utils::angle_diff(pitch, pitch_pred);
+    double diff_yaw = Utils::angle_diff(yaw, yaw_pred);
 
     // fix angles differences
     measure_difference(3) = diff_roll;
@@ -182,9 +182,9 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // kalman gain
     VectorXd kalman_per_msr_diff = K_t * measure_difference;
-    kalman_per_msr_diff(3) = normalize_angle(kalman_per_msr_diff(3));
-    kalman_per_msr_diff(4) = normalize_angle(kalman_per_msr_diff(4));
-    kalman_per_msr_diff(5) = normalize_angle(kalman_per_msr_diff(5));
+    kalman_per_msr_diff(3) = Utils::normalize_angle(kalman_per_msr_diff(3));
+    kalman_per_msr_diff(4) = Utils::normalize_angle(kalman_per_msr_diff(4));
+    kalman_per_msr_diff(5) = Utils::normalize_angle(kalman_per_msr_diff(5));
 
 //    cout << "[measure_difference orientation: " << measure_difference(3) << ", " << measure_difference(4) << ", " << measure_difference(5) << "] " << endl;
 //    cout << "[K_t * msr. diff. orientation: " << kalman_per_msr_diff(3) << ", " << kalman_per_msr_diff(4) << ", " << kalman_per_msr_diff(5) << "] " << endl;
@@ -194,9 +194,9 @@ void LayoutManager::particleEstimation(Particle & particle){
 	E_t = (MatrixXd::Identity(12,12) - K_t * H_t) * E_t_pred;
 
     // normalize angles between -PI and PI because of the sum: stato_t_predetto + (...)
-    stato_filtrato(3) = normalize_angle(stato_filtrato(3));
-    stato_filtrato(4) = normalize_angle(stato_filtrato(4));
-    stato_filtrato(5) = normalize_angle(stato_filtrato(5));
+    stato_filtrato(3) = Utils::normalize_angle(stato_filtrato(3));
+    stato_filtrato(4) = Utils::normalize_angle(stato_filtrato(4));
+    stato_filtrato(5) = Utils::normalize_angle(stato_filtrato(5));
 
     // update particle values
     particle.setParticleState(stato_filtrato);

@@ -5,6 +5,7 @@
  *      Author: dario
  */
 
+#include "../Utils.h"
 #include "MotionModel.h"
 #include "LayoutComponent.h"
 #include "../LayoutManager.h"
@@ -28,15 +29,6 @@ double normalize(double angle)
     while (angle <= -PI)
         angle += PI_TIMES_2;
     return angle;
-}
-
-/**
- * @param err
- * @return a random number between -err and err
- */
-double getError(double err){
-    double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
-    return noise;
 }
 
 /**
@@ -101,9 +93,8 @@ VectorXd MotionModel::propagatePose(VectorXd& p_state){
         double v_err = vel_error(i);
 
         // rand values that will be added to calculated pose/vel
-        srand(0);
-        pose_error(i) = getError(p_err);
-        vel_error(i) = getError(v_err);
+        pose_error(i) = Utils::getNoise(p_err);
+        vel_error(i) = Utils::getNoise(v_err);
     }
 
 	// propagate p_pose

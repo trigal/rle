@@ -5,6 +5,8 @@
  *      Author: dario
  */
 
+
+#include "Utils.h"
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Quaternion.h>
@@ -88,13 +90,6 @@ MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg);
  * @return
  */
 geometry_msgs::Pose getPoseFromVector(const VectorXd& msg);
-
-/**
- * @brief getNoise
- * @param err
- * @return
- */
-double getNoise(double err);
 
 /**
  * @brief addOffsetToVectorXd
@@ -436,16 +431,6 @@ nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd&
 	return odom;
 }
 
-
-/**
- * @param err
- * @return a random number between -err and err
- */
-double getNoise(double err){
-    double noise = (-err) + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(err - (-err))));
-    return noise;
-}
-
 /**
  * Adds a random noise to a VectorXd 12x1 representing particle's pose
  * @param pose
@@ -454,20 +439,20 @@ double getNoise(double err){
 VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_offset, double orientation_offset, double speed_offset)
 {
     VectorXd vec = pose;
-    vec(0) += getNoise(position_offset);
-    vec(1) += getNoise(position_offset);
-    vec(2) += getNoise(position_offset);
+    vec(0) += Utils::getNoise(position_offset);
+    vec(1) += Utils::getNoise(position_offset);
+    vec(2) += Utils::getNoise(position_offset);
 
-    vec(3) += getNoise(orientation_offset); vec(3) = atan2(sin(vec(3)),cos(vec(3)));
-    vec(4) += getNoise(orientation_offset); vec(4) = atan2(sin(vec(4)),cos(vec(4)));
-    vec(5) += getNoise(orientation_offset); vec(5) = atan2(sin(vec(5)),cos(vec(5)));
+    vec(3) += Utils::getNoise(orientation_offset); vec(3) = atan2(sin(vec(3)),cos(vec(3)));
+    vec(4) += Utils::getNoise(orientation_offset); vec(4) = atan2(sin(vec(4)),cos(vec(4)));
+    vec(5) += Utils::getNoise(orientation_offset); vec(5) = atan2(sin(vec(5)),cos(vec(5)));
 
-    vec(6) += getNoise(speed_offset);
-    vec(7) += getNoise(speed_offset);
-    vec(8) += getNoise(speed_offset);
-    vec(9) += getNoise(speed_offset);
-    vec(10) += getNoise(speed_offset);
-    vec(11) += getNoise(speed_offset);
+    vec(6) += Utils::getNoise(speed_offset);
+    vec(7) += Utils::getNoise(speed_offset);
+    vec(8) += Utils::getNoise(speed_offset);
+    vec(9) += Utils::getNoise(speed_offset);
+    vec(10) += Utils::getNoise(speed_offset);
+    vec(11) += Utils::getNoise(speed_offset);
 
     return vec;
 }

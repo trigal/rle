@@ -58,8 +58,8 @@ int loadNVM(const char* path) {
             }
 
             q1 = q;
-            r = getRotationMatrix(q);
-            t = getCameraCenterAfterRotation(c, r);
+            r = Utils::getRotationMatrix(q);
+            t = Utils::getCameraCenterAfterRotation(c, r);
 
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
@@ -121,9 +121,9 @@ geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, cons
     m_t.getRPY(roll_t, pitch_t, yaw_t);
 
     // calculate angular speeds
-    speed.angular.x = ( angle_diff(roll_t, roll_prec) ) / rate;
-    speed.angular.y = ( angle_diff(pitch_t, pitch_prec) ) / rate;
-    speed.angular.z = ( angle_diff(yaw_t, yaw_prec) ) / rate;
+    speed.angular.x = ( Utils::angle_diff(roll_t, roll_prec) ) / rate;
+    speed.angular.y = ( Utils::angle_diff(pitch_t, pitch_prec) ) / rate;
+    speed.angular.z = ( Utils::angle_diff(yaw_t, yaw_prec) ) / rate;
 
     return speed;
 }

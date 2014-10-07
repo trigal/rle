@@ -110,10 +110,12 @@ catkin_package(
 ## Declare cpp executables
 add_executable(visual_odometry_fake 
 	src/visual_odometry_fake.cpp 
+        src/Utils.cpp
 )
 
 add_executable(visual_odometry_test
         src/visual_odometry_test.cpp
+        src/Utils.cpp
 )
 
 add_executable(layout_manager 
@@ -126,11 +128,12 @@ add_executable(layout_manager
         src/particle/LayoutComponent_Building.cpp
         src/particle/LayoutComponent_Crossing.cpp
         src/particle/LayoutComponent_RoadLane.cpp
-        src/Utils.h
+        src/Utils.cpp
 )
 
 add_executable(visual_odometry_nvm
         src/visual_odometry_nvm.cpp
+        src/Utils.cpp
 )
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
