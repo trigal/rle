@@ -37,8 +37,8 @@ double measure_uncertainty = 0.05;
 string topic =
 //"mapper/odometry"
 //"visual_odometry/odom_no_error"
-"visual_odometry/odom"
-//"visual_odom_test/test"
+//"visual_odometry/odom"
+"visual_odom_test/test"
  ;
 
 // vars -----------------------------------------------------------------------------------------------

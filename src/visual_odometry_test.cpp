@@ -30,8 +30,9 @@ using namespace ros;
 // vars -----------------------------------------------------------------------------------------
 unsigned int publish_rate = 10;  /// rate of msgs published by this node
 double movement_rate = 0.1;     /// rate of movement between each step
+double angle_rate = 4.5f*3.14f/180.0f;
 double msr_cov = 0.05*0.05;     /// measure uncertainty ^ 2
-double change_direction = 20;
+double change_direction = 5;
 
 ros::Time current_time;
 ros::Time last_msg_time;
@@ -80,6 +81,13 @@ int main(int argc, char **argv)
     tf::Transform move_neg_x(tf::createIdentityQuaternion(), tf::Vector3(-movement_rate,0,0));
     tf::Transform move_neg_y(tf::createIdentityQuaternion(), tf::Vector3(0,-movement_rate,0));
     tf::Transform move_neg_z(tf::createIdentityQuaternion(), tf::Vector3(0,0,-movement_rate));
+    tf::Transform rotate_yaw(tf::createQuaternionFromYaw(angle_rate), tf::Vector3(0,0,0));
+    tf::Transform rotate_neg_yaw(tf::createQuaternionFromYaw(-angle_rate), tf::Vector3(0,0,0));
+    tf::Transform rotate_pitch(tf::createQuaternionFromRPY(0, angle_rate, 0), tf::Vector3(0,0,0));
+    tf::Transform rotate_neg_pitch(tf::createQuaternionFromRPY(0, -angle_rate, 0), tf::Vector3(0,0,0));
+    tf::Transform rotate_roll(tf::createQuaternionFromRPY(angle_rate, 0, 0), tf::Vector3(0,0,0));
+    tf::Transform rotate_neg_roll(tf::createQuaternionFromRPY(-angle_rate, 0, 0), tf::Vector3(0,0,0));
+
 
     // build axis message
     nav_msgs::Odometry msg_x = getXMsg();
@@ -127,6 +135,24 @@ int main(int argc, char **argv)
         }
         else if(msg_num>= (5*change_direction) && msg_num<(6*change_direction)){
             t = t * move_neg_z;
+        }
+        else if(msg_num>= (6*change_direction) && msg_num<(7*change_direction)){
+            t = t * rotate_yaw;
+        }
+        else if(msg_num>= (7*change_direction) && msg_num<(8*change_direction)){
+            t = t * rotate_neg_yaw;
+        }
+        else if(msg_num >= (8*change_direction) && msg_num< (9*change_direction)){
+            t = t * rotate_pitch;
+        }
+        else if(msg_num>=(9*change_direction) && msg_num< (10*change_direction)){
+            t = t * rotate_neg_pitch;
+        }
+        else if(msg_num >= (10*change_direction) && msg_num< (11*change_direction)){
+            t = t * rotate_roll;
+        }
+        else if(msg_num>=(11*change_direction) && msg_num< (12*change_direction)){
+            t = t * rotate_neg_roll;
         }
         else
             t = t * move_x;
@@ -262,38 +288,42 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
     // apply transform
     if(msg_num >= 0 && msg_num<(change_direction)){
         msg.twist.twist.linear.x = current_speed;
-        msg.twist.twist.linear.y = 0;
-        msg.twist.twist.linear.z = 0;
     }
     else if(msg_num>=(change_direction) && msg_num< (2*change_direction)){
         msg.twist.twist.linear.x = -current_speed;
-        msg.twist.twist.linear.y = 0;
-        msg.twist.twist.linear.z = 0;
     }
     else if(msg_num >= (2*change_direction) && msg_num< (3*change_direction)){
-        msg.twist.twist.linear.x = 0;
         msg.twist.twist.linear.y = current_speed;
-        msg.twist.twist.linear.z = 0;
     }
     else if(msg_num>= (3*change_direction) && msg_num< (4*change_direction)){
-        msg.twist.twist.linear.x = 0;
         msg.twist.twist.linear.y = -current_speed;
-        msg.twist.twist.linear.z = 0;
     }
     else if(msg_num >= (4*change_direction) && msg_num< (5*change_direction)){
-        msg.twist.twist.linear.x = 0;
-        msg.twist.twist.linear.y = 0;
         msg.twist.twist.linear.z = current_speed;
     }
     else if(msg_num>=(5*change_direction) && msg_num< (6*change_direction)){
-        msg.twist.twist.linear.x = 0;
-        msg.twist.twist.linear.y = 0;
         msg.twist.twist.linear.z = -current_speed;
+    }
+    else if(msg_num >= (6*change_direction) && msg_num< (7*change_direction)){
+        msg.twist.twist.angular.z = current_speed;
+    }
+    else if(msg_num>=(7*change_direction) && msg_num< (8*change_direction)){
+        msg.twist.twist.angular.z = -current_speed;
+    }
+    else if(msg_num >= (8*change_direction) && msg_num< (9*change_direction)){
+        msg.twist.twist.angular.y = current_speed;
+    }
+    else if(msg_num>=(9*change_direction) && msg_num< (10*change_direction)){
+        msg.twist.twist.angular.y = -current_speed;
+    }
+    else if(msg_num >= (10*change_direction) && msg_num< (11*change_direction)){
+        msg.twist.twist.angular.x = current_speed;
+    }
+    else if(msg_num>=(11*change_direction) && msg_num< (12*change_direction)){
+        msg.twist.twist.angular.x = -current_speed;
     }
     else{
         msg.twist.twist.linear.x = current_speed;
-        msg.twist.twist.linear.y = 0;
-        msg.twist.twist.linear.z = 0;
     }
 
 
