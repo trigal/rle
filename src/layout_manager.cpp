@@ -37,10 +37,10 @@ unsigned int num_particles = 1;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
 string topic =
-//"visual_odometry_nvm/odometry"
+"visual_odometry_nvm/odometry"
 //"visual_odometry/odometry_no_error"
 //"visual_odometry/odometry"
-"visual_odometry_test/odometry"
+//"visual_odometry_test/odometry"
  ;
 
 // vars -----------------------------------------------------------------------------------------------

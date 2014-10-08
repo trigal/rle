@@ -126,19 +126,19 @@ Visualization Manager:
     - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: true
-      Keep: 1000
+      Enabled: false
+      Keep: 1
       Length: 1
       Name: Odometry
       Position Tolerance: 0
       Topic: /visual_odometry_nvm/odometry
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -146,7 +146,7 @@ Visualization Manager:
       Shaft Radius: 0.05
       Shape: Arrow
       Topic: /visual_odometry_nvm/pose
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -171,22 +171,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.13551
+      Distance: 5.82561
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.4835
-        Y: -0.0177235
-        Z: 0.298142
+        X: 0.693344
+        Y: -0.208879
+        Z: 0.204145
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.260203
-      Target Frame: robot_frame
+      Pitch: 0.125202
+      Target Frame: odom_frame
       Value: Orbit (rviz)
-      Yaw: 3.31492
+      Yaw: 3.38491
     Saved: ~
 Window Geometry:
   Displays:

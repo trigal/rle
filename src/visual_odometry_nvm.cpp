@@ -61,15 +61,17 @@ int loadNVM(const char* path) {
             }
 
             q1 = q;
-            r = Utils::getRotationMatrix(q);
+            Eigen::Matrix3d m;
+            m << 0,0,1,1,0,0,0,1,0;
+            r = m*Utils::getRotationMatrix(q);
             t = Utils::getCameraCenterAfterRotation(c, r);
 
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
             pose.header.stamp = ros::Time::now();
-            pose.pose.position.x = t[0];
-            pose.pose.position.y = t[1];
-            pose.pose.position.z = t[2];
+            pose.pose.position.x = t[0];//*0.09;
+            pose.pose.position.y = t[1];//*0.09;
+            pose.pose.position.z = t[2];//*0.09;
             pose.pose.orientation.w = q1[0];
             pose.pose.orientation.x = q1[1];
             pose.pose.orientation.y = q1[2];
