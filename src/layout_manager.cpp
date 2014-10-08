@@ -54,6 +54,7 @@ MatrixXd p_sigma = MatrixXd::Zero(12,12);
 MotionModel mtn_model(mtn_err);
 LayoutManager layout_manager;
 ros::Publisher array_pub;
+ros::Publisher layout_odom_pub;
 vector<Particle> particle_set;
 nav_msgs::Odometry old_msg; /// used for delta_t calculation by header.stamp difference
 LayoutComponent_Building p_comp0;
@@ -254,6 +255,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         nav_msgs::Odometry odom;
         Particle p = particles.at(0);
         odom = getOdomFromPoseAndSigma(p.getParticleState(), p.getParticleSigma());
+        odom.header.stamp = msg.header.stamp;
         std::cout << " ******* FILTRO *******" << std::endl;
         std::cout << " Position:" << std::endl;
         std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
@@ -273,6 +275,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
         std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
         std::cout << std::endl;
+
+        layout_odom_pub.publish(odom);
+
     /** ************************************************************************************************* */
 }
 
@@ -302,6 +307,7 @@ int main(int argc, char **argv)
 
     // init publishers
     array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
+    layout_odom_pub = n.advertise<nav_msgs::Odometry>("layout_manager/odom",1);
     ros::spin();
 	return 0;
 }
