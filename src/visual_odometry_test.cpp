@@ -31,7 +31,8 @@ using namespace ros;
 unsigned int publish_rate = 10;  /// rate of msgs published by this node
 double movement_rate = 0.1;     /// rate of movement between each step
 double angle_rate = 4.5f*3.14f/180.0f;
-double msr_cov = 0.05*0.05;     /// measure uncertainty ^ 2
+double msr_pose_err = 0.05*0.05;     /// measure uncertainty ^ 2
+double msr_speed_err = 0.05*0.05;     /// measure uncertainty ^ 2
 double change_direction = 5;
 
 ros::Time current_time;
@@ -66,10 +67,10 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub_x = nh.advertise<nav_msgs::Odometry>("visual_odom_test/axis_x",1);
-    ros::Publisher pub_y = nh.advertise<nav_msgs::Odometry>("visual_odom_test/axis_y",1);
-    ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("visual_odom_test/axis_z",1);
-    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("visual_odom_test/test",1);
+    ros::Publisher pub_x = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_x",1);
+    ros::Publisher pub_y = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_y",1);
+    ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_z",1);
+    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/odometry",1);
 
     // Node publish rate
     ros::Rate rate(publish_rate);
@@ -97,12 +98,12 @@ int main(int argc, char **argv)
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
     tf_ = new tf::TransformListener();
+    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 
     // --------- Publish first msg ------------------------------
     msg_num = 0;
     current_speed = movement_rate / publish_rate;
     current_time = ros::Time::now();
-    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 
     // send transform_msg
     tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
@@ -328,19 +329,19 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
 
 
     // set covs (they will be constant for all the execution)
-    msg.twist.covariance =  boost::assign::list_of  (msr_cov) (0)   (0)  (0)  (0)  (0)
-                                                       (0)  (msr_cov)  (0)  (0)  (0)  (0)
-                                                       (0)   (0)  (msr_cov) (0)  (0)  (0)
-                                                       (0)   (0)   (0) (msr_cov) (0)  (0)
-                                                       (0)   (0)   (0)  (0) (msr_cov) (0)
-                                                       (0)   (0)   (0)  (0)  (0)  (msr_cov) ;
+    msg.twist.covariance =  boost::assign::list_of  (msr_speed_err) (0)   (0)  (0)  (0)  (0)
+                                                       (0)  (msr_speed_err)  (0)  (0)  (0)  (0)
+                                                       (0)   (0)  (msr_speed_err) (0)  (0)  (0)
+                                                       (0)   (0)   (0) (msr_speed_err) (0)  (0)
+                                                       (0)   (0)   (0)  (0) (msr_speed_err) (0)
+                                                       (0)   (0)   (0)  (0)  (0)  (msr_speed_err) ;
 
-    msg.pose.covariance =  boost::assign::list_of  (msr_cov) (0)  (0)  (0)  (0)  (0)
-                                                      (0) (msr_cov)   (0)  (0)  (0)  (0)
-                                                      (0)   (0)  (msr_cov) (0)  (0)  (0)
-                                                      (0)   (0)   (0) (msr_cov) (0)  (0)
-                                                      (0)   (0)   (0)  (0) (msr_cov) (0)
-                                                      (0)   (0)   (0)  (0)  (0)  (msr_cov) ;
+    msg.pose.covariance =  boost::assign::list_of  (msr_pose_err) (0)  (0)  (0)  (0)  (0)
+                                                      (0) (msr_pose_err)   (0)  (0)  (0)  (0)
+                                                      (0)   (0)  (msr_pose_err) (0)  (0)  (0)
+                                                      (0)   (0)   (0) (msr_pose_err) (0)  (0)
+                                                      (0)   (0)   (0)  (0) (msr_pose_err) (0)
+                                                      (0)   (0)   (0)  (0)  (0)  (msr_pose_err) ;
 
     return msg;
 }

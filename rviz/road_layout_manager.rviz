@@ -48,47 +48,47 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Angle Tolerance: 0.1
+    - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 255; 25; 0
       Enabled: false
-      Keep: 100
+      Keep: 1
       Length: 1
       Name: Odometry
-      Position Tolerance: 0.1
-      Topic: /visual_odometry/odom_no_error
+      Position Tolerance: 0
+      Topic: /visual_odometry/odometry_no_error
       Value: false
-    - Angle Tolerance: 0.1
+    - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 0; 0; 255
       Enabled: false
-      Keep: 100
+      Keep: 1
       Length: 1
       Name: Odometry
-      Position Tolerance: 0.1
-      Topic: /visual_odometry/odom
+      Position Tolerance: 0
+      Topic: /visual_odometry/odometry
       Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 248; 19
-      Enabled: true
+      Enabled: false
       Name: PoseArray
       Topic: /layout_manager/particle_pose_array
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: PoseArray
       Topic: /visual_odometry/single_pose_array
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 0
-      Enabled: true
+      Enabled: false
       Name: PoseArray
       Topic: /visual_odometry/single_pose_array_no_err
-      Value: true
+      Value: false
     - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 255; 25; 0
@@ -97,7 +97,14 @@ Visualization Manager:
       Length: 1
       Name: Odometry
       Position Tolerance: 0
-      Topic: /mapper/odometry
+      Topic: /visual_odometry_nvm/odometry
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.03
+      Reference Frame: robot_frame
       Value: true
   Enabled: true
   Global Options:
@@ -123,22 +130,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 20.2112
+      Distance: 7.45576
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.163417
+        Y: -0.199234
+        Z: 0.742634
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.310398
-      Target Frame: <Fixed Frame>
+      Pitch: 0.760398
+      Target Frame: odom_frame
       Value: XYOrbit (rviz)
-      Yaw: 2.05039
+      Yaw: 3.19038
     Saved: ~
 Window Geometry:
   Displays:

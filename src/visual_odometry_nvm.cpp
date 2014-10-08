@@ -22,8 +22,11 @@ using namespace std;
 
 // vars -----------------------------------------------------------
 vector<geometry_msgs::PoseStamped> pose_vec;
+tf::TransformBroadcaster* tfb_;
+tf::TransformListener* tf_;
 double FREQUENCY=10;
-double msr_err = 0.05 * 0.05;
+double speed_err = 0.05 * 0.05;
+double pose_err = 0.05 * 0.05;
 
 /***************************************************************************************************************/
 /**
@@ -58,15 +61,17 @@ int loadNVM(const char* path) {
             }
 
             q1 = q;
-            r = Utils::getRotationMatrix(q);
+            Eigen::Matrix3d m;
+            m << 0,0,1,1,0,0,0,1,0;
+            r = m*Utils::getRotationMatrix(q);
             t = Utils::getCameraCenterAfterRotation(c, r);
 
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
             pose.header.stamp = ros::Time::now();
-            pose.pose.position.x = t[0];
-            pose.pose.position.y = t[1];
-            pose.pose.position.z = t[2];
+            pose.pose.position.x = t[0];//*0.09;
+            pose.pose.position.y = t[1];//*0.09;
+            pose.pose.position.z = t[2];//*0.09;
             pose.pose.orientation.w = q1[0];
             pose.pose.orientation.x = q1[1];
             pose.pose.orientation.y = q1[2];
@@ -130,19 +135,37 @@ geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, cons
 
 
 /***************************************************************************************************************/
+void sendTf(geometry_msgs::PoseStamped pose)
+{
+    tf::Transform t1;
+    tf::Point point;
+    tf::Quaternion q;
+    tf::pointMsgToTF(pose.pose.position, point);
+    tf::quaternionMsgToTF(pose.pose.orientation, q);
+    t1.setOrigin(point);
+    t1.setRotation(q);
+    tfb_->sendTransform(tf::StampedTransform(t1, pose.header.stamp, "robot_frame", "odom_frame"));
+}
+
 int main(int argc, char *argv[]) {
     ros::init(argc, argv, "visual_odometry_nvm");
     ros::NodeHandle nh;
 
-    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("mapper/pose", 1);
-    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("mapper/odometry", 1);
+    // publishers
+    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("visual_odometry_nvm/pose", 1);
+    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("visual_odometry_nvm/odometry", 1);
 
+    // tf variables
+    tfb_ = new tf::TransformBroadcaster();
+    tf_ = new tf::TransformListener();
+    tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
+
+    // load nvm dataset file
     if(argc <= 1)
     {
         std::cout << "Give path of dataset file as parameter" << endl;
         return -1;
     }
-
     char * path;
     string argomento(argv[1]);
     path = realpath(argomento.c_str(),NULL);
@@ -158,27 +181,32 @@ int main(int argc, char *argv[]) {
         // build first msg ------------------------------------------------------------------------------------
         int i=0;
         geometry_msgs::PoseStamped old_pose = pose_vec[0];
+        old_pose.header.stamp = ros::Time::now();
+        old_pose.header.frame_id = "robot_frame";
         pose_publisher.publish(old_pose);
 
         // odometry msg ----------------------------------------------------------------------------------
         nav_msgs::Odometry odom;
         odom.child_frame_id = "odom_frame";
         odom.header.frame_id = "robot_frame";
-        odom.header.stamp = ros::Time::now();
+        odom.header.stamp = old_pose.header.stamp;
         odom.pose.pose = old_pose.pose;
-        odom.twist.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
-                                                            (0)  (msr_err)  (0)  (0)  (0)  (0)
-                                                            (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                            (0)   (0)   (0) (msr_err) (0)  (0)
-                                                            (0)   (0)   (0)  (0) (msr_err) (0)
-                                                            (0)   (0)   (0)  (0)  (0)  (msr_err) ;
-        odom.pose.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
-                                                            (0)  (msr_err)  (0)  (0)  (0)  (0)
-                                                            (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                            (0)   (0)   (0) (msr_err) (0)  (0)
-                                                            (0)   (0)   (0)  (0) (msr_err) (0)
-                                                            (0)   (0)   (0)  (0)  (0)  (msr_err) ;
+        odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
+                                                            (0)  (speed_err)  (0)  (0)  (0)  (0)
+                                                            (0)   (0)  (speed_err) (0)  (0)  (0)
+                                                            (0)   (0)   (0) (speed_err) (0)  (0)
+                                                            (0)   (0)   (0)  (0) (speed_err) (0)
+                                                            (0)   (0)   (0)  (0)  (0)  (speed_err) ;
+        odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
+                                                            (0)  (pose_err)  (0)  (0)  (0)  (0)
+                                                            (0)   (0)  (pose_err) (0)  (0)  (0)
+                                                            (0)   (0)   (0) (pose_err) (0)  (0)
+                                                            (0)   (0)   (0)  (0) (pose_err) (0)
+                                                            (0)   (0)   (0)  (0)  (0)  (pose_err) ;
+        // publish message
         odom_publisher.publish(odom);
+
+        // write message on console
         std::cout << "[ Sent msg " << i << "]:" << std::endl;
         std::cout << " Position:" << std::endl;
         std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
@@ -199,9 +227,13 @@ int main(int argc, char *argv[]) {
         std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
         std::cout << std::endl;
 
-        // aggiorno i valori
+        // update values
         i=i+1;
         loop_rate.sleep();
+
+        // send transform
+        sendTf(old_pose);
+
         // ----------------------------------------------------------------------------------------------------
 
 
@@ -211,6 +243,7 @@ int main(int argc, char *argv[]) {
             // pose msg ---------------------------------------------------------------------------------------
             geometry_msgs::PoseStamped pose = pose_vec[i%CAMERAS_NUMBER];
             pose.header.stamp = ros::Time::now();
+            pose.header.frame_id = "robot_frame";
             pose_publisher.publish(pose);
 
             // odometry msg ----------------------------------------------------------------------------------
@@ -222,20 +255,24 @@ int main(int argc, char *argv[]) {
             odom.pose.pose = pose.pose;
             odom.twist.twist = getSpeed(old_pose, pose);
 
-            odom.twist.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
-                                                                (0)  (msr_err)  (0)  (0)  (0)  (0)
-                                                                (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                                (0)   (0)   (0) (msr_err) (0)  (0)
-                                                                (0)   (0)   (0)  (0) (msr_err) (0)
-                                                                (0)   (0)   (0)  (0)  (0)  (msr_err);
-            odom.pose.covariance = boost::assign::list_of  (msr_err) (0)   (0)  (0)  (0)  (0)
-                                                                (0)  (msr_err)  (0)  (0)  (0)  (0)
-                                                                (0)   (0)  (msr_err) (0)  (0)  (0)
-                                                                (0)   (0)   (0) (msr_err) (0)  (0)
-                                                                (0)   (0)   (0)  (0) (msr_err) (0)
-                                                                (0)   (0)   (0)  (0)  (0)  (msr_err);
+            odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
+                                                                (0)  (speed_err)  (0)  (0)  (0)  (0)
+                                                                (0)   (0)  (speed_err) (0)  (0)  (0)
+                                                                (0)   (0)   (0) (speed_err) (0)  (0)
+                                                                (0)   (0)   (0)  (0) (speed_err) (0)
+                                                                (0)   (0)   (0)  (0)  (0)  (speed_err);
+            odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
+                                                                (0)  (pose_err)  (0)  (0)  (0)  (0)
+                                                                (0)   (0)  (pose_err) (0)  (0)  (0)
+                                                                (0)   (0)   (0) (pose_err) (0)  (0)
+                                                                (0)   (0)   (0)  (0) (pose_err) (0)
+                                                                (0)   (0)   (0)  (0)  (0)  (pose_err);
 
             odom_publisher.publish(odom);
+
+            // send transform
+            sendTf(pose);
+
             // -----------------------------------------------------------------------------------------------
 
             std::cout << "--------------------------------------------------------------------------------" << endl;
@@ -259,8 +296,6 @@ int main(int argc, char *argv[]) {
             std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
             std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
             std::cout << std::endl;
-
-
 
             // aggiorno i valori
             old_pose = pose;
