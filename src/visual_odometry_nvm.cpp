@@ -27,6 +27,7 @@ tf::TransformListener* tf_;
 double FREQUENCY=10;
 double speed_err = 0.05 * 0.05;
 double pose_err = 0.05 * 0.05;
+double nvm_scale_factor = 0.09;
 
 /***************************************************************************************************************/
 /**
@@ -69,9 +70,9 @@ int loadNVM(const char* path) {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
             pose.header.stamp = ros::Time::now();
-            pose.pose.position.x = t[0];//*0.09;
-            pose.pose.position.y = t[1];//*0.09;
-            pose.pose.position.z = t[2];//*0.09;
+            pose.pose.position.x = t[0];//*nvm_scale_factor;
+            pose.pose.position.y = t[1];//*nvm_scale_factor;
+            pose.pose.position.z = t[2];//*nvm_scale_factor;
             pose.pose.orientation.w = q1[0];
             pose.pose.orientation.x = q1[1];
             pose.pose.orientation.y = q1[2];
@@ -86,74 +87,66 @@ int loadNVM(const char* path) {
     return false;
 }
 
-/**
- * @brief getSpeed
- * @param pose_prec
- * @param pose_t
- * @return current_speed
- */
-geometry_msgs::Twist getSpeed(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t){
-    geometry_msgs::Twist speed;
-    double rate = pose_prec.header.stamp.toSec() - pose_t.header.stamp.toSec();
 
-    if(rate == 0){
-        speed.linear.x = 0;
-        speed.linear.y = 0;
-        speed.linear.z = 0;
-        speed.angular.x = 0;
-        speed.angular.y = 0;
-        speed.angular.z = 0;
-
-        return speed;
-    }
-
-    // calculate linear speeds
-    speed.linear.x = (pose_t.pose.position.x - pose_prec.pose.position.x) / rate;
-    speed.linear.y = (pose_t.pose.position.y - pose_prec.pose.position.y) / rate;
-    speed.linear.z = (pose_t.pose.position.z - pose_prec.pose.position.z) / rate;
-
-    // Quaternion to RPY (step_prec)
-    tf::Quaternion q1; tf::Quaternion q2;
-    tf::quaternionMsgToTF(pose_prec.pose.orientation, q1);
-    tf::Matrix3x3 m(q1);
-    double roll_prec; double pitch_prec; double yaw_prec;
-    m.getRPY(roll_prec, pitch_prec, yaw_prec);
-
-    // Quaternion to RPY (step_t)
-    tf::quaternionMsgToTF(pose_t.pose.orientation,q2);
-    tf::Matrix3x3 m_t(q2);
-    double roll_t; double pitch_t; double yaw_t;
-    m_t.getRPY(roll_t, pitch_t, yaw_t);
-
-    // calculate angular speeds
-    speed.angular.x = ( Utils::angle_diff(roll_t, roll_prec) ) / rate;
-    speed.angular.y = ( Utils::angle_diff(pitch_t, pitch_prec) ) / rate;
-    speed.angular.z = ( Utils::angle_diff(yaw_t, yaw_prec) ) / rate;
-
-    return speed;
-}
-
-
-/***************************************************************************************************************/
-void sendTf(geometry_msgs::PoseStamped pose)
+nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_pose,const geometry_msgs::PoseStamped& pose, double speed_err, double pose_err)
 {
-    tf::Transform t1;
-    tf::Point point;
-    tf::Quaternion q;
-    tf::pointMsgToTF(pose.pose.position, point);
-    tf::quaternionMsgToTF(pose.pose.orientation, q);
-    t1.setOrigin(point);
-    t1.setRotation(q);
-    tfb_->sendTransform(tf::StampedTransform(t1, pose.header.stamp, "robot_frame", "odom_frame"));
+    nav_msgs::Odometry odom;
+    odom.child_frame_id = "odom_frame";
+    odom.header.frame_id = "robot_frame";
+    odom.header.stamp = pose.header.stamp;
+
+    odom.pose.pose = pose.pose;
+    odom.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
+
+    odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (speed_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (speed_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (speed_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (speed_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (speed_err);
+    odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (pose_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (pose_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (pose_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (pose_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (pose_err);
+    return odom;
 }
+
+nav_msgs::Odometry buildOdomMsgFrom1Pose(const geometry_msgs::PoseStamped& old_pose, double speed_err, double pose_err)
+{
+    nav_msgs::Odometry odom;
+
+    odom.child_frame_id = "odom_frame";
+    odom.header.frame_id = "robot_frame";
+    odom.header.stamp = old_pose.header.stamp;
+    odom.pose.pose = old_pose.pose;
+    odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (speed_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (speed_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (speed_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (speed_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (speed_err) ;
+    odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (pose_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (pose_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (pose_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (pose_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (pose_err) ;
+    return odom;
+}
+
+/** ***********************************************************************************************************
+ * @brief main
+ *************************************************************************************************************/
 
 int main(int argc, char *argv[]) {
     ros::init(argc, argv, "visual_odometry_nvm");
     ros::NodeHandle nh;
 
     // publishers
-    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("visual_odometry_nvm/pose", 1);
-    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("visual_odometry_nvm/odometry", 1);
+    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry_nvm/pose", 1);
+    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry_nvm/odometry", 1);
 
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
@@ -186,53 +179,20 @@ int main(int argc, char *argv[]) {
         pose_publisher.publish(old_pose);
 
         // odometry msg ----------------------------------------------------------------------------------
-        nav_msgs::Odometry odom;
-        odom.child_frame_id = "odom_frame";
-        odom.header.frame_id = "robot_frame";
-        odom.header.stamp = old_pose.header.stamp;
-        odom.pose.pose = old_pose.pose;
-        odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
-                                                            (0)  (speed_err)  (0)  (0)  (0)  (0)
-                                                            (0)   (0)  (speed_err) (0)  (0)  (0)
-                                                            (0)   (0)   (0) (speed_err) (0)  (0)
-                                                            (0)   (0)   (0)  (0) (speed_err) (0)
-                                                            (0)   (0)   (0)  (0)  (0)  (speed_err) ;
-        odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
-                                                            (0)  (pose_err)  (0)  (0)  (0)  (0)
-                                                            (0)   (0)  (pose_err) (0)  (0)  (0)
-                                                            (0)   (0)   (0) (pose_err) (0)  (0)
-                                                            (0)   (0)   (0)  (0) (pose_err) (0)
-                                                            (0)   (0)   (0)  (0)  (0)  (pose_err) ;
+        nav_msgs::Odometry odom = buildOdomMsgFrom1Pose(old_pose, speed_err, pose_err);
         // publish message
         odom_publisher.publish(odom);
 
         // write message on console
         std::cout << "[ Sent msg " << i << "]:" << std::endl;
-        std::cout << " Position:" << std::endl;
-        std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
-        std::cout << "  y: " << odom.pose.pose.position.y << std::endl;
-        std::cout << "  z: " << odom.pose.pose.position.z << std::endl;
-        std::cout << " Orientation quaternion: " << std::endl;
-        std::cout << "  w: " << odom.pose.pose.orientation.w << std::endl;
-        std::cout << "  x: " << odom.pose.pose.orientation.x << std::endl;
-        std::cout << "  y: " << odom.pose.pose.orientation.y << std::endl;
-        std::cout << "  z: " << odom.pose.pose.orientation.z << std::endl;
-        std::cout << " Linear speed: " << std::endl;
-        std::cout << "  x: " << odom.twist.twist.linear.x << std::endl;
-        std::cout << "  y: " << odom.twist.twist.linear.y << std::endl;
-        std::cout << "  z: " << odom.twist.twist.linear.z << std::endl;
-        std::cout << " Angular speed: " << std::endl;
-        std::cout << "  x: " << odom.twist.twist.angular.x << std::endl;
-        std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
-        std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
-        std::cout << std::endl;
+        Utils::printOdomMsgToCout(odom);
 
         // update values
         i=i+1;
         loop_rate.sleep();
 
         // send transform
-        sendTf(old_pose);
+        Utils::sendTfFromPoseStamped(old_pose, tfb_);
 
         // ----------------------------------------------------------------------------------------------------
 
@@ -247,55 +207,18 @@ int main(int argc, char *argv[]) {
             pose_publisher.publish(pose);
 
             // odometry msg ----------------------------------------------------------------------------------
-            nav_msgs::Odometry odom;
-            odom.child_frame_id = "odom_frame";
-            odom.header.frame_id = "robot_frame";
-            odom.header.stamp = pose.header.stamp;
-
-            odom.pose.pose = pose.pose;
-            odom.twist.twist = getSpeed(old_pose, pose);
-
-            odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
-                                                                (0)  (speed_err)  (0)  (0)  (0)  (0)
-                                                                (0)   (0)  (speed_err) (0)  (0)  (0)
-                                                                (0)   (0)   (0) (speed_err) (0)  (0)
-                                                                (0)   (0)   (0)  (0) (speed_err) (0)
-                                                                (0)   (0)   (0)  (0)  (0)  (speed_err);
-            odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
-                                                                (0)  (pose_err)  (0)  (0)  (0)  (0)
-                                                                (0)   (0)  (pose_err) (0)  (0)  (0)
-                                                                (0)   (0)   (0) (pose_err) (0)  (0)
-                                                                (0)   (0)   (0)  (0) (pose_err) (0)
-                                                                (0)   (0)   (0)  (0)  (0)  (pose_err);
-
+            nav_msgs::Odometry odom = buildOdomMsgFrom2Poses(old_pose, pose, speed_err, pose_err);
             odom_publisher.publish(odom);
 
             // send transform
-            sendTf(pose);
+            Utils::sendTfFromPoseStamped(pose, tfb_);
 
             // -----------------------------------------------------------------------------------------------
 
             std::cout << "--------------------------------------------------------------------------------" << endl;
             std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
             std::cout << "[ Sent msg " << i << "]:" << std::endl;
-            std::cout << " Position:" << std::endl;
-            std::cout << "  x: " << odom.pose.pose.position.x << std::endl;
-            std::cout << "  y: " << odom.pose.pose.position.y << std::endl;
-            std::cout << "  z: " << odom.pose.pose.position.z << std::endl;
-            std::cout << " Orientation quaternion: " << std::endl;
-            std::cout << "  w: " << odom.pose.pose.orientation.w << std::endl;
-            std::cout << "  x: " << odom.pose.pose.orientation.x << std::endl;
-            std::cout << "  y: " << odom.pose.pose.orientation.y << std::endl;
-            std::cout << "  z: " << odom.pose.pose.orientation.z << std::endl;
-            std::cout << " Linear speed: " << std::endl;
-            std::cout << "  x: " << odom.twist.twist.linear.x << std::endl;
-            std::cout << "  y: " << odom.twist.twist.linear.y << std::endl;
-            std::cout << "  z: " << odom.twist.twist.linear.z << std::endl;
-            std::cout << " Angular speed: " << std::endl;
-            std::cout << "  x: " << odom.twist.twist.angular.x << std::endl;
-            std::cout << "  y: " << odom.twist.twist.angular.y << std::endl;
-            std::cout << "  z: " << odom.twist.twist.angular.z << std::endl;
-            std::cout << std::endl;
+            Utils::printOdomMsgToCout(odom);
 
             // aggiorno i valori
             old_pose = pose;

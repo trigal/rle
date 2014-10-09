@@ -8,16 +8,18 @@
     />
     <node
         pkg="road_layout_estimation"
-        type="layout_manager"
-        name="layout_manager"
+        type="road_layout_estimation"
+        name="road_layout_estimation"
         required="true"
         output="screen"
+        args="visual_odometry_fake/odometry"
     />
     <node
         pkg="rviz"
         type="rviz"
         name="rviz"
         respawn="true"
+        args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_test.rviz"
         output="screen"
     />
 </launch>

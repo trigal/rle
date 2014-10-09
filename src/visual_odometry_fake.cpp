@@ -58,10 +58,10 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odometry_no_error",1);
-    ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("visual_odometry/odometry",1);
-    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/single_pose_array",1);
-    ros::Publisher pub4 = nh.advertise<geometry_msgs::PoseArray>("visual_odometry/single_pose_array_no_err",1);
+    ros::Publisher pub1 = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry_no_error",1);
+    ros::Publisher pub2 = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry",1);
+    ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array",1);
+    ros::Publisher pub4 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array_no_err",1);
 
     // 30fps -> 30Hz
     ros::Rate rate(odom_rate);
@@ -116,10 +116,10 @@ int main(int argc, char **argv)
         // set speed
         msg.twist.twist = getSpeed( 1/odom_rate, temp_t, t);
 
-        // publish message on topic "visual_odometry/odom_no_error"
+        // publish message on topic "visual_odometry/odometry_no_error"
         pub1.publish(msg);
 
-        // publish message on topic "visual_odometry/odom"
+        // publish message on topic "visual_odometry/odometry"
         nav_msgs::Odometry noisy_msg = addNoiseToOdom(msg);
         pub2.publish(noisy_msg);
 

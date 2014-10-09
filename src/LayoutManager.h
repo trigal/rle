@@ -65,7 +65,7 @@ class LayoutManager {
 public:
 	//da far tornare private
     void particleEstimation(Particle & particle);
-    Odometry visual_odometry;	/// used for getting car motion
+    Odometry odometry;	/// used for getting car motion
     static double delta_t;
 
 private:
@@ -144,11 +144,11 @@ public:
     }
 
     Odometry getVisualOdometry(){
-		return visual_odometry;
+        return odometry;
 	}
 
-    void setVisualOdometry(Odometry& v_odom){
-		visual_odometry = v_odom;
+    void setOdometry(Odometry& v_odom){
+        odometry = v_odom;
 	}
 
 	/**

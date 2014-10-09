@@ -143,7 +143,7 @@ void LayoutManager::particleEstimation(Particle & particle){
 
     // ------- UPDATE STEP -------
     // calcolo Kalman gain sull'innovazione:
-    H_t = visual_odometry.measurementJacobi(stato_t_predetto);
+    H_t = odometry.measurementJacobi(stato_t_predetto);
 
 	MatrixXd temp = H_t * E_t_pred * H_t.transpose() + Q_t;
 	K_t = E_t_pred * H_t.transpose() * temp.inverse();
@@ -152,7 +152,7 @@ void LayoutManager::particleEstimation(Particle & particle){
     // prepare belief calculation values:
     //VectorXd measure_t = visual_odometry.measurePose(stato_t);
     VectorXd measure_t = msr_state;
-    VectorXd measure_t_pred = visual_odometry.measurePose(stato_t_predetto); //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
+    VectorXd measure_t_pred = odometry.measurePose(stato_t_predetto); //INTERFACE__VO.GET_MEASURE_FROM_PREDICTED_POSE
 
 
     // save temp variables before difference

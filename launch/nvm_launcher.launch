@@ -19,7 +19,27 @@ Publish a static coordinate transform to tf using an x/y/z offset and quaternion
         <node pkg="tf" type="static_transform_publisher" name="ira_static_broadcaster3" args="0 0 0 0.0 0.0 0.3 laser_frame scan3 1000" />
         <node pkg="tf" type="static_transform_publisher" name="ira_static_broadcaster4" args="0 0 0 0.0 0.0 -0.3 laser_frame scan4 1000" />
 -->
-        <node pkg="rviz" name="rviz" type="rviz" output="screen" args="-d /home/furlan/workspace/catkin_ws/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"/>
-        <node pkg="road_layout_estimation" name="visual_odometry_nvm" type="visual_odometry_nvm" args="/home/furlan/Desktop/dataset_dany.txt" />
-        <node pkg="road_layout_estimation" name="layout_manager" type="layout_manager" output="screen" />
+
+        <node
+            pkg="rviz"
+            name="rviz"
+            type="rviz"
+            output="screen"
+            args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
+         />
+
+        <node
+            pkg="road_layout_estimation"
+            name="visual_odometry_nvm"
+            type="visual_odometry_nvm"
+            output="screen"
+            args="/home/dario/workspace_ros/src/road_layout_estimation/dataset/dataset_dany.txt"
+        />
+
+        <node pkg="road_layout_estimation"
+            name="road_layout_estimation"
+            type="road_layout_estimation"
+            args="/visual_odometry_nvm/odometry"
+            output="screen"
+        />
 </launch>

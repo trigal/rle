@@ -3,10 +3,63 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 #include <Eigen/Eigen>
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseStamped.h>
+
+using namespace Eigen;
 
 class Utils{
 public:
+    static geometry_msgs::Twist getSpeedFrom2PoseStamped(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t);
+
+    static void sendTfFromPoseStamped(const geometry_msgs::PoseStamped &pose, tf::TransformBroadcaster *tfb);
+
+    static void printOdomMsgToCout(const nav_msgs::Odometry& msg);
+
+    /**
+     * @param pose
+     * @param position_offset
+     * @param orientation_offset
+     * @param speed_offset
+     * @return Adds a random noise to a VectorXd 12x1 representing particle's pose
+     */
+    static VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_err, double orientation_err, double speed_err);
+
+    /**
+     * Returns a message of type nav_msgs::Odometry given
+     * a VectorXd as parameter
+     * @param pose
+     * @return
+     */
+    static nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd& sigma);
+
+    /**
+     * Return a 12x1 VectorXd representing the pose given
+     * a message of type nav_msgs::Odometryfrom
+     * @param msg
+     * @return
+     */
+    static VectorXd getPoseVectorFromOdom(const nav_msgs::Odometry& msg);
+
+    /**
+     * @brief getCovFromOdom
+     * @param msg
+     * @return
+     */
+    static MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg);
+
+    /**
+     * @brief getPoseFromVector
+     * @param msg
+     * @return
+     */
+    static geometry_msgs::Pose getPoseFromVector(const VectorXd& msg);
+
     /**
      * @param err
      * @return a random number between -err and err

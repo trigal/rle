@@ -67,10 +67,10 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub_x = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_x",1);
-    ros::Publisher pub_y = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_y",1);
-    ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/axis_z",1);
-    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("visual_odometry_test/odometry",1);
+    ros::Publisher pub_x = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/axis_x",1);
+    ros::Publisher pub_y = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/axis_y",1);
+    ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/axis_z",1);
+    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/odometry",1);
 
     // Node publish rate
     ros::Rate rate(publish_rate);

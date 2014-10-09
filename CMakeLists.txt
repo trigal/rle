@@ -118,8 +118,8 @@ add_executable(visual_odometry_test
         src/Utils.cpp
 )
 
-add_executable(layout_manager 
-	src/layout_manager.cpp 
+add_executable(road_layout_estimation
+        src/road_layout_estimation.cpp
 	src/LayoutManager.cpp 
         src/Odometry.cpp
 	src/particle/MotionModel.cpp
@@ -140,6 +140,10 @@ add_executable(visual_odometry_nvm
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(road_layout_estimation
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(visual_odometry_fake
   ${catkin_LIBRARIES}
 )
@@ -148,13 +152,9 @@ target_link_libraries(visual_odometry_test
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(layout_manager
-  ${catkin_LIBRARIES}
-)
-
 target_link_libraries(visual_odometry_nvm
-#	${PCL_LIBRARIES}
-  	${catkin_LIBRARIES}
+#   ${PCL_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 #############
