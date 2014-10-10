@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
     // init subscriber
     if(argc <= 1)
     {
-        ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");
+        ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, THIS NODE WILL NOT RUN");
         ROS_INFO_STREAM("Examples:");
         ROS_INFO_STREAM("/visual_odometry/odometry");
         ROS_INFO_STREAM("/visual_odometry/odometry_no_error");

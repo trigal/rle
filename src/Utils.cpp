@@ -15,7 +15,7 @@
  */
 geometry_msgs::Twist Utils::getSpeedFrom2PoseStamped(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t){
     geometry_msgs::Twist speed;
-    double rate = pose_prec.header.stamp.toSec() - pose_t.header.stamp.toSec();
+    double rate = pose_t.header.stamp.toSec() - pose_prec.header.stamp.toSec();
 
     if(rate == 0){
         speed.linear.x = 0;
