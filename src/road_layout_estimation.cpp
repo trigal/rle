@@ -72,6 +72,33 @@ nav_msgs::Odometry old_msg; /// used for delta_t calculation by header.stamp dif
  * @param msg
  ***************************************************************************************************/
 
+geometry_msgs::PoseArray buildPoseArrayMsg(vector<Particle>& particles)
+{
+    // init array_msg
+    geometry_msgs::PoseArray array_msg;
+    array_msg.header.frame_id = "robot_frame";
+
+    // Insert all particles inside msg
+    for(int i = 0; i<particles.size(); i++)
+    {
+        // build Pose from Particle
+        Particle p = particles.at(i);
+        VectorXd p_pose = p.getParticleState();
+        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
+
+        // normalize quaternion
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(pose.orientation,q);
+        q = q.normalize();
+        tf::quaternionTFToMsg(q, pose.orientation);
+
+        // push it!
+        array_msg.poses.push_back( pose );
+    }
+
+    return array_msg;
+}
+
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     cout << "--------------------------------------------------------------------------------" << endl;
@@ -133,6 +160,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         // update old_msg
         old_msg = msg;
 
+        // set odometry msg
+        layout_manager.odometry.setMsg(msg);
+
         // publish it!
         geometry_msgs::PoseArray array_msg;
         array_msg.header.stamp = msg.header.stamp;
@@ -144,48 +174,20 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     }
 
     // retrieve measurement from odometry
-    VectorXd msr_pose = Utils::getPoseVectorFromOdom(msg);
-    MatrixXd msr_cov = Utils::getCovFromOdom(msg);
+    layout_manager.odometry.setMsg(msg);
 
     // calculate delta_t
     LayoutManager::delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
-
-    layout_manager.setMeasureState(msr_pose);
-    layout_manager.setMeasureCov(msr_cov);
-
-    // DEBUG:
-    //cout << "[msr] [pose: " << msr_pose(0) << ", " <<  msr_pose(1) <<  ", " << msr_pose(2) << "] [orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
-    //cout << "[msr orientation: " << msr_pose(3) <<  ", " << msr_pose(4) <<  ", " << msr_pose(5) << "] "<< endl;
-    //cout << "[msr] [vel: " << msr_pose(6) << ", " <<  msr_pose(7) <<  ", " << msr_pose(8) << ", " << msr_pose(9) <<  ", " << msr_pose(10) <<  ", " << msr_pose(11) << "] "<< endl;
 
 	// call particle_estimation
     layout_manager.layoutEstimation();
 
     // --------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
-    geometry_msgs::PoseArray array_msg;
-    array_msg.header.stamp = msg.header.stamp; //ros::Time::now();
-    array_msg.header.frame_id = "robot_frame";
-
+    // Get particle-set
     vector<Particle> particles = layout_manager.getCurrentLayout();
-
-    // Insert all particles inside msg
-    for(int i = 0; i<num_particles; i++)
-    {
-        Particle p = particles.at(i);
-        VectorXd p_pose = p.getParticleState();
-
-        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
-
-        // normalize quaternion
-        tf::Quaternion q;
-        tf::quaternionMsgToTF(pose.orientation,q);
-        q = q.normalize();
-        tf::quaternionTFToMsg(q, pose.orientation);
-
-        // push it!
-        array_msg.poses.push_back( pose );
-    }
+    geometry_msgs::PoseArray array_msg = buildPoseArrayMsg(particles);
+    array_msg.header.stamp = msg.header.stamp;
 
     // Publish it!
     array_pub.publish(array_msg);
@@ -200,11 +202,9 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     odom.header.stamp = msg.header.stamp;
     odom.header.frame_id = "robot_frame";
     odom.child_frame_id = "odom_frame";
-    std::cout << " ******* FILTRO *******" << std::endl;
-    Utils::printOdomMsgToCout(odom);
 
-    // publish odom
-    layout_odom_pub.publish(odom);
+    std::cout << " ******* FILTRO (1a particella) *******" << std::endl;
+    Utils::printOdomMsgToCout(odom);
 }
 
 /** ************************************************************************************************
@@ -220,27 +220,27 @@ int main(int argc, char *argv[])
     if(argc <= 1)
     {
         ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");
-        ROS_INFO_STREAM("Example:");
+        ROS_INFO_STREAM("Examples:");
         ROS_INFO_STREAM("/visual_odometry/odometry");
         ROS_INFO_STREAM("/visual_odometry/odometry_no_error");
         ROS_INFO_STREAM("/visual_odometry_nvm/odometry");
         ROS_INFO_STREAM("/visual_odometry_test/odometry");
         return -1;
     }
-    string argomento(argv[1]);
-    ros::Subscriber sub = n.subscribe(argomento, 1, odometryCallback);
+    string topic(argv[1]);
+    ros::Subscriber sub = n.subscribe(topic, 1, odometryCallback);
     ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << sub.getTopic());
 
     // init layout manager variables
     layout_manager.setOdometry(odometry);
-    layout_manager.odometry.setErrorCovariance(odom_err);
+    layout_manager.odometry.setMeasureCov(odom_err);
 
     // init header timestamp
     old_msg.header.stamp = ros::Time::now();
 
-    // init publishers
+    // init publisher
     array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
-    layout_odom_pub = n.advertise<nav_msgs::Odometry>("layout_manager/odom",1);
+
     ros::spin();
 	return 0;
 }

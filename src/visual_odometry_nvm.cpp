@@ -12,23 +12,25 @@
 #include <tf/tf.h>
 #include <Eigen/Eigen>
 #include <fstream>
+#include <cstdlib>
 #include <boost/filesystem.hpp>
 #include <boost/array.hpp>
 
 using namespace boost::filesystem;
 using namespace std;
 
-#define CAMERAS_NUMBER 360
+
 
 // vars -----------------------------------------------------------
 vector<geometry_msgs::PoseStamped> pose_vec;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
+unsigned int CAMERAS_NUMBER;
 double FREQUENCY=10;
 double speed_err = 0.05 * 0.05;
 double pose_err = 0.05 * 0.05;
 double nvm_scale_factor = 0.09;
-
+bool scale_factor_enabled = false;
 /***************************************************************************************************************/
 /**
  * @brief loadNVM
@@ -36,23 +38,24 @@ double nvm_scale_factor = 0.09;
  * @return
  */
 int loadNVM(const char* path) {
-
-    ROS_INFO("loadNVM started");
-
     std::ifstream reconstruction(path);
 
     if(reconstruction.is_open()) {
-        ROS_INFO(".nvm file opened");
-        ROS_INFO("Cameras found: %d", CAMERAS_NUMBER);
+        ROS_INFO("Started reading file");
 
-        std::string name[CAMERAS_NUMBER];
         double c[3];
         Eigen::Vector4d q, q1;
         Eigen::Matrix3d r;
         Eigen::Vector3d t;
-        for(unsigned short int i = 0; i < CAMERAS_NUMBER; ++i) { //x ogni riga/camera
+        std::string name[10];
+        unsigned int counter = 0;
 
-            reconstruction >> name[i];
+        while(!reconstruction.eof())
+        {
+            counter++;
+
+            //used for skipping fist character of every line
+            reconstruction >> name[0];
 
             for(unsigned short int j = 0; j < 4; ++j) {
                 reconstruction >> q[j];
@@ -70,9 +73,19 @@ int loadNVM(const char* path) {
             geometry_msgs::PoseStamped pose;
             pose.header.frame_id = "robot_frame";
             pose.header.stamp = ros::Time::now();
-            pose.pose.position.x = t[0];//*nvm_scale_factor;
-            pose.pose.position.y = t[1];//*nvm_scale_factor;
-            pose.pose.position.z = t[2];//*nvm_scale_factor;
+
+            if(scale_factor_enabled)
+            {
+                pose.pose.position.x = t[0]*nvm_scale_factor;
+                pose.pose.position.y = t[1]*nvm_scale_factor;
+                pose.pose.position.z = t[2]*nvm_scale_factor;
+            }
+            else
+            {
+                pose.pose.position.x = t[0];
+                pose.pose.position.y = t[1];
+                pose.pose.position.z = t[2];
+            }
             pose.pose.orientation.w = q1[0];
             pose.pose.orientation.x = q1[1];
             pose.pose.orientation.y = q1[2];
@@ -80,9 +93,9 @@ int loadNVM(const char* path) {
 
             pose_vec.push_back(pose);
         }
-        return 0;
 
         reconstruction.close();
+        CAMERAS_NUMBER = counter;
     }
     return false;
 }

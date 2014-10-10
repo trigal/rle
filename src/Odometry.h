@@ -10,13 +10,19 @@
 
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <Eigen/Core>
+#include <nav_msgs/Odometry.h>
+#include "Utils.h"
+
 using namespace Eigen;
 
 class Odometry {
 
 private:
     MatrixXd error_covariance; 		/// this is a 12x12 matrix representing the error covariance on the measurement
-    VectorXd current_measurement;	/// particle measurement (12x1: 6DoF pose + 6 Speed Derivates)
+
+    VectorXd msr_state; /// particle measurement (12x1: 6DoF pose + 6 Speed Derivates)
+    MatrixXd msr_cov;   /// particle covariance (12x12)
+    nav_msgs::Odometry msg; /// current msg arrived from Visual Odometry
 
     class Tracker{
 
@@ -41,48 +47,38 @@ public:
      */
     VectorXd measurePose(VectorXd& p_state);
 
-    /**
-     * @return vector 12x1 representing the current measurement of the particle
-     */
-    VectorXd getCurrentMeasurement(){
-        return this->current_measurement;
-    }
 
-    /**
-     * Sets current particle measurement
-     * @param msr
-     */
-    void setCurrentMeasurement(VectorXd& msr){
-        this->current_measurement = msr;
-    }
+    // getters & setters --------------------------------------------------------------------------
+    MatrixXd getErrorCovariance(){ return this->error_covariance; }
+    void setErrorCovariance(MatrixXd& err){ this->error_covariance = err; }
 
-    /**
-     * @return current error covariance
-     */
-    MatrixXd getErrorCovariance(){
-        return this->error_covariance;
-    }
+    void setMeasureState(VectorXd& msrstate){ msr_state = msrstate; }
+    VectorXd getMeasureState(){ return msr_state; }
 
-    /**
-     * Sets current error covariance
-     * @param err
-     */
-    void setErrorCovariance(MatrixXd& err){
-        this->error_covariance = err;
-    }
+    void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
+    MatrixXd getMeasureCov(){ return msr_cov; }
 
+    void setMsg(const nav_msgs::Odometry& m){
+        msg = m;
+        msr_state = Utils::getPoseVectorFromOdom(m);
+        msr_cov = Utils::getCovFromOdom(m);
+        Utils::printOdomMsgToCout(m);
+    }
+    nav_msgs::Odometry getMsg() { return msg; }
+
+    // constructor & destructor -------------------------------------------------------------------
     Odometry(){
-        // Sets all the values to zero
-        MatrixXd cov = MatrixXd::Zero(12,12);
-        VectorXd msr = VectorXd::Zero(12);
-
-        this->error_covariance = cov;
-        this->current_measurement = msr;
+        // Sets all values to zero
+        msr_cov = MatrixXd::Zero(12,12);
+        msr_state = VectorXd::Zero(12);
+        error_covariance = msr_cov;
     }
 
     ~Odometry(){
-        this->current_measurement.resize(0);
-        this->error_covariance(0,0);
+        // Resize all values to zero
+        msr_state.resize(0);
+        msr_cov.resize(0,0);
+        error_covariance.resize(0,0);
     }
 };
 

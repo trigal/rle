@@ -63,8 +63,6 @@ using std::vector;
  */
 class LayoutManager {
 public:
-	//da far tornare private
-    void particleEstimation(Particle & particle);
     Odometry odometry;	/// used for getting car motion
     static double delta_t;
 
@@ -127,61 +125,31 @@ private:
 
 public:
 
-    void setMeasureState(VectorXd& msrstate){
-        msr_state = msrstate;
-    }
+    /**
+     * Genera una stima del layout al tempo t a partire dal currentLayout
+     * @return particle set al tempo t
+     */
+    vector<Particle> layoutEstimation();
 
-    VectorXd getMeasureState(){
-        return msr_state;
-    }
+    // getters & setters ----------------------------------------------------------------------------
+    void setMeasureState(VectorXd& msrstate){ msr_state = msrstate; }
+    VectorXd getMeasureState(){ return msr_state; }
 
-    void setMeasureCov(MatrixXd& msrcov){
-        msr_cov = msrcov;
-    }
+    void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
+    MatrixXd getMeasureCov(){ return msr_cov; }
 
-    MatrixXd getMeasureCov(){
-        return msr_cov;
-    }
+    void setOdometry(Odometry& v_odom){ odometry = v_odom; }
+    Odometry getVisualOdometry(){ return odometry; }
 
-    Odometry getVisualOdometry(){
-        return odometry;
-	}
+    vector<Particle> getCurrentLayout(){ return current_layout; }
+    void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
-    void setOdometry(Odometry& v_odom){
-        odometry = v_odom;
-	}
-
-	/**
-	 * Genera una stima del layout al tempo t a partire dal currentLayout
-	 * @return particle set al tempo t
-	 */
-	vector<Particle> layoutEstimation();
-
-
-	/**
-	 * Returns last estimated layout (used for other detectors' feedback)
-	 * @return particle-set
-	 */
-	vector<Particle> getCurrentLayout(){
-		return current_layout;
-	}
-
-
-	/**
-	 * Used to set the current layout (usually this will called only one time, during the startup)
-	 * @param p_set
-	 */
-	void setCurrentLayout(vector<Particle>& p_set){
-		current_layout = p_set;
-	}
-
-    // costructor
+    // costructor & destructor ----------------------------------------------------------------------
 	LayoutManager(){
 		new_detections = false;
 		motion_threshold  = 0.05;
     }
 
-    // destructor
 	~LayoutManager(){
 		score_vector.resize(0);
         current_layout.resize(0);
