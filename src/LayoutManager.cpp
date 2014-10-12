@@ -15,14 +15,151 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <iostream>
+#include <math.h>
 using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
 
-/**
- * Initialize static member value for C++ compilation
- */
-double LayoutManager::delta_t = 1;
+double LayoutManager::delta_t = 1; /// Initialize static member value for C++ compilation
+
+geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles)
+{
+    // init array_msg
+    geometry_msgs::PoseArray array_msg;
+    array_msg.header.frame_id = "robot_frame";
+
+    // Insert all particles inside msg
+    for(int i = 0; i<particles.size(); i++)
+    {
+        // build Pose from Particle
+        Particle p = particles.at(i);
+        VectorXd p_pose = p.getParticleState();
+        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
+
+        // normalize quaternion
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(pose.orientation,q);
+        q = q.normalize();
+        tf::quaternionTFToMsg(q, pose.orientation);
+
+        // push it!
+        array_msg.poses.push_back( pose );
+    }
+
+    return array_msg;
+}
+/** *************************************************************************************************
+ * Callback called on nav_msg::Odometry arrival
+ * @param msg
+ ***************************************************************************************************/
+void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
+{
+    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << "[step: " << step << "]" << endl; step++;
+
+    // stampo misura arrivata
+    std::cout << " ******* MSG ARRIVED. *******" << std::endl;
+    Utils::printOdomMsgToCout(msg);
+
+    // if it's our first incoming odometry msg, just use it as particle-set poses initializer
+    // (filter won't be called)
+    if(first_msg){
+        // generate particle set
+        for(int i=0; i<num_particles; i++)
+        {
+            // init an empty particle
+            VectorXd p_pose = VectorXd::Zero(12);
+            MatrixXd p_sigma = MatrixXd::Zero(12,12);
+            Particle part(i, p_pose, p_sigma, mtn_model);
+
+            // get pose & cov from odom msg
+            VectorXd new_pose = Utils::getPoseVectorFromOdom(msg);
+            MatrixXd new_cov = Utils::getCovFromOdom(msg);
+
+            // add some random offset to particles (only the first one won't be noised)
+            if(i!=0){
+                new_pose = Utils::addOffsetToVectorXd(new_pose, 0.05, 0.05, 0.05);
+            }
+
+            // update particle values
+            part.setParticleState(new_pose);
+            part.setParticleSigma(new_cov);
+
+            // let's add a sample component in same position of the particle
+            layout_components.at(0)->particle_id = part.getId();
+            layout_components.at(0)->component_id = 0;
+            layout_components.at(0)->component_state = new_pose;
+            layout_components.at(0)->component_cov = p_sigma;
+            part.addComponent(layout_components.at(0));
+
+            layout_components.at(1)->particle_id = part.getId();
+            layout_components.at(1)->component_id = 1;
+            layout_components.at(1)->component_state = new_pose;
+            layout_components.at(1)->component_cov = p_sigma;
+            part.addComponent(layout_components.at(1));
+
+            layout_components.at(2)->particle_id = part.getId();
+            layout_components.at(2)->component_id = 2;
+            layout_components.at(2)->component_state = new_pose;
+            layout_components.at(2)->component_cov = p_sigma;
+            part.addComponent(layout_components.at(2));
+
+            // push created particle into particle-set
+            current_layout.push_back(part);
+        }
+
+        // update flag
+        first_msg=false;
+
+        // update old_msg
+        old_msg = msg;
+
+        // set odometry msg
+        odometry.setMsg(msg);
+
+        // publish it!
+        geometry_msgs::PoseArray array_msg;
+        array_msg.header.stamp = msg.header.stamp;
+        array_msg.header.frame_id = "robot_frame";
+        array_msg.poses.push_back(msg.pose.pose);
+        array_pub.publish(array_msg);
+
+        return;
+    }
+
+    // retrieve measurement from odometry
+    odometry.setMsg(msg);
+
+    // calculate delta_t
+    delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+
+    // call particle_estimation
+    layoutEstimation();
+
+    // --------------------------------------------------------------------------------------
+    // BUILD POSEARRAY MSG
+    // Get particle-set
+    vector<Particle> particles = current_layout;
+    geometry_msgs::PoseArray array_msg = buildPoseArrayMsg(particles);
+    array_msg.header.stamp = msg.header.stamp;
+
+    // Publish it!
+    array_pub.publish(array_msg);
+
+    // Update old_msg with current one for next step delta_t calculation
+    old_msg = msg;
+
+    // Print filtered out measure
+    std::cout << " ******* FILTRO (particella 0 del set) *******" << std::endl;
+    nav_msgs::Odometry odom;
+    Particle p = particles.at(0);
+    odom = Utils::getOdomFromPoseAndSigma(p.getParticleState(), p.getParticleSigma());
+    odom.header.stamp = msg.header.stamp;
+    odom.header.frame_id = "robot_frame";
+    odom.child_frame_id = "odom_frame";
+    Utils::printOdomMsgToCout(odom);
+}
+
 
 /**
  * Check if car has moved or not by confronting odometry matrix and motion threshold matrix

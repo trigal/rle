@@ -1,3 +1,5 @@
+#include "Utils.h"
+
 #include <stdlib.h>
 #include <math.h>
 #include <Eigen/Eigen>
@@ -7,6 +9,7 @@
 #include <boost/assign.hpp>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
+
 /**
  * @brief getSpeed
  * @param pose_prec

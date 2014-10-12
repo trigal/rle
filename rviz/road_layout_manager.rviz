@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /PoseArray1
         - /Odometry3
       Splitter Ratio: 0.5
     Tree Height: 385
@@ -71,10 +72,10 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 248; 19
-      Enabled: false
+      Enabled: true
       Name: PoseArray
-      Topic: /layout_manager/particle_pose_array
-      Value: false
+      Topic: /road_layout_estimation/layout_manager/particle_pose_array
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
@@ -164,4 +165,4 @@ Window Geometry:
     collapsed: false
   Width: 1305
   X: 27
-  Y: 17
+  Y: 24

@@ -8,18 +8,17 @@
 #ifndef ODOMETRY_H_
 #define ODOMETRY_H_
 
+#include "Utils.h"
+
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <Eigen/Core>
 #include <nav_msgs/Odometry.h>
-#include "Utils.h"
 
 using namespace Eigen;
 
 class Odometry {
 
 private:
-    MatrixXd error_covariance; 		/// this is a 12x12 matrix representing the error covariance on the measurement
-
     VectorXd msr_state; /// particle measurement (12x1: 6DoF pose + 6 Speed Derivates)
     MatrixXd msr_cov;   /// particle covariance (12x12)
     nav_msgs::Odometry msg; /// current msg arrived from Visual Odometry
@@ -49,9 +48,6 @@ public:
 
 
     // getters & setters --------------------------------------------------------------------------
-    MatrixXd getErrorCovariance(){ return this->error_covariance; }
-    void setErrorCovariance(MatrixXd& err){ this->error_covariance = err; }
-
     void setMeasureState(VectorXd& msrstate){ msr_state = msrstate; }
     VectorXd getMeasureState(){ return msr_state; }
 
@@ -71,14 +67,12 @@ public:
         // Sets all values to zero
         msr_cov = MatrixXd::Zero(12,12);
         msr_state = VectorXd::Zero(12);
-        error_covariance = msr_cov;
     }
 
     ~Odometry(){
         // Resize all values to zero
         msr_state.resize(0);
         msr_cov.resize(0,0);
-        error_covariance.resize(0,0);
     }
 };
 

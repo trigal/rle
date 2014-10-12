@@ -12,8 +12,10 @@
 #include "particle/Particle.h"
 #include <vector>
 #include "nav_msgs/Odometry.h"
-#include <Eigen/Dense>	//used for motion threshold matrix
+#include "geometry_msgs/PoseArray.h"
+#include <Eigen/Dense>
 #include <Eigen/Core>
+
 using namespace Eigen;
 using Eigen::MatrixXd;
 using std::vector;
@@ -66,13 +68,21 @@ public:
     Odometry odometry;	/// used for getting car motion
     static double delta_t;
 
+    //refactor
+    nav_msgs::Odometry old_msg; /// used for delta_t calculation
+    ros::Publisher array_pub;
+    unsigned int num_particles;
+    bool first_msg; /// flag used for init particle-set
+    int step;   /// stores the current layout_manager step
+    MotionModel mtn_model;
+    vector<LayoutComponent*> layout_components;
+    ros::Subscriber sub;
+
 private:
     bool new_detections;				/// indicates detectors found new detections
-    vector<double> score_vector;
+//    vector<double> score_vector;
+
     vector<Particle> current_layout;	/// stores the current layout
-    double motion_threshold;
-    VectorXd msr_state;
-    MatrixXd msr_cov;
 
 
     bool checkHasMoved();
@@ -131,13 +141,11 @@ public:
      */
     vector<Particle> layoutEstimation();
 
+    void odometryCallback(const nav_msgs::Odometry& msg);
+
+
+
     // getters & setters ----------------------------------------------------------------------------
-    void setMeasureState(VectorXd& msrstate){ msr_state = msrstate; }
-    VectorXd getMeasureState(){ return msr_state; }
-
-    void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
-    MatrixXd getMeasureCov(){ return msr_cov; }
-
     void setOdometry(Odometry& v_odom){ odometry = v_odom; }
     Odometry getVisualOdometry(){ return odometry; }
 
@@ -145,16 +153,31 @@ public:
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-	LayoutManager(){
-		new_detections = false;
-		motion_threshold  = 0.05;
+    LayoutManager(ros::NodeHandle& n, std::string topic, unsigned int num_part, double mtn_unc, double msr_unc, vector<LayoutComponent*> l_components){
+
+        // init values
+        num_particles = num_part;
+        step = 0;
+        first_msg = true;
+        MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_unc*mtn_unc);   /// used for initialize mtn_model
+        MatrixXd odom_err = MatrixXd::Identity(12,12) * (msr_unc*msr_unc);  /// used for initialize visual_odometry
+        mtn_model.setErrorCovariance(mtn_err);
+        odometry.setMeasureCov(odom_err);
+        layout_components = l_components;
+
+        // init header timestamp
+        old_msg.header.stamp = ros::Time::now();
+
+        // init publisher
+        array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
+
+        // init subscriber
+        sub = n.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+        ROS_INFO_STREAM("LAYOUT MANAGER STARTED, LISTENING TO: " << sub.getTopic());
     }
 
-	~LayoutManager(){
-		score_vector.resize(0);
+    ~LayoutManager(){
         current_layout.resize(0);
-        msr_state.resize(0);
-        msr_cov.resize(0,0);
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);
