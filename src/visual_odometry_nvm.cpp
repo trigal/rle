@@ -26,7 +26,6 @@ vector<geometry_msgs::PoseStamped> pose_vec;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 unsigned int CAMERAS_NUMBER;
-double FREQUENCY=10;
 double speed_err = 0.05 * 0.05;
 double pose_err = 0.05 * 0.05;
 double nvm_scale_factor = 0.09;
@@ -182,7 +181,20 @@ int main(int argc, char *argv[]) {
             ROS_INFO("Publishing Point Cloud and Pose");
         }
 
-        ros::Rate loop_rate(FREQUENCY);
+        // set odom rate from argument
+        double odom_rate;
+        if(argc <= 2)
+        {
+            ROS_INFO_STREAM("NO RATE GIVEN AS ARGUMENT, IT WILL BE SET AS DEFAULT: 15Hz");
+            odom_rate = 15;
+        }
+        else
+        {
+            string argomento2(argv[2]);
+            odom_rate = atof(argomento2.c_str());
+            ROS_INFO_STREAM("NODE RATE: " << odom_rate);
+        }
+        ros::Rate loop_rate(odom_rate);
 
         // build first msg ------------------------------------------------------------------------------------
         int i=0;
@@ -206,10 +218,7 @@ int main(int argc, char *argv[]) {
 
         // send transform
         Utils::sendTfFromPoseStamped(old_pose, tfb_);
-
         // ----------------------------------------------------------------------------------------------------
-
-
 
         while(ros::ok()) {
 

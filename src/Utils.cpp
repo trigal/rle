@@ -11,6 +11,77 @@
 #include <tf/transform_broadcaster.h>
 
 /**
+ * Adds a random noise to odometry SINGLE step
+ * @param steps
+ * @return noisy steps
+ */
+nav_msgs::Odometry Utils::addNoiseToOdom(const nav_msgs::Odometry & step, double odom_err)
+{
+
+    nav_msgs::Odometry noisy_step = step;
+    //set covariance
+    noisy_step.twist.covariance =  boost::assign::list_of  (odom_err) (0)   (0)  (0)  (0)  (0)
+                                                           (0)  (odom_err)  (0)  (0)  (0)  (0)
+                                                           (0)   (0)  (odom_err) (0)  (0)  (0)
+                                                           (0)   (0)   (0) (odom_err) (0)  (0)
+                                                           (0)   (0)   (0)  (0) (odom_err) (0)
+                                                           (0)   (0)   (0)  (0)  (0)  (odom_err) ;
+
+    noisy_step.pose.covariance =  boost::assign::list_of  (odom_err) (0)  ( 0)  (0)  (0)  (0)
+                                                          (0) (odom_err)   (0)  (0)  (0)  (0)
+                                                          (0)   (0)  (odom_err) (0)  (0)  (0)
+                                                          (0)   (0)   (0) (odom_err) (0)  (0)
+                                                          (0)   (0)   (0)  (0) (odom_err) (0);
+    // adds noise to the step
+    noisy_step.pose.pose.position.x += Utils::getNoise(noisy_step.pose.covariance.elems[0]);
+    noisy_step.pose.pose.position.y += Utils::getNoise(noisy_step.pose.covariance.elems[7]);
+    noisy_step.pose.pose.position.z += Utils::getNoise(noisy_step.pose.covariance.elems[14]);
+    noisy_step.pose.pose.orientation.x += Utils::getNoise(noisy_step.pose.covariance.elems[21]);
+    noisy_step.pose.pose.orientation.y += Utils::getNoise(noisy_step.pose.covariance.elems[28]);
+    noisy_step.pose.pose.orientation.z += Utils::getNoise(noisy_step.pose.covariance.elems[35]);
+
+    //normalize angles
+    noisy_step.pose.pose.orientation.x = Utils::normalize_angle(noisy_step.pose.pose.orientation.x);
+    noisy_step.pose.pose.orientation.y = Utils::normalize_angle(noisy_step.pose.pose.orientation.y);
+    noisy_step.pose.pose.orientation.z = Utils::normalize_angle(noisy_step.pose.pose.orientation.z);
+
+    noisy_step.twist.twist.angular.x += Utils::getNoise(noisy_step.twist.covariance.elems[0]);
+    noisy_step.twist.twist.angular.y += Utils::getNoise(noisy_step.twist.covariance.elems[7]);
+    noisy_step.twist.twist.angular.z += Utils::getNoise(noisy_step.twist.covariance.elems[14]);
+    noisy_step.twist.twist.linear.x += Utils::getNoise(noisy_step.twist.covariance.elems[21]);
+    noisy_step.twist.twist.linear.y += Utils::getNoise(noisy_step.twist.covariance.elems[28]);
+    noisy_step.twist.twist.linear.z += Utils::getNoise(noisy_step.twist.covariance.elems[35]);
+
+    return noisy_step;
+}
+
+geometry_msgs::Twist Utils::getSpeed(ros::Time& prev_time, ros::Time& curr_time, const tf::Transform & temp_t, const tf::Transform & t){
+
+    double rate = curr_time.toSec() - prev_time.toSec();
+    geometry_msgs::Twist speed;
+
+    speed.linear.x = (t.getOrigin().getX() - temp_t.getOrigin().getX()) / rate;
+    speed.linear.y = (t.getOrigin().getY() - temp_t.getOrigin().getY()) / rate;
+    speed.linear.z = (t.getOrigin().getZ() - temp_t.getOrigin().getZ()) / rate;
+
+    // Quaternion to RPY (step_prec)
+    tf::Matrix3x3 m(temp_t.getRotation());
+    double roll_prec; double pitch_prec; double yaw_prec;
+    m.getRPY(roll_prec, pitch_prec, yaw_prec);
+
+    // Quaternion to RPY (step_t)
+    tf::Matrix3x3 m_t(t.getRotation());
+    double roll_t; double pitch_t; double yaw_t;
+    m_t.getRPY(roll_t, pitch_t, yaw_t);
+
+    speed.angular.x = ( Utils::angle_diff(roll_t, roll_prec) ) / rate;
+    speed.angular.y = ( Utils::angle_diff(pitch_t, pitch_prec) ) / rate;
+    speed.angular.z = ( Utils::angle_diff(yaw_t, yaw_prec) ) / rate;
+
+    return speed;
+}
+
+/**
  * @brief getSpeed
  * @param pose_prec
  * @param pose_t

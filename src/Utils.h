@@ -15,6 +15,11 @@ using namespace Eigen;
 
 class Utils{
 public:
+
+    static nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step, double odom_err);
+
+    static geometry_msgs::Twist getSpeed(ros::Time& prev_time, ros::Time& curr_time, const tf::Transform & temp_t, const tf::Transform & t);
+
     static geometry_msgs::Twist getSpeedFrom2PoseStamped(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t);
 
     static void sendTfFromPoseStamped(const geometry_msgs::PoseStamped &pose, tf::TransformBroadcaster *tfb);

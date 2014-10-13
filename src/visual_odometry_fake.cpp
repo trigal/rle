@@ -32,14 +32,8 @@ tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 // ***********************************************************************************************
 
-// const *****************************************************************************************
+// settings  *************************************************************************************
 double odom_err = 0.05*0.05; /// measure error covariance (uncertainty^2)
-double odom_rate = 30;		 /// odometry fps (Hz)
-// ***********************************************************************************************
-
-// functions *************************************************************************************
-nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step);
-geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t);
 // ***********************************************************************************************
 
 /**
@@ -63,12 +57,26 @@ int main(int argc, char **argv)
     ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array",1);
     ros::Publisher pub4 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array_no_err",1);
 
-    // 30fps -> 30Hz
+    // set odom rate from argument
+    double odom_rate;
+    if(argc <= 1)
+    {
+        ROS_INFO_STREAM("NO RATE GIVEN AS ARGUMENT, IT WILL BE SET AS DEFAULT: 15Hz");
+        odom_rate = 15;
+    }
+    else
+    {
+        string argomento(argv[1]);
+        odom_rate = atof(argomento.c_str());
+        ROS_INFO_STREAM("NODE RATE: " << odom_rate);
+    }
     ros::Rate rate(odom_rate);
 
     // Set current time for msg header
     ros::Time current_time;
+    ros::Time previous_time;
     current_time = ros::Time::now();
+    previous_time = ros::Time::now();
 
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
@@ -114,13 +122,14 @@ int main(int argc, char **argv)
         tf::quaternionTFToMsg(t.getRotation().normalized(), msg.pose.pose.orientation);
 
         // set speed
-        msg.twist.twist = getSpeed( 1/odom_rate, temp_t, t);
+        msg.twist.twist = Utils::getSpeed(previous_time, current_time, temp_t, t);
+        previous_time = current_time;
 
         // publish message on topic "visual_odometry/odometry_no_error"
         pub1.publish(msg);
 
         // publish message on topic "visual_odometry/odometry"
-        nav_msgs::Odometry noisy_msg = addNoiseToOdom(msg);
+        nav_msgs::Odometry noisy_msg = Utils::addNoiseToOdom(msg, odom_err);
         pub2.publish(noisy_msg);
 
         // publish single posearray with no error on topic "visual_odometry/single_pose_array_no_err"
@@ -164,80 +173,3 @@ int main(int argc, char **argv)
     }
 }
 
-
-
-
-
-
-/** **********************************************************************************************
-/* FUNCTIONS IMPLEMENTATIONS
-/************************************************************************************************/
-/**
- * Adds a random noise to odometry SINGLE step
- * @param steps
- * @return noisy steps
- */
-nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step)
-{
-
-    nav_msgs::Odometry noisy_step = step;
-    //set covariance
-    noisy_step.twist.covariance =  boost::assign::list_of  (odom_err) (0)   (0)  (0)  (0)  (0)
-                                                           (0)  (odom_err)  (0)  (0)  (0)  (0)
-                                                           (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                           (0)   (0)   (0) (odom_err) (0)  (0)
-                                                           (0)   (0)   (0)  (0) (odom_err) (0)
-                                                           (0)   (0)   (0)  (0)  (0)  (odom_err) ;
-
-    noisy_step.pose.covariance =  boost::assign::list_of  (odom_err) (0)  ( 0)  (0)  (0)  (0)
-                                                          (0) (odom_err)   (0)  (0)  (0)  (0)
-                                                          (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                          (0)   (0)   (0) (odom_err) (0)  (0)
-                                                          (0)   (0)   (0)  (0) (odom_err) (0);
-    // adds noise to the step
-    noisy_step.pose.pose.position.x += Utils::getNoise(noisy_step.pose.covariance.elems[0]);
-    noisy_step.pose.pose.position.y += Utils::getNoise(noisy_step.pose.covariance.elems[7]);
-    noisy_step.pose.pose.position.z += Utils::getNoise(noisy_step.pose.covariance.elems[14]);
-    noisy_step.pose.pose.orientation.x += Utils::getNoise(noisy_step.pose.covariance.elems[21]);
-    noisy_step.pose.pose.orientation.y += Utils::getNoise(noisy_step.pose.covariance.elems[28]);
-    noisy_step.pose.pose.orientation.z += Utils::getNoise(noisy_step.pose.covariance.elems[35]);
-
-    //normalize angles
-    noisy_step.pose.pose.orientation.x = Utils::normalize_angle(noisy_step.pose.pose.orientation.x);
-    noisy_step.pose.pose.orientation.y = Utils::normalize_angle(noisy_step.pose.pose.orientation.y);
-    noisy_step.pose.pose.orientation.z = Utils::normalize_angle(noisy_step.pose.pose.orientation.z);
-
-    noisy_step.twist.twist.angular.x += Utils::getNoise(noisy_step.twist.covariance.elems[0]);
-    noisy_step.twist.twist.angular.y += Utils::getNoise(noisy_step.twist.covariance.elems[7]);
-    noisy_step.twist.twist.angular.z += Utils::getNoise(noisy_step.twist.covariance.elems[14]);
-    noisy_step.twist.twist.linear.x += Utils::getNoise(noisy_step.twist.covariance.elems[21]);
-    noisy_step.twist.twist.linear.y += Utils::getNoise(noisy_step.twist.covariance.elems[28]);
-    noisy_step.twist.twist.linear.z += Utils::getNoise(noisy_step.twist.covariance.elems[35]);
-
-    return noisy_step;
-}
-
-geometry_msgs::Twist getSpeed(const double & rate, const tf::Transform & temp_t, const tf::Transform & t){
-
-    geometry_msgs::Twist speed;
-
-    speed.linear.x = (t.getOrigin().getX() - temp_t.getOrigin().getX()) / rate;
-    speed.linear.y = (t.getOrigin().getY() - temp_t.getOrigin().getY()) / rate;
-    speed.linear.z = (t.getOrigin().getZ() - temp_t.getOrigin().getZ()) / rate;
-
-    // Quaternion to RPY (step_prec)
-    tf::Matrix3x3 m(temp_t.getRotation());
-    double roll_prec; double pitch_prec; double yaw_prec;
-    m.getRPY(roll_prec, pitch_prec, yaw_prec);
-
-    // Quaternion to RPY (step_t)
-    tf::Matrix3x3 m_t(t.getRotation());
-    double roll_t; double pitch_t; double yaw_t;
-    m_t.getRPY(roll_t, pitch_t, yaw_t);
-
-    speed.angular.x = ( Utils::angle_diff(roll_t, roll_prec) ) / rate;
-    speed.angular.y = ( Utils::angle_diff(pitch_t, pitch_prec) ) / rate;
-    speed.angular.z = ( Utils::angle_diff(yaw_t, yaw_prec) ) / rate;
-
-    return speed;
-}

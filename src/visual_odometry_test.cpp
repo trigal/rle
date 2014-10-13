@@ -28,7 +28,6 @@ using namespace std;
 using namespace ros;
 
 // vars -----------------------------------------------------------------------------------------
-unsigned int publish_rate = 10;  /// rate of msgs published by this node
 double movement_rate = 0.1;     /// rate of movement between each step
 double angle_rate = 4.5f*3.14f/180.0f;
 double msr_pose_err = 0.05*0.05;     /// measure uncertainty ^ 2
@@ -72,8 +71,20 @@ int main(int argc, char **argv)
     ros::Publisher pub_z = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/axis_z",1);
     ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/odometry",1);
 
-    // Node publish rate
-    ros::Rate rate(publish_rate);
+    // set odom rate from argument
+    double odom_rate;
+    if(argc <= 1)
+    {
+        ROS_INFO_STREAM("NO RATE GIVEN AS ARGUMENT, IT WILL BE SET AS DEFAULT: 15Hz");
+        odom_rate = 15;
+    }
+    else
+    {
+        string argomento2(argv[1]);
+        odom_rate = atof(argomento2.c_str());
+        ROS_INFO_STREAM("NODE RATE: " << odom_rate);
+    }
+    ros::Rate rate(odom_rate);
 
     // move on X, Y or Z axis with movement_rate transform
     tf::Transform move_x(tf::createIdentityQuaternion(), tf::Vector3(movement_rate,0,0));
@@ -102,7 +113,7 @@ int main(int argc, char **argv)
 
     // --------- Publish first msg ------------------------------
     msg_num = 0;
-    current_speed = movement_rate / publish_rate;
+    current_speed = movement_rate / odom_rate;
     current_time = ros::Time::now();
 
     // send transform_msg
