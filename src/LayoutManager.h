@@ -160,7 +160,7 @@ public:
         step = 0;
         first_msg = true;
         MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_unc*mtn_unc);   /// used for initialize mtn_model
-        MatrixXd odom_err = MatrixXd::Identity(12,12) * (msr_unc*msr_unc);  /// used for initialize visual_odometry
+        MatrixXd odom_err = MatrixXd::Identity(12,12) * (msr_unc*msr_unc);  /// used for initialize visual_odometrynode_handle
         mtn_model.setErrorCovariance(mtn_err);
         odometry.setMeasureCov(odom_err);
         layout_components = l_components;

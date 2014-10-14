@@ -28,19 +28,60 @@
 #include "Eigen/Dense"
 #include <vector>
 #include <string>
+#include <dynamic_reconfigure/server.h>
+#include <road_layout_estimation/road_layout_estimationConfig.h>
 
 using namespace Eigen;
 using namespace std;
 
 // layout-manager settings ----------------------------------------------------------------------------
-unsigned int num_particles = 1;
+unsigned int num_particles = 10;
 double mtn_uncertainty = 0.05;
 double measure_uncertainty = 0.05;
+string topic;
 
 // components
 LayoutComponent_Building p_comp0;
 LayoutComponent_RoadLane p_comp1;
 LayoutComponent_Crossing p_comp2;
+
+
+/**
+ * @brief reconfigureCallback
+ * @param config
+ * @param level
+ */
+void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level) {
+    ROS_INFO("Reconfigure Request");
+    ROS_INFO("Particles Number: %d, Mtn Model Uncert: %f, Msr Model Uncert: %f, Listening topic: %d",
+            config.particles_number,
+            config.motion_model_uncertainty,
+            config.measurement_model_uncertainty,
+            config.listening_topic
+           );
+    num_particles = config.particles_number;
+    mtn_uncertainty = config.motion_model_uncertainty;
+    measure_uncertainty = config.measurement_model_uncertainty;
+    switch (config.listening_topic)
+    {
+        case 0:
+            topic = "/visual_odometry_nvm/odometry";
+            break;
+        case 1:
+            topic = "/visual_odometry_test/odometry";
+            break;
+        case 2:
+            topic = "/visual_odometry/odometry";
+            break;
+        case 3:
+            topic = "/visual_odometry/odometry_no_error";
+            break;
+        default:
+            topic = "/visual_odometry/odometry_no_error";
+            break;
+    }
+    //layout_manager.array_pub = node_handle.advertise<geometry_msgs::PoseArray>(topic,1);
+}
 
 /** ************************************************************************************************
  * @brief main
@@ -50,6 +91,12 @@ int main(int argc, char *argv[])
 	// init ROS and NodeHandle
     ros::init(argc, argv, "road_layout_estimation");
     ros::NodeHandle node_handle("~");
+
+    // init dynamic reconfigure
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
+    f = boost::bind(&reconfigureCallback, _1, _2);
+    server.setCallback(f);
 
     // init subscriber
     if(argc <= 1)
@@ -62,7 +109,7 @@ int main(int argc, char *argv[])
         ROS_INFO_STREAM("/visual_odometry_test/odometry");
         return -1;
     }
-    string topic(argv[1]);
+    topic = argv[1];
 
     ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED");
 

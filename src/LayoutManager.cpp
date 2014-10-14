@@ -296,7 +296,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
 		// ------------------------------------------------------------------------------- //
 
 		// -------------- sampling + perturbation + weight layout-components ------------- //
-        //this->componentsEstimation();
+        this->componentsEstimation();
 		// ------------------------------------------------------------------------------- //
 
 		// ------------------------------ calculate score -------------------------------- //

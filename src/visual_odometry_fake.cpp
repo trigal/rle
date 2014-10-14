@@ -21,6 +21,8 @@
 #include <vector>
 #include <stdlib.h>
 #include <ctime>
+#include <dynamic_reconfigure/server.h>
+#include <road_layout_estimation/visual_odometry_fakeConfig.h>
 
 using std::vector;
 using namespace Eigen;
@@ -34,7 +36,23 @@ tf::TransformListener* tf_;
 
 // settings  *************************************************************************************
 double odom_err = 0.05*0.05; /// measure error covariance (uncertainty^2)
+double odom_rate = 10;
 // ***********************************************************************************************
+
+/**
+ * @brief reconfigureCallback
+ * @param config
+ * @param level
+ */
+void reconfigureCallback(road_layout_estimation::visual_odometry_fakeConfig &config, uint32_t level) {
+    ROS_INFO("Reconfigure Request");
+    ROS_INFO("Publishing rate: %f, Measure Uncert: %f",
+            config.odom_rate,
+            config.odom_err
+           );
+    odom_rate = config.odom_rate;
+    odom_err = config.odom_err;
+}
 
 /**
  *************************************************************************************************
@@ -57,20 +75,14 @@ int main(int argc, char **argv)
     ros::Publisher pub3 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array",1);
     ros::Publisher pub4 = nh.advertise<geometry_msgs::PoseArray>("/visual_odometry/single_pose_array_no_err",1);
 
-    // set odom rate from argument
-    double odom_rate;
-    if(argc <= 1)
-    {
-        ROS_INFO_STREAM("NO RATE GIVEN AS ARGUMENT, IT WILL BE SET AS DEFAULT: 15Hz");
-        odom_rate = 15;
-    }
-    else
-    {
-        string argomento(argv[1]);
-        odom_rate = atof(argomento.c_str());
-        ROS_INFO_STREAM("NODE RATE: " << odom_rate);
-    }
+    // init dynamic reconfigure
+    dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_fakeConfig> server;
+    dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_fakeConfig>::CallbackType f;
+    f = boost::bind(&reconfigureCallback, _1, _2);
+    server.setCallback(f);
+
     ros::Rate rate(odom_rate);
+
 
     // Set current time for msg header
     ros::Time current_time;
