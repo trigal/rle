@@ -15,6 +15,8 @@
 #include "geometry_msgs/PoseArray.h"
 #include <Eigen/Dense>
 #include <Eigen/Core>
+#include <dynamic_reconfigure/server.h>
+#include <road_layout_estimation/road_layout_estimationConfig.h>
 
 using namespace Eigen;
 using Eigen::MatrixXd;
@@ -71,12 +73,15 @@ public:
     //refactor
     nav_msgs::Odometry old_msg; /// used for delta_t calculation
     ros::Publisher array_pub;
-    unsigned int num_particles;
+    int num_particles;
     bool first_msg; /// flag used for init particle-set
     int step;   /// stores the current layout_manager step
     MotionModel mtn_model;
     vector<LayoutComponent*> layout_components;
     ros::Subscriber sub;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
+    ros::NodeHandle node_handle;
 
 private:
     bool new_detections;				/// indicates detectors found new detections
@@ -141,9 +146,18 @@ public:
      */
     vector<Particle> layoutEstimation();
 
+    /**
+     * @brief odometryCallback
+     * @param msg
+     */
     void odometryCallback(const nav_msgs::Odometry& msg);
 
-
+    /**
+     * @brief reconfigureCallback
+     * @param config
+     * @param level
+     */
+    void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level);
 
     // getters & setters ----------------------------------------------------------------------------
     void setOdometry(Odometry& v_odom){ odometry = v_odom; }
@@ -153,28 +167,7 @@ public:
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-    LayoutManager(ros::NodeHandle& n, std::string topic, unsigned int num_part, double mtn_unc, double msr_unc, vector<LayoutComponent*> l_components){
-
-        // init values
-        num_particles = num_part;
-        step = 0;
-        first_msg = true;
-        MatrixXd mtn_err = MatrixXd::Identity(12,12) * (mtn_unc*mtn_unc);   /// used for initialize mtn_model
-        MatrixXd odom_err = MatrixXd::Identity(12,12) * (msr_unc*msr_unc);  /// used for initialize visual_odometrynode_handle
-        mtn_model.setErrorCovariance(mtn_err);
-        odometry.setMeasureCov(odom_err);
-        layout_components = l_components;
-
-        // init header timestamp
-        old_msg.header.stamp = ros::Time::now();
-
-        // init publisher
-        array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
-
-        // init subscriber
-        sub = n.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
-        ROS_INFO_STREAM("LAYOUT MANAGER STARTED, LISTENING TO: " << sub.getTopic());
-    }
+    LayoutManager(ros::NodeHandle& n, vector<LayoutComponent*> l_components);
 
     ~LayoutManager(){
         current_layout.resize(0);

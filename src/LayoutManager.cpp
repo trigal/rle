@@ -22,6 +22,106 @@ using namespace std;
 
 double LayoutManager::delta_t = 1; /// Initialize static member value for C++ compilation
 
+/**
+ * Main LayoutManager constructor
+ * @param n 'road_layout_manager' NodeHandle
+ * @param l_components vector of layout components
+ */
+LayoutManager::LayoutManager(ros::NodeHandle& n, vector<LayoutComponent*> l_components){
+    // set this node_handle as the same of 'road_layout_manager'
+    node_handle = n;
+
+    // init values
+    step = 0;
+    num_particles = 0;
+    first_msg = true;
+    layout_components = l_components;
+    mtn_model.setErrorCovariance(0);
+    odometry.setMeasureCov(0);
+
+    // init header timestamp
+    old_msg.header.stamp = ros::Time::now();
+
+    // init publisher
+    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
+
+    // init dynamic reconfigure
+    f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
+    server.setCallback(f);
+}
+
+
+/**
+ * Callback handling dyamic reconfigure
+ * @param config
+ * @param level
+ */
+void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
+{
+    mtn_model.setErrorCovariance(config.motion_model_uncertainty);
+    odometry.setMeasureCov(config.measurement_model_uncertainty);
+
+    if(config.particles_number > num_particles)
+    {
+       int counter = current_layout.size();
+       int particles_to_add = config.particles_number - num_particles;
+       for(int i=0; i<particles_to_add; i++)
+       {
+           VectorXd p_pose = VectorXd::Zero(12);
+           MatrixXd p_sigma = MatrixXd::Zero(12,12);
+           Particle part(counter, p_pose, p_sigma, mtn_model);
+           current_layout.push_back(part);
+           counter = counter + 1;
+       }
+    }
+    else if(config.particles_number < num_particles)
+    {
+       int particles_to_remove = num_particles - config.particles_number;
+       for(int i=0; i<particles_to_remove; i++){
+           current_layout.pop_back();
+           std::cout << "particle removed" << std::cout;
+       }
+    }
+    num_particles = config.particles_number;
+
+    // set topic
+    std::string topic;
+    switch (config.listening_topic)
+    {
+       case 0:
+           topic = "/visual_odometry_nvm/odometry";
+           break;
+       case 1:
+           topic = "/visual_odometry_test/odometry";
+           break;
+       case 2:
+           topic = "/visual_odometry/odometry";
+           break;
+       case 3:
+           topic = "/visual_odometry/odometry_no_error";
+           break;
+       default:
+           topic = "/visual_odometry/odometry_no_error";
+           break;
+    }
+    sub.shutdown();
+    sub = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+
+    ROS_INFO("Particles Number: %d, Mtn Model Uncert: %f, Msr Model Uncert: %f, Listening topic: %s",
+           config.particles_number,
+           config.motion_model_uncertainty,
+           config.measurement_model_uncertainty,
+           sub.getTopic().c_str()
+          );
+}
+
+
+
+/**
+ * @brief buildPoseArrayMsg
+ * @param particles
+ * @return
+ */
 geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles)
 {
     // init array_msg
@@ -296,7 +396,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
 		// ------------------------------------------------------------------------------- //
 
 		// -------------- sampling + perturbation + weight layout-components ------------- //
-        this->componentsEstimation();
+        //this->componentsEstimation();
 		// ------------------------------------------------------------------------------- //
 
 		// ------------------------------ calculate score -------------------------------- //

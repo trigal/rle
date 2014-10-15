@@ -6,8 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /PoseArray1
+        - /PoseArray2
         - /PoseArray3
-        - /Odometry3
+        - /Odometry3/Status1
       Splitter Ratio: 0.5
     Tree Height: 667
   - Class: rviz/Selection
@@ -87,20 +88,20 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 0
-      Enabled: true
+      Enabled: false
       Name: PoseArray
       Topic: /visual_odometry/single_pose_array_no_err
-      Value: true
+      Value: false
     - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Keep: 1
       Length: 1
       Name: Odometry
       Position Tolerance: 0
-      Topic: /visual_odometry_nvm/odometry
-      Value: true
+      Topic: /visual_odometry/odometry
+      Value: false
     - Class: rviz/Axes
       Enabled: true
       Length: 1
@@ -132,22 +133,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 7.45576
+      Distance: 3.95079
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.163417
-        Y: -0.199234
-        Z: 0.742634
+        X: -2.19815
+        Y: -0.335764
+        Z: 0.742631
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.745398
+      Pitch: 0.490398
       Target Frame: odom_frame
       Value: XYOrbit (rviz)
-      Yaw: 3.13038
+      Yaw: 3.18038
     Saved: ~
 Window Geometry:
   Displays:
@@ -165,5 +166,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1559
-  X: 49
-  Y: 14
+  X: 59
+  Y: 24

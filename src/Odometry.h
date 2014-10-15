@@ -52,6 +52,7 @@ public:
     VectorXd getMeasureState(){ return msr_state; }
 
     void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
+    void setMeasureCov(double unc){ msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
     MatrixXd getMeasureCov(){ return msr_cov; }
 
     void setMsg(const nav_msgs::Odometry& m){

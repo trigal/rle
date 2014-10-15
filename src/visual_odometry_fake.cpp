@@ -35,9 +35,13 @@ tf::TransformListener* tf_;
 // ***********************************************************************************************
 
 // settings  *************************************************************************************
-double odom_err = 0.05*0.05; /// measure error covariance (uncertainty^2)
-double odom_rate = 10;
+double position_uncertainty = 0.05;     /// position uncertainty
+double orientation_uncertainty = 0.05;  /// orientation uncertainty
+double linear_uncertainty = 0.05;       /// linear speed uncertainty
+double angular_uncertainty = 0.05;      /// angular speed uncertainty
 // ***********************************************************************************************
+
+ros::Rate * rate = NULL;
 
 /**
  * @brief reconfigureCallback
@@ -46,12 +50,20 @@ double odom_rate = 10;
  */
 void reconfigureCallback(road_layout_estimation::visual_odometry_fakeConfig &config, uint32_t level) {
     ROS_INFO("Reconfigure Request");
-    ROS_INFO("Publishing rate: %f, Measure Uncert: %f",
-            config.odom_rate,
-            config.odom_err
+    ROS_INFO("Publishing rate: %f",
+            config.odom_rate
            );
-    odom_rate = config.odom_rate;
-    odom_err = config.odom_err;
+
+    // set node running rate
+    if(rate != NULL)
+        delete rate;
+    rate = new ros::Rate(config.odom_rate);
+
+    // set measure uncertainty
+    position_uncertainty = config.position_uncertainty;
+    orientation_uncertainty = config.orientation_uncertainty;
+    linear_uncertainty = config.linear_uncertainty;
+    angular_uncertainty = config.angular_uncertainty;
 }
 
 /**
@@ -80,9 +92,6 @@ int main(int argc, char **argv)
     dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_fakeConfig>::CallbackType f;
     f = boost::bind(&reconfigureCallback, _1, _2);
     server.setCallback(f);
-
-    ros::Rate rate(odom_rate);
-
 
     // Set current time for msg header
     ros::Time current_time;
@@ -141,7 +150,12 @@ int main(int argc, char **argv)
         pub1.publish(msg);
 
         // publish message on topic "visual_odometry/odometry"
-        nav_msgs::Odometry noisy_msg = Utils::addNoiseToOdom(msg, odom_err);
+        nav_msgs::Odometry noisy_msg = Utils::addNoiseAndCovToOdom(msg,
+                                                                   (position_uncertainty*position_uncertainty),
+                                                                   (orientation_uncertainty*orientation_uncertainty),
+                                                                   (linear_uncertainty*linear_uncertainty),
+                                                                   (angular_uncertainty*angular_uncertainty)
+                                                                   );
         pub2.publish(noisy_msg);
 
         // publish single posearray with no error on topic "visual_odometry/single_pose_array_no_err"
@@ -181,7 +195,9 @@ int main(int argc, char **argv)
 //        ROS_INFO_STREAM("***************************************************");
 
         // wait until next iteration
-        rate.sleep();
+        rate->sleep();
     }
+    if(rate != NULL)
+        delete rate;
 }
 

@@ -16,7 +16,7 @@ using namespace Eigen;
 class Utils{
 public:
 
-    static nav_msgs::Odometry addNoiseToOdom(const nav_msgs::Odometry & step, double odom_err);
+    static nav_msgs::Odometry addNoiseAndCovToOdom(const nav_msgs::Odometry & step, double pos_err, double or_err, double lin_err, double ang_err);
 
     static geometry_msgs::Twist getSpeed(ros::Time& prev_time, ros::Time& curr_time, const tf::Transform & temp_t, const tf::Transform & t);
 

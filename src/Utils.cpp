@@ -15,23 +15,24 @@
  * @param steps
  * @return noisy steps
  */
-nav_msgs::Odometry Utils::addNoiseToOdom(const nav_msgs::Odometry & step, double odom_err)
+nav_msgs::Odometry Utils::addNoiseAndCovToOdom(const nav_msgs::Odometry & step, double pos_err, double or_err, double lin_err, double ang_err)
 {
 
     nav_msgs::Odometry noisy_step = step;
     //set covariance
-    noisy_step.twist.covariance =  boost::assign::list_of  (odom_err) (0)   (0)  (0)  (0)  (0)
-                                                           (0)  (odom_err)  (0)  (0)  (0)  (0)
-                                                           (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                           (0)   (0)   (0) (odom_err) (0)  (0)
-                                                           (0)   (0)   (0)  (0) (odom_err) (0)
-                                                           (0)   (0)   (0)  (0)  (0)  (odom_err) ;
+    noisy_step.pose.covariance =  boost::assign::list_of  (pos_err) (0)   (0)  (0)  (0)  (0)
+                                                            (0)  (pos_err)  (0)  (0)  (0)  (0)
+                                                            (0)   (0)  (pos_err) (0)  (0)  (0)
+                                                            (0)   (0)   (0) (or_err) (0)  (0)
+                                                            (0)   (0)   (0)  (0) (or_err) (0)
+                                                            (0)   (0)   (0)  (0)  (0)  (or_err) ;
 
-    noisy_step.pose.covariance =  boost::assign::list_of  (odom_err) (0)  ( 0)  (0)  (0)  (0)
-                                                          (0) (odom_err)   (0)  (0)  (0)  (0)
-                                                          (0)   (0)  (odom_err) (0)  (0)  (0)
-                                                          (0)   (0)   (0) (odom_err) (0)  (0)
-                                                          (0)   (0)   (0)  (0) (odom_err) (0);
+    noisy_step.twist.covariance =  boost::assign::list_of  (lin_err) (0)   (0)  (0)  (0)  (0)
+                                                           (0)  (lin_err)  (0)  (0)  (0)  (0)
+                                                           (0)   (0)  (lin_err) (0)  (0)  (0)
+                                                           (0)   (0)   (0) (ang_err) (0)  (0)
+                                                           (0)   (0)   (0)  (0) (ang_err) (0)
+                                                           (0)   (0)   (0)  (0)  (0)  (ang_err) ;
     // adds noise to the step
     noisy_step.pose.pose.position.x += Utils::getNoise(noisy_step.pose.covariance.elems[0]);
     noisy_step.pose.pose.position.y += Utils::getNoise(noisy_step.pose.covariance.elems[7]);

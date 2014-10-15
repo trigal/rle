@@ -15,6 +15,8 @@
 #include <cstdlib>
 #include <boost/filesystem.hpp>
 #include <boost/array.hpp>
+#include <dynamic_reconfigure/server.h>
+#include <road_layout_estimation/visual_odometry_nvmConfig.h>
 
 using namespace boost::filesystem;
 using namespace std;
@@ -26,10 +28,16 @@ vector<geometry_msgs::PoseStamped> pose_vec;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 unsigned int CAMERAS_NUMBER;
-double speed_err = 0.05 * 0.05;
-double pose_err = 0.05 * 0.05;
+
 double nvm_scale_factor = 0.09;
 bool scale_factor_enabled = false;
+
+double position_uncertainty = 0.05;
+double orientation_uncertainty = 0.05;
+double linear_uncertainty = 0.05;
+double angular_uncertainty = 0.05;
+
+ros::Rate * rate;
 /***************************************************************************************************************/
 /**
  * @brief loadNVM
@@ -100,8 +108,16 @@ int loadNVM(const char* path) {
 }
 
 
-nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_pose,const geometry_msgs::PoseStamped& pose, double speed_err, double pose_err)
+nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_pose,const geometry_msgs::PoseStamped& pose, double pos_err, double or_err, double lin_err, double ang_err)
 {
+
+    // calculate cov from uncertainty
+    pos_err = pos_err*pos_err;
+    or_err = or_err*or_err;
+    lin_err = lin_err*lin_err;
+    ang_err = ang_err*ang_err;
+
+    // create odom msg
     nav_msgs::Odometry odom;
     odom.child_frame_id = "odom_frame";
     odom.header.frame_id = "robot_frame";
@@ -110,51 +126,92 @@ nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_
     odom.pose.pose = pose.pose;
     odom.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
 
-    odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (speed_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (speed_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (speed_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (speed_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (speed_err);
-    odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (pose_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (pose_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (pose_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (pose_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (pose_err);
+    odom.twist.covariance = boost::assign::list_of  (lin_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (lin_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (lin_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (ang_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (ang_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (ang_err) ;
+
+    odom.pose.covariance = boost::assign::list_of  (pos_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (pos_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (pos_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (or_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (or_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (or_err) ;
     return odom;
 }
 
-nav_msgs::Odometry buildOdomMsgFrom1Pose(const geometry_msgs::PoseStamped& old_pose, double speed_err, double pose_err)
+nav_msgs::Odometry buildOdomMsgFrom1Pose(const geometry_msgs::PoseStamped& old_pose, double pos_err, double or_err, double lin_err, double ang_err)
 {
     nav_msgs::Odometry odom;
 
+    // calculate cov from uncertainty
+    pos_err = pos_err*pos_err;
+    or_err = or_err*or_err;
+    lin_err = lin_err*lin_err;
+    ang_err = ang_err*ang_err;
+
+    // create odom msg
     odom.child_frame_id = "odom_frame";
     odom.header.frame_id = "robot_frame";
     odom.header.stamp = old_pose.header.stamp;
     odom.pose.pose = old_pose.pose;
-    odom.twist.covariance = boost::assign::list_of  (speed_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (speed_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (speed_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (speed_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (speed_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (speed_err) ;
-    odom.pose.covariance = boost::assign::list_of  (pose_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (pose_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (pose_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (pose_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (pose_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (pose_err) ;
+    odom.twist.covariance = boost::assign::list_of  (lin_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (lin_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (lin_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (ang_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (ang_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (ang_err) ;
+
+    odom.pose.covariance = boost::assign::list_of  (pos_err) (0)   (0)  (0)  (0)  (0)
+                                                        (0)  (pos_err)  (0)  (0)  (0)  (0)
+                                                        (0)   (0)  (pos_err) (0)  (0)  (0)
+                                                        (0)   (0)   (0) (or_err) (0)  (0)
+                                                        (0)   (0)   (0)  (0) (or_err) (0)
+                                                        (0)   (0)   (0)  (0)  (0)  (or_err) ;
     return odom;
 }
+
+
+
+
+/**
+ * @brief reconfigureCallback
+ * @param config
+ * @param level
+ */
+void reconfigureCallback(road_layout_estimation::visual_odometry_nvmConfig &config, uint32_t level) {
+    ROS_INFO("Reconfigure Request");
+    ROS_INFO("Publishing rate: %f",
+            config.odom_rate
+           );
+
+    // set node running rate
+    if(rate != NULL)
+        delete rate;
+    rate = new ros::Rate(config.odom_rate);
+
+    // set measure uncertainty
+    position_uncertainty = config.position_uncertainty;
+    orientation_uncertainty = config.orientation_uncertainty;
+    linear_uncertainty = config.linear_uncertainty;
+    angular_uncertainty = config.angular_uncertainty;
+}
+
 
 /** ***********************************************************************************************************
  * @brief main
  *************************************************************************************************************/
-
 int main(int argc, char *argv[]) {
     ros::init(argc, argv, "visual_odometry_nvm");
     ros::NodeHandle nh;
+
+    // init dynamic reconfigure
+    dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_nvmConfig> server;
+    dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_nvmConfig>::CallbackType f;
+    f = boost::bind(&reconfigureCallback, _1, _2);
+    server.setCallback(f);
 
     // publishers
     ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry_nvm/pose", 1);
@@ -174,6 +231,8 @@ int main(int argc, char *argv[]) {
     char * path;
     string argomento(argv[1]);
     path = realpath(argomento.c_str(),NULL);
+
+
     if(path){
         int error_type = loadNVM(path);
 
@@ -181,72 +240,82 @@ int main(int argc, char *argv[]) {
             ROS_INFO("Publishing Point Cloud and Pose");
         }
 
-        // set odom rate from argument
-        double odom_rate;
-        if(argc <= 2)
-        {
-            ROS_INFO_STREAM("NO RATE GIVEN AS ARGUMENT, IT WILL BE SET AS DEFAULT: 15Hz");
-            odom_rate = 15;
-        }
-        else
-        {
-            string argomento2(argv[2]);
-            odom_rate = atof(argomento2.c_str());
-            ROS_INFO_STREAM("NODE RATE: " << odom_rate);
-        }
-        ros::Rate loop_rate(odom_rate);
-
-        // build first msg ------------------------------------------------------------------------------------
+        // init vars
+        geometry_msgs::PoseStamped old_pose;
         int i=0;
-        geometry_msgs::PoseStamped old_pose = pose_vec[0];
-        old_pose.header.stamp = ros::Time::now();
-        old_pose.header.frame_id = "robot_frame";
-        pose_publisher.publish(old_pose);
+        bool first_msg = true;
 
-        // odometry msg ----------------------------------------------------------------------------------
-        nav_msgs::Odometry odom = buildOdomMsgFrom1Pose(old_pose, speed_err, pose_err);
-        // publish message
-        odom_publisher.publish(odom);
-
-        // write message on console
-        std::cout << "[ Sent msg " << i << "]:" << std::endl;
-        Utils::printOdomMsgToCout(odom);
-
-        // update values
-        i=i+1;
-        loop_rate.sleep();
-
-        // send transform
-        Utils::sendTfFromPoseStamped(old_pose, tfb_);
-        // ----------------------------------------------------------------------------------------------------
+        // sleep for two seconds, system startup
+        ros::Duration(2).sleep();
 
         while(ros::ok()) {
 
-            // pose msg ---------------------------------------------------------------------------------------
-            geometry_msgs::PoseStamped pose = pose_vec[i%CAMERAS_NUMBER];
-            pose.header.stamp = ros::Time::now();
-            pose.header.frame_id = "robot_frame";
-            pose_publisher.publish(pose);
+            if(first_msg)
+            {
+                // build first msg ------------------------------------------------------------------------------------
+                old_pose = pose_vec[0];
+                old_pose.header.stamp = ros::Time::now();
+                old_pose.header.frame_id = "robot_frame";
+                pose_publisher.publish(old_pose);
 
-            // odometry msg ----------------------------------------------------------------------------------
-            nav_msgs::Odometry odom = buildOdomMsgFrom2Poses(old_pose, pose, speed_err, pose_err);
-            odom_publisher.publish(odom);
+                // odometry msg ----------------------------------------------------------------------------------
+                nav_msgs::Odometry odom = buildOdomMsgFrom1Pose(old_pose,
+                                                                position_uncertainty,
+                                                                orientation_uncertainty,
+                                                                linear_uncertainty,
+                                                                angular_uncertainty
+                                                                );
+                // publish message
+                odom_publisher.publish(odom);
 
-            // send transform
-            Utils::sendTfFromPoseStamped(pose, tfb_);
+                // write message on console
+                std::cout << "[ Sent msg " << i << "]:" << std::endl;
+                //Utils::printOdomMsgToCout(odom);
 
-            // -----------------------------------------------------------------------------------------------
+                // send transform
+                Utils::sendTfFromPoseStamped(old_pose, tfb_);
+                // ----------------------------------------------------------------------------------------------------
 
-            std::cout << "--------------------------------------------------------------------------------" << endl;
-            std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
-            std::cout << "[ Sent msg " << i << "]:" << std::endl;
-            Utils::printOdomMsgToCout(odom);
+                first_msg = false;
+            }
+            else
+            {
+                // pose msg ---------------------------------------------------------------------------------------
+                geometry_msgs::PoseStamped pose = pose_vec[i%CAMERAS_NUMBER];
+                pose.header.stamp = ros::Time::now();
+                pose.header.frame_id = "robot_frame";
+                pose_publisher.publish(pose);
 
-            // aggiorno i valori
-            old_pose = pose;
+                // odometry msg ----------------------------------------------------------------------------------
+                nav_msgs::Odometry odom = buildOdomMsgFrom2Poses(old_pose,
+                                                                 pose,
+                                                                 position_uncertainty,
+                                                                 orientation_uncertainty,
+                                                                 linear_uncertainty,
+                                                                 angular_uncertainty);
+                odom_publisher.publish(odom);
+
+                // send transform
+                Utils::sendTfFromPoseStamped(pose, tfb_);
+
+                // -----------------------------------------------------------------------------------------------
+
+                std::cout << "--------------------------------------------------------------------------------" << endl;
+                std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
+                std::cout << "[ Sent msg " << i << "]:" << std::endl;
+                Utils::printOdomMsgToCout(odom);
+
+                // aggiorno i valori
+                old_pose = pose;
+            }
+
+            // update values
+            ros::spinOnce();
+            rate->sleep();
             i=i+1;
-            loop_rate.sleep();
         }
+        if(rate != NULL)
+            delete rate;
     }
     else
     {

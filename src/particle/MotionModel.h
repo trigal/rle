@@ -58,45 +58,20 @@ public:
      */
     MatrixXd motionJacobi(VectorXd& p_state_predicted);
 
-	/**
-	 * @return current error covariance
-	 */
-	MatrixXd getErrorCovariance(){
-		return error_covariance;
-	}
+    // getters & setter ------------------------------------------------------------------------
+    MatrixXd getErrorCovariance(){ return error_covariance; }
+    void setErrorCovariance(MatrixXd& err){ error_covariance = err; }
+    void setErrorCovariance(double uncertainty) { error_covariance = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); }
 
-	/**
-	 * Sets current error covariance
-	 * @param err
-	 */
-	void setErrorCovariance(MatrixXd& err){
-		error_covariance = err;
-	}
-
-	/**
-	 * Returns on console a string of current motion model values
-	 */
-	void toString(){
-        cout << "Motion model, error covariance = " << endl;
-		cout << error_covariance << endl;
-	}
-
-	/**
-     * Istantiate MotionModel with the given error covariance
-     * @param cov
-	 */
+    // constructor & destructor ----------------------------------------------------------------
     MotionModel(const MatrixXd& cov) : error_covariance(cov) {}
-
-	/**
-	 * Default constructor
-	 */
+    MotionModel(double inc) { error_covariance = MatrixXd::Identity(12,12) * (inc*inc); }
     MotionModel() {
 		// Sets the error covariance to zero
 		MatrixXd cov = MatrixXd::Zero(12,12);
 		error_covariance = cov;
     }
 
-	//destructor
     ~MotionModel(){
         error_covariance.resize(0,0);
     }
