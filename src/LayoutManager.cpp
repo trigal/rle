@@ -27,9 +27,13 @@ double LayoutManager::delta_t = 1; /// Initialize static member value for C++ co
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, vector<LayoutComponent*> l_components){
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<LayoutComponent*> l_components){
     // set this node_handle as the same of 'road_layout_manager'
     node_handle = n;
+
+    // init subscriber
+    sub = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+    ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << sub.getTopic());
 
     // init values
     step = 0;
@@ -58,11 +62,24 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, vector<LayoutComponent*> l_comp
  */
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    mtn_model.setErrorCovariance(config.motion_model_uncertainty);
-    odometry.setMeasureCov(config.measurement_model_uncertainty);
+    // update errors values -----------------------------------------------------------------------------------------
+    mtn_model.setErrorCovariance(
+                config.mtn_model_position_uncertainty,
+                config.mtn_model_orientation_uncertainty,
+                config.mtn_model_linear_uncertainty,
+                config.mtn_model_angular_uncertainty
+                );
+    odometry.setMeasureCov(
+                config.msr_model_position_uncertainty,
+                config.msr_model_orientation_uncertainty,
+                config.msr_model_linear_uncertainty,
+                config.msr_model_angular_uncertainty
+                );
 
+    // update particle-set number -----------------------------------------------------------------------------------
     if(config.particles_number > num_particles)
     {
+        // let's add some empty particles to particle-set:
        int counter = current_layout.size();
        int particles_to_add = config.particles_number - num_particles;
        for(int i=0; i<particles_to_add; i++)
@@ -71,46 +88,22 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            MatrixXd p_sigma = MatrixXd::Zero(12,12);
            Particle part(counter, p_pose, p_sigma, mtn_model);
            current_layout.push_back(part);
-           counter = counter + 1;
+           counter = counter+1;
        }
     }
     else if(config.particles_number < num_particles)
     {
+        // let's erase particles starting from particle-set tail
        int particles_to_remove = num_particles - config.particles_number;
        for(int i=0; i<particles_to_remove; i++){
-           current_layout.pop_back();
-           std::cout << "particle removed" << std::cout;
+           // delete last element
+           current_layout.erase(current_layout.end());
        }
     }
     num_particles = config.particles_number;
 
-    // set topic
-    std::string topic;
-    switch (config.listening_topic)
-    {
-       case 0:
-           topic = "/visual_odometry_nvm/odometry";
-           break;
-       case 1:
-           topic = "/visual_odometry_test/odometry";
-           break;
-       case 2:
-           topic = "/visual_odometry/odometry";
-           break;
-       case 3:
-           topic = "/visual_odometry/odometry_no_error";
-           break;
-       default:
-           topic = "/visual_odometry/odometry_no_error";
-           break;
-    }
-    sub.shutdown();
-    sub = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
-
-    ROS_INFO("Particles Number: %d, Mtn Model Uncert: %f, Msr Model Uncert: %f, Listening topic: %s",
+    ROS_INFO("Particles Number: %d, Listening topic: %s",
            config.particles_number,
-           config.motion_model_uncertainty,
-           config.measurement_model_uncertainty,
            sub.getTopic().c_str()
           );
 }
@@ -164,6 +157,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // if it's our first incoming odometry msg, just use it as particle-set poses initializer
     // (filter won't be called)
     if(first_msg){
+        //clear current layout
+        current_layout.clear();
+
         // generate particle set
         for(int i=0; i<num_particles; i++)
         {
@@ -177,7 +173,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             MatrixXd new_cov = Utils::getCovFromOdom(msg);
 
             // add some random offset to particles (only the first one won't be noised)
-            if(i!=0){
+            if(i!=1){
                 new_pose = Utils::addOffsetToVectorXd(new_pose, 0.05, 0.05, 0.05);
             }
 
@@ -250,13 +246,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     old_msg = msg;
 
     // Print filtered out measure
-    std::cout << " ******* FILTRO (particella 0 del set) *******" << std::endl;
     nav_msgs::Odometry odom;
     Particle p = particles.at(0);
     odom = Utils::getOdomFromPoseAndSigma(p.getParticleState(), p.getParticleSigma());
     odom.header.stamp = msg.header.stamp;
     odom.header.frame_id = "robot_frame";
     odom.child_frame_id = "odom_frame";
+    std::cout << " ******* FILTRO [particella ID: "<< p.getId() <<" (num. particelle: "<< current_layout.size() << ") *******" << std::endl;
     Utils::printOdomMsgToCout(odom);
 }
 

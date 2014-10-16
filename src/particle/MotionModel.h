@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <iostream>
+#include <boost/assign.hpp>
 
 using namespace Eigen;
 using namespace std;
@@ -62,6 +63,21 @@ public:
     MatrixXd getErrorCovariance(){ return error_covariance; }
     void setErrorCovariance(MatrixXd& err){ error_covariance = err; }
     void setErrorCovariance(double uncertainty) { error_covariance = MatrixXd::Identity(12,12) * (uncertainty*uncertainty); }
+    void setErrorCovariance(double pos_unc, double ori_unc, double lin_unc, double ang_unc) {
+        error_covariance = MatrixXd::Zero(12,12);
+        error_covariance(0,0) = pos_unc;
+        error_covariance(1,1) = pos_unc;
+        error_covariance(2,2) = pos_unc;
+        error_covariance(3,3) = ori_unc;
+        error_covariance(4,4) = ori_unc;
+        error_covariance(5,5) = ori_unc;
+        error_covariance(6,6) = lin_unc;
+        error_covariance(7,7) = lin_unc;
+        error_covariance(8,8) = lin_unc;
+        error_covariance(9,9) = ang_unc;
+        error_covariance(10,10) = ang_unc;
+        error_covariance(11,11) = ang_unc;
+    }
 
     // constructor & destructor ----------------------------------------------------------------
     MotionModel(const MatrixXd& cov) : error_covariance(cov) {}

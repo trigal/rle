@@ -167,7 +167,7 @@ public:
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-    LayoutManager(ros::NodeHandle& n, vector<LayoutComponent*> l_components);
+    LayoutManager(ros::NodeHandle& n, std::string& topic, vector<LayoutComponent*> l_components);
 
     ~LayoutManager(){
         current_layout.resize(0);
