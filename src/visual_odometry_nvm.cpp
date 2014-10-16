@@ -110,7 +110,6 @@ int loadNVM(const char* path) {
 
 nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_pose,const geometry_msgs::PoseStamped& pose, double pos_err, double or_err, double lin_err, double ang_err)
 {
-
     // calculate cov from uncertainty
     pos_err = pos_err*pos_err;
     or_err = or_err*or_err;
@@ -270,7 +269,7 @@ int main(int argc, char *argv[]) {
 
                 // write message on console
                 std::cout << "[ Sent msg " << i << "]:" << std::endl;
-                //Utils::printOdomMsgToCout(odom);
+                Utils::printOdomMsgToCout(odom);
 
                 // send transform
                 Utils::sendTfFromPoseStamped(old_pose, tfb_);
