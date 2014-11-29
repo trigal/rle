@@ -16,6 +16,17 @@ using namespace Eigen;
 class Utils{
 public:
 
+    struct Coordinates
+    {
+        float latitude;
+        float longitude;
+        float altitude;
+    };
+
+    static Coordinates ecef2lla(double x, double y, double z);
+
+    static geometry_msgs::Point lla2ecef(double lat, double lon, double alt);
+
     static nav_msgs::Odometry addNoiseAndCovToOdom(const nav_msgs::Odometry & step, double pos_err, double or_err, double lin_err, double ang_err);
 
     static geometry_msgs::Twist getSpeed(ros::Time& prev_time, ros::Time& curr_time, const tf::Transform & temp_t, const tf::Transform & t);

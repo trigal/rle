@@ -52,6 +52,35 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
+
+    // wait for GPS message (coming from Android device)
+//        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/android/fix");
+
+    // simulate a GPS msg
+    sensor_msgs::NavSatFix gps_msg;
+    boost::array<float,9> cov = {100,0,0, 0,100,0, 0,0,100};
+    gps_msg.position_covariance = cov;
+    gps_msg.altitude = 264.799987793;
+    gps_msg.latitude = 45.62183458;
+    gps_msg.longitude = 9.19258087;
+
+    // Get GPS covariance matrix
+    MatrixXd cov_matrix = MatrixXd::Identity(12,12); /// da testare se converte bene da float in double
+    cov_matrix(0,0) = gps_msg.position_covariance[0];
+    cov_matrix(0,1) = gps_msg.position_covariance[1];
+    cov_matrix(0,3) = gps_msg.position_covariance[2];
+
+    cov_matrix(1,1) = gps_msg.position_covariance[3];
+    cov_matrix(1,2) = gps_msg.position_covariance[4];
+    cov_matrix(1,3) = gps_msg.position_covariance[5];
+
+    cov_matrix(2,1) = gps_msg.position_covariance[6];
+    cov_matrix(2,2) = gps_msg.position_covariance[7];
+    cov_matrix(2,3) = gps_msg.position_covariance[8];
+
+    // Get ECEF values from GPS coords
+    geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
+
 }
 
 
