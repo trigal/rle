@@ -70,10 +70,12 @@ class LayoutManager {
 public:
     Odometry odometry;	/// used for getting car motion
     static double delta_t;
+    static bool first_run;
 
     //refactor
     nav_msgs::Odometry old_msg; /// used for delta_t calculation
     ros::Publisher array_pub;
+    ros::ServiceClient service_client;
     int num_particles;
     bool first_msg; /// flag used for init particle-set
     int step;   /// stores the current layout_manager step
@@ -90,6 +92,7 @@ private:
 
     vector<Particle> current_layout;	/// stores the current layout
 
+    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
     bool checkHasMoved();
 

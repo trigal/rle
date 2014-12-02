@@ -12,6 +12,7 @@
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent.h"
 #include "eigenmultivariatenormal.hpp"
+#include "osm_cartography/is_valid_location_xy.h"
 #include <fstream>
 #include <vector>	//used for vector
 #include <Eigen/Core>
@@ -22,7 +23,8 @@ using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
 
-double LayoutManager::delta_t = 1; /// Initialize static member value for C++ compilation
+double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
+bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
 
 /**
  * Main LayoutManager constructor
@@ -51,61 +53,12 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     // init publisher
     array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
 
+    // init ROS service client
+    service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("is_valid_location_xy");
+
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
-
-    // wait for GPS message (coming from Android device)
-//        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/android/fix");
-
-    // simulate a GPS msg
-    sensor_msgs::NavSatFix gps_msg;
-    boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
-    gps_msg.position_covariance = cov;
-    gps_msg.altitude = 264.78;
-    gps_msg.latitude = 45.520172; //45.62183458;
-    gps_msg.longitude = 9.217983; //9.19258087;
-
-    // Get GPS covariance matrix
-    MatrixXd cov_matrix = MatrixXd::Identity(12,12); /// da testare se converte bene da float in double
-    cov_matrix(0,0) = gps_msg.position_covariance[0];
-    cov_matrix(0,1) = gps_msg.position_covariance[1];
-    cov_matrix(0,2) = gps_msg.position_covariance[2];
-
-    cov_matrix(1,0) = gps_msg.position_covariance[3];
-    cov_matrix(1,1) = gps_msg.position_covariance[4];
-    cov_matrix(1,2) = gps_msg.position_covariance[5];
-
-    cov_matrix(2,0) = gps_msg.position_covariance[6];
-    cov_matrix(2,1) = gps_msg.position_covariance[7];
-    cov_matrix(2,2) = gps_msg.position_covariance[8];
-
-    // Get ECEF values from GPS coords
-    geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
-
-
-    Eigen::Vector2d mean;
-    mean << point.x, point.y;       // Set mean
-
-    Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-    covar(0,0) = cov_matrix(0,0);   // Set covariance
-    covar(1,1) = cov_matrix(1,1);
-
-    cout << "coordinates" << endl;
-    cout << "lat: " << gps_msg.latitude << " lon: " << gps_msg.longitude << endl;
-    cout << "mean: " << endl;
-    cout << mean << endl << endl;
-    cout << "cov: " << endl;
-    cout << covar << endl << endl;
-
-    // Create a bivariate gaussian distribution of doubles.
-    // with our chosen mean and covariance
-    Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
-    std::ofstream file("samples.txt");
-
-    // Generate some samples and write them out to file
-    // for plotting
-    file << normX.samples(1000).transpose() << std::endl;
 }
 
 
@@ -131,35 +84,128 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     // update particle-set number -----------------------------------------------------------------------------------
-    if(config.particles_number > num_particles)
-    {
-        // let's add some empty particles to particle-set:
-       int counter = current_layout.size();
-       int particles_to_add = config.particles_number - num_particles;
-       for(int i=0; i<particles_to_add; i++)
-       {
-           VectorXd p_pose = VectorXd::Zero(12);
-           MatrixXd p_sigma = MatrixXd::Zero(12,12);
-           Particle part(counter, p_pose, p_sigma, mtn_model);
-           current_layout.push_back(part);
-           counter = counter+1;
-       }
+    if(!LayoutManager::first_run){
+        if(config.particles_number > num_particles)
+        {
+            // let's add some empty particles to particle-set:
+           int counter = current_layout.size(); //this will keep track of current ID
+           int particles_to_add = config.particles_number - num_particles;
+           for(int i=0; i<particles_to_add; i++)
+           {
+               VectorXd p_pose = VectorXd::Zero(12);
+               MatrixXd p_sigma = MatrixXd::Zero(12,12);
+               Particle part(counter, p_pose, p_sigma, mtn_model);
+               current_layout.push_back(part);
+               counter = counter+1;
+           }
+        }
+        else if(config.particles_number < num_particles)
+        {
+            // let's erase particles starting from particle-set tail
+           int particles_to_remove = num_particles - config.particles_number;
+           for(int i=0; i<particles_to_remove; i++){
+               // delete last element
+               current_layout.erase(current_layout.end());
+           }
+        }
+        num_particles = config.particles_number;
     }
-    else if(config.particles_number < num_particles)
-    {
-        // let's erase particles starting from particle-set tail
-       int particles_to_remove = num_particles - config.particles_number;
-       for(int i=0; i<particles_to_remove; i++){
-           // delete last element
-           current_layout.erase(current_layout.end());
-       }
-    }
-    num_particles = config.particles_number;
+
 
     ROS_INFO("Particles Number: %d, Listening topic: %s",
            config.particles_number,
            sub.getTopic().c_str()
           );
+
+    // ---------------------------------------------------------------------------------------------------------
+
+    if(LayoutManager::first_run){
+        ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
+        // wait for GPS message (coming from Android device)
+        // sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/android/fix");
+
+        // Simulate GPS msg
+        sensor_msgs::NavSatFix gps_msg;
+        boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
+        gps_msg.position_covariance = cov;
+        gps_msg.altitude = 264.78;
+        gps_msg.latitude = 45.520172; //45.62183458;
+        gps_msg.longitude = 9.217983; //9.19258087;
+
+        // Get ECEF values from GPS coords
+        geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
+
+        // Set mean
+        Eigen::Vector2d mean;
+        mean << point.x, point.y;
+
+        // Set covariance
+        Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
+        covar(0,0) = gps_msg.position_covariance[0];
+        covar(1,1) = gps_msg.position_covariance[4];
+
+        cout << endl << "coordinates" << endl;
+        cout << "lat: " << gps_msg.latitude << " lon: " << gps_msg.longitude << endl;
+        cout << "mean: " << endl;
+        cout << mean << endl << endl;
+        cout << "cov: " << endl;
+        cout << covar << endl << endl;
+
+        // Create a bivariate gaussian distribution of doubles.
+        // with our chosen mean and covariance
+        Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
+
+        // Reset current_layout
+        LayoutManager::current_layout.clear();
+
+        // Populate current_layout with valid particles
+        int particle_id = 1;
+        while(current_layout.size() < config.particles_number)
+        {
+            // Generate a sample from the bivariate Gaussian distribution
+            Matrix<double,2,-1> sample = normX.samples(1);
+            cout << "x: " << sample(0) << " y: " << sample(1) << endl;
+
+            // Init OSM cartography service
+            osm_cartography::is_valid_location_xy srv;
+            srv.request.x = sample(0);
+            srv.request.y = sample(1);
+            srv.request.max_distance_radius = 20;
+
+            // Check if generated particle is next to a OSM map node
+            if(LayoutManager::service_client.call(srv)){
+                // Init particle's pose
+                VectorXd p_pose = VectorXd::Zero(12);
+                p_pose(0) = sample(0); // update X value
+                p_pose(1) = sample(1); // update Y value
+
+                // Init particle's sigma
+                MatrixXd p_sigma = MatrixXd::Zero(12,12);
+
+                // Push particle into particle-set
+                Particle part(particle_id, p_pose, p_sigma, mtn_model);
+                current_layout.push_back(part);
+
+                // Update particles id counter
+                particle_id += 1;
+            }
+        }
+
+        // Update particle_set size
+        LayoutManager::num_particles = config.particles_number;
+
+        // Update first_run flag
+        LayoutManager::first_run = false;
+
+        // BUILD POSEARRAY MSG
+        // Get particle-set
+        vector<Particle> particles = current_layout;
+        geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+        array_msg.header.stamp = ros::Time::now();
+
+        // Publish it!
+        array_pub.publish(array_msg);
+    }
 }
 
 
@@ -169,7 +215,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
  * @param particles
  * @return
  */
-geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles)
+geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>& particles)
 {
     // init array_msg
     geometry_msgs::PoseArray array_msg;
