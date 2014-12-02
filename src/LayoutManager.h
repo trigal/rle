@@ -12,6 +12,7 @@
 #include "particle/Particle.h"
 #include <vector>
 #include "nav_msgs/Odometry.h"
+#include <sensor_msgs/NavSatFix.h>
 #include "geometry_msgs/PoseArray.h"
 #include <Eigen/Dense>
 #include <Eigen/Core>

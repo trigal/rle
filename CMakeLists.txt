@@ -70,6 +70,7 @@ add_executable(road_layout_estimation
         src/particle/LayoutComponent_Crossing.cpp
         src/particle/LayoutComponent_RoadLane.cpp
         src/Utils.cpp
+        src/eigenmultivariatenormal.hpp
 )
 
 add_executable(visual_odometry_nvm

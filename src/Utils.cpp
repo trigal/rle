@@ -10,6 +10,143 @@
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 
+
+/**
+ * @brief deg_to_radians
+ * @param x
+ * @return
+ */
+double deg_to_radians(double x)
+{
+    double RADIANS = 57.2957795; 		/* degrees/radian */
+    return (x/RADIANS);
+}
+
+/**
+ * @brief meters_deglon
+ * @param x
+ * @return
+ */
+double meters_deglon(double x)
+{
+    double d2r = deg_to_radians(x);
+    return((111415.13f * cos(d2r))- (94.55f * cos(3.0f*d2r)) + (0.12f * cos(5.0f*d2r)));
+}
+
+/**
+ * @brief meters_deglat
+ * @param x
+ * @return
+ */
+double meters_deglat(double x)
+{
+    double d2r = deg_to_radians(x);
+    return(111132.09f - (566.05f * cos(2.0f*d2r))+ (1.20f * cos(4.0f*d2r)) - (0.002f * cos(6.0f*d2r)));
+}
+
+/**
+ * ECEF2LLA - convert earth-centered earth-fixed (ECEF)
+ *            cartesian coordinates to latitude, longitude,
+ *            and altitude
+ *
+ * USAGE:
+ * [lat,lon,alt] = ecef2lla(x,y,z)
+ *
+ * lat = geodetic latitude (radians)
+ * lon = longitude (radians)
+ * alt = height above WGS84 ellipsoid (m)
+ * x = ECEF X-coordinate (m)
+ * y = ECEF Y-coordinate (m)
+ * z = ECEF Z-coordinate (m)
+ *
+ * Notes: (1) This function assumes the WGS84 model.
+ *        (2) Latitude is customary geodetic (not geocentric).
+ *        (3) Inputs may be scalars, vectors, or matrices of the same
+ *            size and shape. Outputs will have that same size and shape.
+ *        (4) Tested but no warranty; use at your own risk.
+ *        (5) Michael Kleder, April 2006
+ * (C++ porting by Dario Limongi)
+ */
+Utils::Coordinates Utils::ecef2lla(double x, double y, double z)
+{
+    Utils::Coordinates coords;
+
+    // WGS84 ellipsoid constants:
+    double a = 6378137;            // (m) at the equator
+    double e = 0.081819190842622;  // eccentricity
+
+    // calculations:
+    double b   = sqrt( (a*a) * (1 - e*e ));
+    double ep  = sqrt( (a*a - b*b ) / (b*b));
+    double p   = sqrt( x*x + y*y );
+    double th  = atan2(a*z,b*p);
+    double lon = atan2(y,x);
+    double lat = atan2( (z + ep*ep * b * sin(th)*sin(th)*sin(th)), (p - e*e *a * cos(th)*cos(th)*cos(th)) );
+    double N   = a / sqrt( 1 - e*e * sin(lat) * sin(lat));
+    double alt = p / cos(lat) - N;
+
+    // return lon in range [0,2*pi)
+    lon = lon - (M_PI*2) * floor( lon / (M_PI*2) );
+
+    // correct for numerical instability in altitude near exact poles:
+    // (after this correction, error is about 2 millimeters, which is about
+    // the same as the numerical precision of the overall function)
+//    double k = abs(x)<1 & abs(y)<1;
+//    double alt(k) = abs(z(k))-b;
+
+    coords.longitude = lon;
+    coords.latitude = lat;
+    coords.altitude = alt;
+
+    return coords;
+}
+
+/**
+ * LLA2ECEF - convert latitude, longitude, and altitude to
+ *             earth-centered, earth-fixed (ECEF) cartesian
+ *
+ * USAGE:
+ * [x,y,z] = lla2ecef(lat,lon,alt)
+ *
+ * x = ECEF X-coordinate (m)
+ * y = ECEF Y-coordinate (m)
+ * z = ECEF Z-coordinate (m)
+ * lat = geodetic latitude (radians)
+ * lon = longitude (radians)
+ * alt = height above WGS84 ellipsoid (m)
+ *
+ * Notes: This function assumes the WGS84 model.
+ *        Latitude is customary geodetic (not geocentric).
+ *
+ * Source: "Department of Defense World Geodetic System 1984"
+ *         Page 4-4
+ *         National Imagery and Mapping Agency
+ *         Last updated June, 2004
+ *         NIMA TR8350.2
+ *
+ * Michael Kleder, July 2005
+ * (C++ porting by Dario Limongi)
+ */
+geometry_msgs::Point Utils::lla2ecef(double lat, double lon, double alt)
+{
+    geometry_msgs::Point point;
+
+    // WGS84 ellipsoid constants:
+    double a = 6378137;            // (m) at the equator
+    double e = 0.081819190842622;  // eccentricity
+
+    // intermediate calculation
+    // (prime vertical radius of curvature)
+    double N = a / sqrt(1 - (e*e) * (sin(lat)*sin(lat)));
+
+    // results:
+    point.x = (N + alt) * cos(lat) * cos(lon);
+    point.y = (N + alt) * cos(lat) * sin(lon);
+    point.z = ((1-(e*e)) * N + alt) * sin(lat);
+
+    return point;
+}
+
 /**
  * Adds a random noise to odometry SINGLE step
  * @param steps
