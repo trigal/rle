@@ -160,20 +160,26 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Populate current_layout with valid particles
         int particle_id = 1;
-        while(current_layout.size() < config.particles_number)
+        int while_ctr = 1;
+        while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
         {
+            cout << "particle generated" << endl;
+            cout << "current layout size: " << current_layout.size() << " config part number: " << config.particles_number << endl << endl;
+
             // Generate a sample from the bivariate Gaussian distribution
             Matrix<double,2,-1> sample = normX.samples(1);
-            cout << "x: " << sample(0) << " y: " << sample(1) << endl;
 
             // Init OSM cartography service
             osm_cartography::is_valid_location_xy srv;
             srv.request.x = sample(0);
             srv.request.y = sample(1);
-            srv.request.max_distance_radius = 20;
+            srv.request.max_distance_radius = 2000;
 
             // Check if generated particle is next to a OSM map node
             if(LayoutManager::service_client.call(srv)){
+
+                cout << "particle: X: " << sample(0) << " Y: " << sample(1) << " is valid!" << endl;
+
                 // Init particle's pose
                 VectorXd p_pose = VectorXd::Zero(12);
                 p_pose(0) = sample(0); // update X value
@@ -189,6 +195,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // Update particles id counter
                 particle_id += 1;
             }
+
+            // prevent infinite loop
+            while_ctr += 1;
         }
 
         // Update particle_set size
