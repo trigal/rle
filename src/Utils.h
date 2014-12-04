@@ -23,6 +23,8 @@ public:
         float altitude;
     };
 
+    static geometry_msgs::Point latlon_converter(double lat, double lngd);
+
     static Coordinates ecef2lla(double x, double y, double z);
 
     static geometry_msgs::Point lla2ecef(double lat, double lon, double alt);

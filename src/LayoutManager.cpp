@@ -133,7 +133,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         gps_msg.longitude = 9.217983; //9.19258087;
 
         // Get ECEF values from GPS coords
-        geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
+//        geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
+        geometry_msgs::Point point = Utils::latlon_converter(gps_msg.latitude, gps_msg.longitude);
 
         // Set mean
         Eigen::Vector2d mean;
@@ -145,7 +146,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         covar(1,1) = gps_msg.position_covariance[4];
 
         cout << endl << "coordinates" << endl;
-        cout << "lat: " << gps_msg.latitude << " lon: " << gps_msg.longitude << endl;
+        cout << "lat: " << gps_msg.latitude << " lon: " << gps_msg.longitude << " alt: " << gps_msg.altitude << endl;
+        cout << "x: " << point.x << " y: " << point.y << endl;
         cout << "mean: " << endl;
         cout << mean << endl << endl;
         cout << "cov: " << endl;
