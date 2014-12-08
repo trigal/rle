@@ -88,20 +88,24 @@ public:
         kalman_gain = MatrixXd::Zero(12,12);
         particle_state = VectorXd::Zero(12);
         particle_sigma = MatrixXd::Zero(12,12);
+        particle_score = 0;
     }
     Particle(unsigned int num, MotionModel& mt_md) : id(num), mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_state = VectorXd::Zero(12);
         particle_sigma = MatrixXd::Zero(12,12);
+        particle_score = 0;
     }
     Particle(unsigned int num, VectorXd& state, MotionModel& mt_md )
         : id(num), particle_state(state), mtn_model(mt_md)  {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
+        particle_score = 0;
     }
     Particle(unsigned int num, VectorXd& state, MatrixXd& state_sigma, MotionModel& mt_md)
         : id(num), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
+        particle_score = 0;
     }
 
     //destructor -------------------------------------------------------------
@@ -111,6 +115,7 @@ public:
         particle_state.resize(0);
         particle_sigma.resize(0,0);
         particle_components.resize(0);
+        particle_score = 0;
     }
 };
 

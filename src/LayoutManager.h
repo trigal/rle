@@ -86,13 +86,14 @@ public:
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
     ros::NodeHandle node_handle;
 
+    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
+
 private:
     bool new_detections;				/// indicates detectors found new detections
 //    vector<double> score_vector;
 
     vector<Particle> current_layout;	/// stores the current layout
 
-    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
     bool checkHasMoved();
 

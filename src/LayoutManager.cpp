@@ -51,14 +51,24 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     old_msg.header.stamp = ros::Time::now();
 
     // init publisher
-    array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
+    LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
 
     // init ROS service client
-    service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("is_valid_location_xy");
+    service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
+
+    // BUILD POSEARRAY MSG
+    // Get particle-set
+    vector<Particle> particles = current_layout;
+    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+    array_msg.header.stamp = ros::Time::now();
+    array_msg.header.frame_id = "map";
+
+    // Publish it!
+    LayoutManager::array_pub.publish(array_msg);
 }
 
 
@@ -84,6 +94,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     // update particle-set number -----------------------------------------------------------------------------------
+//    LayoutManager::first_run = false;
     if(!LayoutManager::first_run){
         if(config.particles_number > num_particles)
         {
@@ -128,9 +139,21 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         sensor_msgs::NavSatFix gps_msg;
         boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
         gps_msg.position_covariance = cov;
+
+//        // via Chiese
+//        gps_msg.altitude = 264.78;
+//        gps_msg.latitude = 45.520172;
+//        gps_msg.longitude = 9.217983;
+
+//        // via Don Milani (DESIO)
+//        gps_msg.altitude = 264.78;
+//        gps_msg.latitude = 45.62183458;
+//        gps_msg.longitude = 9.19258087;
+
+        // nodo mappa oneway
         gps_msg.altitude = 264.78;
-        gps_msg.latitude = 45.520172; //45.62183458;
-        gps_msg.longitude = 9.217983; //9.19258087;
+        gps_msg.latitude = 45.5232719;
+        gps_msg.longitude = 9.2148104;
 
         // Get ECEF values from GPS coords
 //        geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
@@ -165,6 +188,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         int while_ctr = 1;
         while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
         {
+            if(while_ctr == 999)
+                cout << "while ctr reached max limit" << endl;
             cout << "particle generated" << endl;
             cout << "current layout size: " << current_layout.size() << " config part number: " << config.particles_number << endl << endl;
 
@@ -175,27 +200,34 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             osm_cartography::is_valid_location_xy srv;
             srv.request.x = sample(0);
             srv.request.y = sample(1);
-            srv.request.max_distance_radius = 2000;
+            srv.request.max_distance_radius = 20;
 
             // Check if generated particle is next to a OSM map node
-            if(LayoutManager::service_client.call(srv)){
-
+            if (LayoutManager::service_client.call(srv))
+            {
                 cout << "particle: X: " << sample(0) << " Y: " << sample(1) << " is valid!" << endl;
 
-                // Init particle's pose
-                VectorXd p_pose = VectorXd::Zero(12);
-                p_pose(0) = sample(0); // update X value
-                p_pose(1) = sample(1); // update Y value
+                if(srv.response.is_valid){
+                    // Init particle's pose
+                    VectorXd p_pose = VectorXd::Zero(12);
+                    p_pose(0) = sample(0); // update X value
+                    p_pose(1) = sample(1); // update Y value
 
-                // Init particle's sigma
-                MatrixXd p_sigma = MatrixXd::Zero(12,12);
+                    // Init particle's sigma
+                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
 
-                // Push particle into particle-set
-                Particle part(particle_id, p_pose, p_sigma, mtn_model);
-                current_layout.push_back(part);
+                    // Push particle into particle-set
+                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
+                    current_layout.push_back(part);
 
-                // Update particles id counter
-                particle_id += 1;
+                    // Update particles id counter
+                    particle_id += 1;
+                }
+            }
+            else
+            {
+              ROS_ERROR("Failed to call service");
+              return;
             }
 
             // prevent infinite loop
@@ -207,15 +239,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Update first_run flag
         LayoutManager::first_run = false;
-
-        // BUILD POSEARRAY MSG
-        // Get particle-set
-        vector<Particle> particles = current_layout;
-        geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
-        array_msg.header.stamp = ros::Time::now();
-
-        // Publish it!
-        array_pub.publish(array_msg);
     }
 }
 

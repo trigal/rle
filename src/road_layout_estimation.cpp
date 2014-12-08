@@ -55,9 +55,8 @@ int main(int argc, char *argv[])
     layout_components.push_back(&p_comp2);
 
     // init subscriber
-
-
-    if(argc <= 1)
+    string argomento = "/visual_odometry_nvm/odometry";
+    if(argc > 2)
     {
         ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");
         ROS_INFO_STREAM("Example:");
@@ -65,16 +64,28 @@ int main(int argc, char *argv[])
         ROS_INFO_STREAM("/visual_odometry/odometry_no_error");
         ROS_INFO_STREAM("/visual_odometry_nvm/odometry");
         ROS_INFO_STREAM("/visual_odometry_test/odometry");
-//        return -1;
+        return -1;
+    }
+    else{
+        if(argc == 2){
+            argomento = argv[1];
+        }
     }
 
 //    string argomento(argv[1]);
 
-    string argomento = "ciao";
     // init layout_manager
     LayoutManager layout_manager(node_handle, argomento, layout_components);
 
+    // Publish current layout
+    vector<Particle> particles = layout_manager.getCurrentLayout();
+    geometry_msgs::PoseArray array_msg = layout_manager.buildPoseArrayMsg(particles);
+    array_msg.header.stamp = ros::Time::now();
+    array_msg.header.frame_id = "map";
+    layout_manager.array_pub.publish(array_msg);
+
     ros::spin();
+
 	return 0;
 }
 
