@@ -12,6 +12,7 @@
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent.h"
 #include "eigenmultivariatenormal.hpp"
+#include <sensor_msgs/NavSatFix.h>
 #include "osm_cartography/is_valid_location_xy.h"
 #include <fstream>
 #include <vector>	//used for vector
@@ -51,7 +52,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     old_msg.header.stamp = ros::Time::now();
 
     // init publisher
-    LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("layout_manager/particle_pose_array",1);
+    LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/layout_manager/particle_pose_array",1);
 
     // init ROS service client
     service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
@@ -133,31 +134,25 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     if(LayoutManager::first_run){
         ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
         // wait for GPS message (coming from Android device)
-        // sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/android/fix");
+         sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
 
         // Simulate GPS msg
-        sensor_msgs::NavSatFix gps_msg;
-        boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
-        gps_msg.position_covariance = cov;
+//        sensor_msgs::NavSatFix gps_msg;
+//        boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
+//        gps_msg.position_covariance = cov;
 
 //        // via Chiese
-//        gps_msg.altitude = 264.78;
+//        gps_msg.altitude = 164.78;
 //        gps_msg.latitude = 45.520172;
 //        gps_msg.longitude = 9.217983;
 
-//        // via Don Milani (DESIO)
-//        gps_msg.altitude = 264.78;
-//        gps_msg.latitude = 45.62183458;
-//        gps_msg.longitude = 9.19258087;
-
         // nodo mappa oneway
-        gps_msg.altitude = 264.78;
-        gps_msg.latitude = 45.5232719;
-        gps_msg.longitude = 9.2148104;
+//        gps_msg.altitude = 264.78;
+//        gps_msg.latitude = 45.5232719;
+//        gps_msg.longitude = 9.2148104;
 
         // Get ECEF values from GPS coords
-//        geometry_msgs::Point point = Utils::lla2ecef(gps_msg.latitude, gps_msg.longitude, gps_msg.altitude);
-        geometry_msgs::Point point = Utils::latlon_converter(gps_msg.latitude, gps_msg.longitude);
+        geometry_msgs::Point point = Utils::latlon_converter(gps_msg->latitude, gps_msg->longitude);
 
         // Set mean
         Eigen::Vector2d mean;
@@ -165,11 +160,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Set covariance
         Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-        covar(0,0) = gps_msg.position_covariance[0];
-        covar(1,1) = gps_msg.position_covariance[4];
+        covar(0,0) = gps_msg->position_covariance[0];
+        covar(1,1) = gps_msg->position_covariance[4];
 
         cout << endl << "coordinates" << endl;
-        cout << "lat: " << gps_msg.latitude << " lon: " << gps_msg.longitude << " alt: " << gps_msg.altitude << endl;
+        cout << "lat: " << gps_msg->latitude << " lon: " << gps_msg->longitude << " alt: " << gps_msg->altitude << endl;
         cout << "x: " << point.x << " y: " << point.y << endl;
         cout << "mean: " << endl;
         cout << mean << endl << endl;
@@ -185,11 +180,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Populate current_layout with valid particles
         int particle_id = 1;
-        int while_ctr = 1;
+        int while_ctr = 1; // while loop infinite cycle prevenction
         while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
         {
-            if(while_ctr == 999)
+            if(while_ctr == 999){
                 cout << "while ctr reached max limit" << endl;
+
+
+            }
+
+
+
             cout << "particle generated" << endl;
             cout << "current layout size: " << current_layout.size() << " config part number: " << config.particles_number << endl << endl;
 
@@ -200,14 +201,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             osm_cartography::is_valid_location_xy srv;
             srv.request.x = sample(0);
             srv.request.y = sample(1);
-            srv.request.max_distance_radius = 20;
+            srv.request.max_distance_radius = 500;
 
             // Check if generated particle is next to a OSM map node
             if (LayoutManager::service_client.call(srv))
             {
-                cout << "particle: X: " << sample(0) << " Y: " << sample(1) << " is valid!" << endl;
-
                 if(srv.response.is_valid){
+                    cout << "particle: X: " << sample(0) << " Y: " << sample(1) << " is valid!" << endl;
+
                     // Init particle's pose
                     VectorXd p_pose = VectorXd::Zero(12);
                     p_pose(0) = sample(0); // update X value
