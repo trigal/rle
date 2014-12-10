@@ -185,12 +185,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         {
             if(while_ctr == 999){
                 cout << "while ctr reached max limit" << endl;
-
-
+                /**
+                 * TODO: max_radius_size * 2 and find again
+                 */
             }
-
-
-
             cout << "particle generated" << endl;
             cout << "current layout size: " << current_layout.size() << " config part number: " << config.particles_number << endl << endl;
 
@@ -213,6 +211,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     VectorXd p_pose = VectorXd::Zero(12);
                     p_pose(0) = sample(0); // update X value
                     p_pose(1) = sample(1); // update Y value
+
+                    // Snap the particle to the Way
+                    p_pose(0) = srv.response.snapped_x; // update X value
+                    p_pose(1) = srv.response.snapped_y; // update X value
 
                     // Init particle's sigma
                     MatrixXd p_sigma = MatrixXd::Zero(12,12);
