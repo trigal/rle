@@ -189,9 +189,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                  * TODO: max_radius_size * 2 and find again
                  */
             }
-            cout << "particle generated" << endl;
-            cout << "current layout size: " << current_layout.size() << " config part number: " << config.particles_number << endl << endl;
-
             // Generate a sample from the bivariate Gaussian distribution
             Matrix<double,2,-1> sample = normX.samples(1);
 
@@ -199,7 +196,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             osm_cartography::is_valid_location_xy srv;
             srv.request.x = sample(0);
             srv.request.y = sample(1);
-            srv.request.max_distance_radius = 500;
+            srv.request.max_distance_radius = 20;
 
             // Check if generated particle is next to a OSM map node
             if (LayoutManager::service_client.call(srv))
