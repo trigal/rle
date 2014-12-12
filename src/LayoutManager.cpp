@@ -52,7 +52,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     old_msg.header.stamp = ros::Time::now();
 
     // init publisher
-    LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/layout_manager/particle_pose_array",1);
+    LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/road_layout_estimation/layout_manager/particle_pose_array",1);
 
     // init ROS service client
     service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
@@ -133,26 +133,32 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
     if(LayoutManager::first_run){
         ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
-        // wait for GPS message (coming from Android device)
-         sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
 
-        // Simulate GPS msg
-//        sensor_msgs::NavSatFix gps_msg;
-//        boost::array<float,9> cov = {1000,0,0, 0,1000,0, 0,0,1000};
-//        gps_msg.position_covariance = cov;
+//        // wait for GPS message (coming from Android device)
+//        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
+//        // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
+//        double alt = gps_msg->altitude;
+//        double lat = gps_msg->latitude;
+//        double lon = gps_msg->longitude;
+//        double cov1 = gps_msg->position_covariance[0];
+//        double cov2 = gps_msg->position_covariance[4];
 
 //        // via Chiese
-//        gps_msg.altitude = 164.78;
-//        gps_msg.latitude = 45.520172;
-//        gps_msg.longitude = 9.217983;
+//        double alt = 164.78;
+//        double lat = 45.520172;
+//        double lon = 9.217983;
+//        double cov1 = 15;
+//        double cov2 = 15;
 
         // nodo mappa oneway
-//        gps_msg.altitude = 264.78;
-//        gps_msg.latitude = 45.5232719;
-//        gps_msg.longitude = 9.2148104;
+        double alt = 164.78;
+        double lat = 45.5232719;
+        double lon = 9.2148104;
+        double cov1 = 15;
+        double cov2 = 15;
 
         // Get ECEF values from GPS coords
-        geometry_msgs::Point point = Utils::latlon_converter(gps_msg->latitude, gps_msg->longitude);
+        geometry_msgs::Point point = Utils::latlon_converter(lat, lon);
 
         // Set mean
         Eigen::Vector2d mean;
@@ -160,11 +166,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Set covariance
         Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-        covar(0,0) = gps_msg->position_covariance[0];
-        covar(1,1) = gps_msg->position_covariance[4];
+        covar(0,0) = cov1;
+        covar(1,1) = cov2;
 
         cout << endl << "coordinates" << endl;
-        cout << "lat: " << gps_msg->latitude << " lon: " << gps_msg->longitude << " alt: " << gps_msg->altitude << endl;
+        cout << "lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
         cout << "x: " << point.x << " y: " << point.y << endl;
         cout << "mean: " << endl;
         cout << mean << endl << endl;
