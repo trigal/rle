@@ -151,9 +151,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //        double cov2 = 15;
 
         // nodo mappa oneway
+//        double alt = 164.78;
+//        double lat = 45.5232719;
+//        double lon = 9.2148104;
+//        double cov1 = 15;
+//        double cov2 = 15;
+
+        // U14
         double alt = 164.78;
-        double lat = 45.5232719;
-        double lon = 9.2148104;
+        double lat = 45.5238;
+        double lon = 9.21954;
         double cov1 = 15;
         double cov2 = 15;
 
@@ -169,12 +176,13 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         covar(0,0) = cov1;
         covar(1,1) = cov2;
 
-        cout << endl << "coordinates" << endl;
-        cout << "lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-        cout << "x: " << point.x << " y: " << point.y << endl;
-        cout << "mean: " << endl;
+        cout << endl << "GPS FIX COORDINATES:" << endl;
+        cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
+        cout << "   x: " << point.x << " y: " << point.y << endl;
+        cout << "MULTIVARIATE PARAMS: " << endl;
+        cout << "   mean: " << endl;
         cout << mean << endl << endl;
-        cout << "cov: " << endl;
+        cout << "   cov: " << endl;
         cout << covar << endl << endl;
 
         // Create a bivariate gaussian distribution of doubles.
@@ -202,7 +210,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             osm_cartography::is_valid_location_xy srv;
             srv.request.x = sample(0);
             srv.request.y = sample(1);
-            srv.request.max_distance_radius = 20;
+            srv.request.max_distance_radius = 100;
 
             // Check if generated particle is next to a OSM map node
             if (LayoutManager::service_client.call(srv))

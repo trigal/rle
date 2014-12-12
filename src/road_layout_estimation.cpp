@@ -78,11 +78,11 @@ int main(int argc, char *argv[])
     LayoutManager layout_manager(node_handle, argomento, layout_components);
 
     // Publish current layout
-    vector<Particle> particles = layout_manager.getCurrentLayout();
-    geometry_msgs::PoseArray array_msg = layout_manager.buildPoseArrayMsg(particles);
-    array_msg.header.stamp = ros::Time::now();
-    array_msg.header.frame_id = "map";
-    layout_manager.array_pub.publish(array_msg);
+//    vector<Particle> particles = layout_manager.getCurrentLayout();
+//    geometry_msgs::PoseArray array_msg = layout_manager.buildPoseArrayMsg(particles);
+//    array_msg.header.stamp = ros::Time::now();
+//    array_msg.header.frame_id = "map";
+//    layout_manager.array_pub.publish(array_msg);
 
     ros::spin();
 
