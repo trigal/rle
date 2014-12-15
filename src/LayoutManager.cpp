@@ -14,6 +14,7 @@
 #include "eigenmultivariatenormal.hpp"
 #include <sensor_msgs/NavSatFix.h>
 #include "osm_cartography/is_valid_location_xy.h"
+#include "osm_cartography/latlon_2_xy.h"
 #include <fstream>
 #include <vector>	//used for vector
 #include <Eigen/Core>
@@ -53,9 +54,11 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
 
     // init publisher
     LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/road_layout_estimation/layout_manager/particle_pose_array",1);
+    LayoutManager::gps_pub = n.advertise<geometry_msgs::PoseStamped>("/road_layout_estimation/layout_manager/gps_fix",1);
 
     // init ROS service client
     service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
+    latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -164,8 +167,31 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         double cov1 = 15;
         double cov2 = 15;
 
-        // Get ECEF values from GPS coords
-        geometry_msgs::Point point = Utils::latlon_converter(lat, lon);
+        // Get XY values from GPS coords
+        osm_cartography::latlon_2_xy latlon_2_xy_srv;
+        latlon_2_xy_srv.request.latitude = lat;
+        latlon_2_xy_srv.request.longitude = lon;
+        geometry_msgs::Point point;
+        geometry_msgs::PoseStamped fix;
+
+        if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
+        {
+             point.x = latlon_2_xy_srv.response.x;
+             point.y = latlon_2_xy_srv.response.y;
+        }
+        else
+        {
+          ROS_ERROR("Failed to call 'latlon_2_xy_srv' service");
+          return;
+        }
+
+        // Publish GPS fix on map
+        fix.header.frame_id = "map";
+        fix.header.stamp = ros::Time::now();
+        fix.pose.position.x = latlon_2_xy_srv.response.x;
+        fix.pose.position.y = latlon_2_xy_srv.response.y;
+        fix.pose.orientation.w = 1;
+        LayoutManager::gps_pub.publish(fix);
 
         // Set mean
         Eigen::Vector2d mean;
@@ -224,8 +250,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     p_pose(1) = sample(1); // update Y value
 
                     // Snap the particle to the Way
-                    p_pose(0) = srv.response.snapped_x; // update X value
-                    p_pose(1) = srv.response.snapped_y; // update X value
+                    p_pose(0) = srv.response.snapped_x; // update X
+                    p_pose(1) = srv.response.snapped_y; // update Y
+                    p_pose(5) = srv.response.way_dir_degrees;   // update Yaw
 
                     // Init particle's sigma
                     MatrixXd p_sigma = MatrixXd::Zero(12,12);
@@ -236,6 +263,25 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Update particles id counter
                     particle_id += 1;
+
+                    // Check if we should create 2 particles with opposite direction
+                    if(srv.response.way_dir_opposite_particles){
+
+                        // Invert Yaw direction
+                        p_pose(5) += 180.0;
+
+                        // Normalize it between 0-360
+                        while(p_pose(5) > 360.0){
+                            p_pose(5) -= 360.0;
+                        }
+
+                        // Push particle inside particle-set
+                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+                        current_layout.push_back(opposite_part);
+
+                        // Update particles id counter
+                        particle_id += 1;
+                    }
                 }
             }
             else

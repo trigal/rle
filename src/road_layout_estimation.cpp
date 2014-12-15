@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 {
 	// init ROS and NodeHandle
     ros::init(argc, argv, "road_layout_estimation");
-    ros::NodeHandle node_handle("~");
+    ros::NodeHandle node_handle;
 
     // init layout_components
     vector<LayoutComponent*> layout_components;

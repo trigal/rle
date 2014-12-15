@@ -75,7 +75,9 @@ public:
     //refactor
     nav_msgs::Odometry old_msg; /// used for delta_t calculation
     ros::Publisher array_pub;
+    ros::Publisher gps_pub;
     ros::ServiceClient service_client;
+    ros::ServiceClient latlon_2_xy_client;
     int num_particles;
     bool first_msg; /// flag used for init particle-set
     int step;   /// stores the current layout_manager step
