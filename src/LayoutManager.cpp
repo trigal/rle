@@ -181,7 +181,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         }
         else
         {
-          ROS_ERROR("Failed to call 'latlon_2_xy_srv' service");
+          ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
           return;
         }
 
@@ -207,7 +207,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         cout << "   x: " << point.x << " y: " << point.y << endl;
         cout << "MULTIVARIATE PARAMS: " << endl;
         cout << "   mean: " << endl;
-        cout << mean << endl << endl;
+        cout << mean << endl;
         cout << "   cov: " << endl;
         cout << covar << endl << endl;
 
@@ -252,7 +252,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Snap the particle to the Way
                     p_pose(0) = srv.response.snapped_x; // update X
                     p_pose(1) = srv.response.snapped_y; // update Y
-                    p_pose(5) = srv.response.way_dir_degrees;   // update Yaw
+                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
 
                     // Init particle's sigma
                     MatrixXd p_sigma = MatrixXd::Zero(12,12);
