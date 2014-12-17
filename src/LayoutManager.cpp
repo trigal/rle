@@ -312,7 +312,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Snap the particle to the Way
                     p_pose(0) = srv.response.snapped_x; // update X
                     p_pose(1) = srv.response.snapped_y; // update Y
-//                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
+                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
 
                     // Init particle's sigma
                     MatrixXd p_sigma = MatrixXd::Zero(12,12);
@@ -325,23 +325,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     particle_id += 1;
 
                     // Check if we should create 2 particles with opposite direction
-//                    if(srv.response.way_dir_opposite_particles){
+                    if(srv.response.way_dir_opposite_particles){
 
-//                        // Invert Yaw direction
-//                        p_pose(5) += 180.0;
+                        // Invert Yaw direction
+                        p_pose(5) = Utils::normalize_angle(p_pose(5) + M_PI);
 
-//                        // Normalize it between 0-360
-//                        while(p_pose(5) > 360.0){
-//                            p_pose(5) -= 360.0;
-//                        }
+                        // Push particle inside particle-set
+                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+                        current_layout.push_back(opposite_part);
 
-//                        // Push particle inside particle-set
-//                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-//                        current_layout.push_back(opposite_part);
-
-//                        // Update particles id counter
-//                        particle_id += 1;
-//                    }
+                        // Update particles id counter
+                        particle_id += 1;
+                    }
                 }
             }
             else
