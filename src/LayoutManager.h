@@ -78,6 +78,8 @@ public:
     ros::Publisher gps_pub;
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
+    ros::ServiceClient xy_2_latlon_client;
+    ros::ServiceClient local_map_tf_client;
     int num_particles;
     bool first_msg; /// flag used for init particle-set
     int step;   /// stores the current layout_manager step

@@ -15,6 +15,9 @@
 #include <sensor_msgs/NavSatFix.h>
 #include "osm_cartography/is_valid_location_xy.h"
 #include "osm_cartography/latlon_2_xy.h"
+#include "osm_cartography/xy_2_latlon.h"
+#include "osm_cartography/local_map_transform.h"
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <vector>	//used for vector
 #include <Eigen/Core>
@@ -59,6 +62,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     // init ROS service client
     service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
+    xy_2_latlon_client = n.serviceClient<osm_cartography::xy_2_latlon>("/osm_cartography/xy_2_latlon");
+    local_map_tf_client = n.serviceClient<osm_cartography::local_map_transform>("/osm_latlon_converter/local_map_transform");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -137,6 +142,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     if(LayoutManager::first_run){
         ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
+
+
+        /* -------- WAIT FOR GPS MESSAGE ----------------------------------------- */
 //        // wait for GPS message (coming from Android device)
 //        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
 //        // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
@@ -160,12 +168,73 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //        double cov1 = 15;
 //        double cov2 = 15;
 
-        // U14
-        double alt = 164.78;
-        double lat = 45.5238;
-        double lon = 9.21954;
+          /* ------ simulated GPS msg ----------- */
+//        // U14
+//        double alt = 164.78;
+//        double lat = 45.5238;
+//        double lon = 9.21954;
+//        double cov1 = 15;
+//        double cov2 = 15;
+
+//        // Get XY values from GPS coords
+//        osm_cartography::latlon_2_xy latlon_2_xy_srv;
+//        latlon_2_xy_srv.request.latitude = lat;
+//        latlon_2_xy_srv.request.longitude = lon;
+//        geometry_msgs::Point point;
+//        geometry_msgs::PoseStamped fix;
+
+//        if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
+//        {
+//             point.x = latlon_2_xy_srv.response.x;
+//             point.y = latlon_2_xy_srv.response.y;
+//        }
+//        else
+//        {
+//          ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+//          return;
+//        }
+
+//        // Publish GPS fix on map
+//        fix.header.frame_id = "map";
+//        fix.header.stamp = ros::Time::now();
+//        fix.pose.position.x = latlon_2_xy_srv.response.x;
+//        fix.pose.position.y = latlon_2_xy_srv.response.y;
+//        fix.pose.orientation.w = 1;
+//        LayoutManager::gps_pub.publish(fix);
+        /* ------------------------ END OF GPS MSG ---------------------------------- */
+
+        /* ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- */
+        geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
+
+        // transform coordinates from 'local_map' to 'map'
+        osm_cartography::local_map_transform local_map_tf_srv;
+        double map_x; double map_y;
+        if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
+        {
+             map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
+             map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
+        }
+        else
+        {
+          ROS_ERROR("   Failed to call 'local_map_transform' service");
+          return;
+        }
+
+        // convert UTM to LatLon
+        osm_cartography::xy_2_latlon xy_2_latlon_srv;
+        xy_2_latlon_srv.request.x = map_x;
+        xy_2_latlon_srv.request.y = map_y;
+        if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
+            ROS_ERROR("   Failed to call 'xy_2_latlon' service");
+            return;
+        }
+
+        double alt = 0;
+        double lat = xy_2_latlon_srv.response.latitude;
+        double lon = xy_2_latlon_srv.response.longitude;
         double cov1 = 15;
         double cov2 = 15;
+        /* ------------------------ END RVIZ INITIAL POSE  ------------------------- */
 
         // Get XY values from GPS coords
         osm_cartography::latlon_2_xy latlon_2_xy_srv;
@@ -173,7 +242,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         latlon_2_xy_srv.request.longitude = lon;
         geometry_msgs::Point point;
         geometry_msgs::PoseStamped fix;
-
         if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
         {
              point.x = latlon_2_xy_srv.response.x;
@@ -184,14 +252,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
           ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
           return;
         }
-
-        // Publish GPS fix on map
-        fix.header.frame_id = "map";
-        fix.header.stamp = ros::Time::now();
-        fix.pose.position.x = latlon_2_xy_srv.response.x;
-        fix.pose.position.y = latlon_2_xy_srv.response.y;
-        fix.pose.orientation.w = 1;
-        LayoutManager::gps_pub.publish(fix);
 
         // Set mean
         Eigen::Vector2d mean;
@@ -252,7 +312,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Snap the particle to the Way
                     p_pose(0) = srv.response.snapped_x; // update X
                     p_pose(1) = srv.response.snapped_y; // update Y
-                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
+//                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
 
                     // Init particle's sigma
                     MatrixXd p_sigma = MatrixXd::Zero(12,12);
@@ -265,23 +325,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     particle_id += 1;
 
                     // Check if we should create 2 particles with opposite direction
-                    if(srv.response.way_dir_opposite_particles){
+//                    if(srv.response.way_dir_opposite_particles){
 
-                        // Invert Yaw direction
-                        p_pose(5) += 180.0;
+//                        // Invert Yaw direction
+//                        p_pose(5) += 180.0;
 
-                        // Normalize it between 0-360
-                        while(p_pose(5) > 360.0){
-                            p_pose(5) -= 360.0;
-                        }
+//                        // Normalize it between 0-360
+//                        while(p_pose(5) > 360.0){
+//                            p_pose(5) -= 360.0;
+//                        }
 
-                        // Push particle inside particle-set
-                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-                        current_layout.push_back(opposite_part);
+//                        // Push particle inside particle-set
+//                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+//                        current_layout.push_back(opposite_part);
 
-                        // Update particles id counter
-                        particle_id += 1;
-                    }
+//                        // Update particles id counter
+//                        particle_id += 1;
+//                    }
                 }
             }
             else
