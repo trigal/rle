@@ -80,6 +80,7 @@ public:
     ros::ServiceClient latlon_2_xy_client;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient local_map_tf_client;
+    ros::ServiceClient snap_particle_xy_client;
     int num_particles;
     bool first_msg; /// flag used for init particle-set
     int step;   /// stores the current layout_manager step
