@@ -65,7 +65,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
     xy_2_latlon_client = n.serviceClient<osm_cartography::xy_2_latlon>("/osm_cartography/xy_2_latlon");
     local_map_tf_client = n.serviceClient<osm_cartography::local_map_transform>("/osm_latlon_converter/local_map_transform");
-    snap_particle_xy_client = n.serviceClient<osm_cartography::snap_particle_xy>("/osm_latlon_converter/snap_particle_xy");
+    snap_particle_xy_client = n.serviceClient<osm_cartography::snap_particle_xy>("/osm_cartography/snap_particle_xy");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -294,63 +294,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // Generate a sample from the bivariate Gaussian distribution
             Matrix<double,2,-1> sample = normX.samples(1);
 
-/** SNAP PARTICLE v1 *****************************************************************************************************/
-//            // Init OSM cartography service
-//            osm_cartography::is_valid_location_xy srv;
-//            srv.request.x = sample(0);
-//            srv.request.y = sample(1);
-//            srv.request.max_distance_radius = 100;
 
-//            // Check if generated particle is next to a OSM map node
-//            if (LayoutManager::service_client.call(srv))
-//            {
-//                if(srv.response.is_valid){
-//                    cout << "particle: X: " << sample(0) << " Y: " << sample(1) << " is valid!" << endl;
-
-//                    // Init particle's pose
-//                    VectorXd p_pose = VectorXd::Zero(12);
-//                    p_pose(0) = sample(0); // update X value
-//                    p_pose(1) = sample(1); // update Y value
-
-//                    // Snap the particle to the Way
-//                    p_pose(0) = srv.response.snapped_x; // update X
-//                    p_pose(1) = srv.response.snapped_y; // update Y
-//                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
-
-//                    // Init particle's sigma
-//                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
-
-//                    // Push particle into particle-set
-//                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
-//                    current_layout.push_back(part);
-
-//                    // Update particles id counter
-//                    particle_id += 1;
-
-//                    // Check if we should create 2 particles with opposite direction
-//                    if(srv.response.way_dir_opposite_particles){
-
-//                        // Invert Yaw direction
-//                        p_pose(5) = Utils::normalize_angle(p_pose(5) + M_PI);
-
-//                        // Push particle inside particle-set
-//                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-//                        current_layout.push_back(opposite_part);
-
-//                        // Update particles id counter
-//                        particle_id += 1;
-//                    }
-//                }
-//            }
-//            else
-//            {
-//              ROS_ERROR("Failed to call service");
-//              return;
-//            }
-
-
-
-/** SNAP PARTICLE v2 *****************************************************************************************************/
+            /** SNAP PARTICLE v2 **********************************************************************************/
             // Init OSM cartography service
             osm_cartography::snap_particle_xy srv;
             srv.request.x = sample(0);
