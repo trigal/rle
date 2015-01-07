@@ -13,7 +13,7 @@
 #include "particle/LayoutComponent.h"
 #include "eigenmultivariatenormal.hpp"
 #include <sensor_msgs/NavSatFix.h>
-#include "osm_cartography/is_valid_location_xy.h"
+//#include "osm_cartography/is_valid_location_xy.h"
 #include "osm_cartography/snap_particle_xy.h"
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
@@ -61,7 +61,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     LayoutManager::gps_pub = n.advertise<geometry_msgs::PoseStamped>("/road_layout_estimation/layout_manager/gps_fix",1);
 
     // init ROS service client
-    service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
+//    service_client = n.serviceClient<osm_cartography::is_valid_location_xy>("/osm_cartography/is_valid_location_xy");
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
     xy_2_latlon_client = n.serviceClient<osm_cartography::xy_2_latlon>("/osm_cartography/xy_2_latlon");
     local_map_tf_client = n.serviceClient<osm_cartography::local_map_transform>("/osm_latlon_converter/local_map_transform");
