@@ -264,14 +264,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         covar(0,0) = cov1;
         covar(1,1) = cov2;
 
-        cout << endl << "GPS FIX COORDINATES:" << endl;
+        cout << "------------------------------------------------------------" << endl;
+        cout << "GPS FIX COORDINATES:" << endl;
         cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-        cout << "   x: " << point.x << " y: " << point.y << endl;
+        cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
+        cout << endl;
         cout << "MULTIVARIATE PARAMS: " << endl;
         cout << "   mean: " << endl;
         cout << mean << endl;
         cout << "   cov: " << endl;
-        cout << covar << endl << endl;
+        cout << covar << endl;
+        cout << "------------------------------------------------------------" << endl << endl;
 
         // Create a bivariate gaussian distribution of doubles.
         // with our chosen mean and covariance
