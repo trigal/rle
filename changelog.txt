@@ -1,5 +1,0 @@
-V_0003 - 2 Settembre 2014 [dario.limongi]
-    - spostata la variabile 'current_measure' da LayoutManager a Odometry
-    - spostata la funzione 'measurementJacobi' nella classe Odometry
-    - propagatePose() è chiamata direttamente da MotionModel e non da Particle
-    - rinominata classe VisualOdometry in Odometry

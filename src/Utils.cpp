@@ -356,6 +356,19 @@ void Utils::printOdomMsgToCout(const nav_msgs::Odometry& msg)
     std::cout << std::endl;
 }
 
+
+void Utils::printPoseMsgToCout(const geometry_msgs::PoseStamped &pose){
+    std::cout << " Position:" << std::endl;
+    std::cout << "  x: " << pose.pose.position.x << std::endl;
+    std::cout << "  y: " << pose.pose.position.y << std::endl;
+    std::cout << "  z: " << pose.pose.position.z << std::endl;
+    std::cout << " Orientation quaternion: " << std::endl;
+    std::cout << "  w: " << pose.pose.orientation.w << std::endl;
+    std::cout << "  x: " << pose.pose.orientation.x << std::endl;
+    std::cout << "  y: " << pose.pose.orientation.y << std::endl;
+    std::cout << "  z: " << pose.pose.orientation.z << std::endl;
+}
+
 /**
  * @param pose
  * @param position_offset

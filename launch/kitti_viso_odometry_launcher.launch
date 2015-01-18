@@ -1,0 +1,54 @@
+<launch>
+	<!-- Arguments -->
+	<arg name="bagfile" default="/home/dario/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
+	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
+
+	<!-- Publishing rate of cameras -->
+	<arg name="publish_rate" default="0.1" />
+
+	<param name="/use_sim_time" value="true"/>
+
+	<!-- Launch VISUAL ODOMETRY KITTI-VISO node-->
+	<node
+		pkg="road_layout_estimation" type="visual_odometry_kitti_viso" name="visual_odometry_kitti_viso"
+		required="true"
+		output="screen"
+	/>
+	
+	<!-- Launch ROAD LAYOUT ESTIMATION node -->
+	<node
+		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
+		required="true"
+		output="screen"
+		args="visual_odometry/odometry"
+	/>
+
+	<!-- Run the rosbag -->
+	<node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile) -r $(arg publish_rate) -l"/>
+
+	<!-- Run the ROS package stereo_image_proc -->
+	<group ns="$(arg camera)" >
+		<node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" />
+	</group>
+
+	<!-- Run image stereo viewer + disparity -->
+	<node pkg="image_view" type="stereo_view" name="stereo_view">
+		<remap from="stereo" to="$(arg camera)"/>
+		<remap from="image" to="image_rect"/>
+	</node>	
+
+	<!-- Run the viso2_ros package -->
+	<node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen">
+		<remap from="stereo" to="$(arg camera)"/>
+		<remap from="image" to="image_rect"/>
+	</node>
+
+	<!-- Launch RViz -->
+	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
+		args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_test.rviz"
+		output="screen"
+	/>
+
+	<!-- Launch RQT reconfigure -->
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+</launch>

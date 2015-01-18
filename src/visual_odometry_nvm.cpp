@@ -72,7 +72,7 @@ int loadNVM(const char* path) {
             }
 
             q1 = q;
-            Eigen::Matrix3d m;
+            Eigen::Matrix3d m; /* fix axis */
             m << 0,0,1,1,0,0,0,1,0;
             r = m*Utils::getRotationMatrix(q);
             t = Utils::getCameraCenterAfterRotation(c, r);

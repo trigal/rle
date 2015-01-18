@@ -1,0 +1,23 @@
+<launch>
+    <node
+        pkg="rviz"
+        name="rviz"
+        type="rviz"
+        output="screen"
+        args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_test.rviz"
+     />
+
+    <node
+        pkg="road_layout_estimation"
+        name="visual_odometry_test"
+        type="visual_odometry_test"
+        output="screen"
+    />
+
+    <node pkg="road_layout_estimation"
+        name="road_layout_estimation"
+        type="road_layout_estimation"
+        args="/visual_odometry/odometry"
+        output="screen"
+    />
+</launch>

@@ -1,0 +1,29 @@
+<launch>
+        <node
+            pkg="rviz"
+            name="rviz"
+            type="rviz"
+            output="screen"
+            args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
+         />
+
+        <node
+            pkg="road_layout_estimation"
+            name="visual_odometry_nvm"
+            type="visual_odometry_nvm"
+            output="screen"
+	    required="true"
+            args="/home/dario/workspace_ros/src/road_layout_estimation/dataset/dataset_dany.txt"
+        />
+
+        <node pkg="road_layout_estimation"
+            name="road_layout_estimation"
+            type="road_layout_estimation"
+            args="/visual_odometry_nvm/odometry"
+            output="screen"
+        />
+	
+	<!-- Run RQT Reconfigure -->
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+	
+</launch>

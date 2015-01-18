@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/visual_odometry_test/odometry",1);
+    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry",1);
 
     // init dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_testConfig> server;

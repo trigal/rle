@@ -39,6 +39,8 @@ public:
 
     static void printOdomMsgToCout(const nav_msgs::Odometry& msg);
 
+    static void printPoseMsgToCout(const geometry_msgs::PoseStamped &pose);
+
     /**
      * @param pose
      * @param position_offset

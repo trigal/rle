@@ -34,7 +34,7 @@
 using namespace Eigen;
 using namespace std;
 
-// components
+// components (they are defined here since they will be deleted once out of scope)
 LayoutComponent_Building p_comp0;
 LayoutComponent_RoadLane p_comp1;
 LayoutComponent_Crossing p_comp2;
@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     layout_components.push_back(&p_comp2);
 
     // init subscriber
+    std::cout << "argc: " << argc << endl;
     string argomento = "/visual_odometry_nvm/odometry";
     if(argc > 2)
     {
@@ -72,17 +73,8 @@ int main(int argc, char *argv[])
         }
     }
 
-//    string argomento(argv[1]);
-
     // init layout_manager
     LayoutManager layout_manager(node_handle, argomento, layout_components);
-
-    // Publish current layout
-//    vector<Particle> particles = layout_manager.getCurrentLayout();
-//    geometry_msgs::PoseArray array_msg = layout_manager.buildPoseArrayMsg(particles);
-//    array_msg.header.stamp = ros::Time::now();
-//    array_msg.header.frame_id = "map";
-//    layout_manager.array_pub.publish(array_msg);
 
     ros::spin();
 

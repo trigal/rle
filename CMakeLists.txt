@@ -77,6 +77,12 @@ add_executable(visual_odometry_nvm
         src/visual_odometry_nvm.cpp
         src/Utils.cpp
 )
+
+add_executable(visual_odometry_kitti_viso
+        src/visual_odometry_kitti_viso.cpp
+        src/Utils.cpp
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
@@ -105,3 +111,6 @@ target_link_libraries(visual_odometry_nvm
     ${catkin_LIBRARIES}
 )
 
+target_link_libraries(visual_odometry_kitti_viso
+    ${catkin_LIBRARIES}
+)
