@@ -1,0 +1,12 @@
+<launch>
+	<!-- Start GPS node -->
+	<node 
+		pkg="nmea_navsat_driver" 
+		type="nmea_serial_driver" 
+		name="nmea_serial_driver"
+		args="_port:=/dev/ttyACM0"	
+	 />
+
+	<!-- Echo /fix -->
+	<node pkg="rostopic" type="rostopic" name="rostopic" output="screen" args="echo /fix" />
+</launch>

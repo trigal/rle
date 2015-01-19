@@ -15,6 +15,7 @@ generate_dynamic_reconfigure_options(
     cfg/visual_odometry_fake.cfg
     cfg/visual_odometry_nvm.cfg
     cfg/visual_odometry_test.cfg
+    cfg/visual_odometry_kitti_viso.cfg
 )
 
 #find_package( PCL REQUIRED )
@@ -91,6 +92,7 @@ add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_fake ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_nvm ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_test ${PROJECT_NAME}_gencfgf)
+add_dependencies(visual_odometry_kitti_viso ${PROJECT_NAME}_gencfgf)
 
 
 ## Specify libraries to link a library or executable target against
