@@ -199,16 +199,6 @@ int main(int argc, char **argv)
             // publish it
             tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
-
-            try
-            {
-                geometry_msgs::Twist diomerda;
-                tf_->lookupTwist("odom_frame", "robot_frame", ros::Time(0),ros::Duration(0.001), diomerda);
-                cout << "MAREMMAPUTTANA" << endl << msg.twist.twist.linear << endl << diomerda.linear << endl;
-            }catch(tf::TransformException &ex) {
-                ROS_ERROR("%s",ex.what());
-            }
-
 //            std::cout << "--------------------------------------------------------------------------------" << endl;
 //            std::cout << "[ Time diff ] " << time_diff << endl;
 //            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
