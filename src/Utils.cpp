@@ -336,23 +336,31 @@ void Utils::sendTfFromPoseStamped(const geometry_msgs::PoseStamped& pose, tf::Tr
 
 void Utils::printOdomMsgToCout(const nav_msgs::Odometry& msg)
 {
-    std::cout << " Position:" << std::endl;
-    std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
-    std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
-    std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
-    std::cout << " Orientation quaternion: " << std::endl;
-    std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
-    std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
-    std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
-    std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
-    std::cout << " Linear speed: " << std::endl;
-    std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
-    std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
-    std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
-    std::cout << " Angular speed: " << std::endl;
-    std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
-    std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
-    std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+//    std::cout << " Position:" << std::endl;
+//    std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+//    std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+//    std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+//    std::cout << " Orientation quaternion: " << std::endl;
+//    std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+//    std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+//    std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+//    std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+//    std::cout << " Linear speed: " << std::endl;
+//    std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+//    std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+//    std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+//    std::cout << " Angular speed: " << std::endl;
+//    std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+//    std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+//    std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+
+
+    State6DOF tmp(msg);
+
+    std::cout << "[measure_t ]" << std::endl;
+    std::cout << "       pose: " << tmp._pose.transpose() << std::endl << "orientation: " << tmp._rotation.angle() << " " << tmp._rotation.axis().transpose() << std::endl;
+    std::cout << "     linear: " << tmp._translational_velocity.transpose() << std::endl << "    angular: " << tmp._rotational_velocity.angle() << " " << tmp._rotational_velocity.axis().transpose() << std::endl << std::endl;
+
     std::cout << std::endl;
 }
 
@@ -627,4 +635,32 @@ double Utils::angle_diff(double a, double b)
     return(d1);
   else
     return(d2);
+}
+
+double Utils::box_muller(double m, double s)	/* normal random variate generator */
+{				        /* mean m, standard deviation s */
+    double x1, x2, w, y1;
+    static double y2;
+    static int use_last = 0;
+
+    if (use_last)		        /* use value from previous call */
+    {
+        y1 = y2;
+        use_last = 0;
+    }
+    else
+    {
+        do {
+            x1 = 2.0 * drand48() - 1.0;
+            x2 = 2.0 * drand48() - 1.0;
+            w = x1 * x1 + x2 * x2;
+        } while ( w >= 1.0 );
+
+        w = sqrt( (-2.0 * log( w ) ) / w );
+        y1 = x1 * w;
+        y2 = x2 * w;
+        use_last = 1;
+    }
+
+    return( m + y1 * s );
 }

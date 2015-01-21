@@ -9,6 +9,7 @@
 #define MOTIONMODEL_H_
 
 #include "LayoutComponent.h"
+#include "state6dof.h"
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <iostream>
@@ -25,24 +26,24 @@ using namespace std;
  */
 class MotionModel {
 private:
-	MatrixXd error_covariance; 	/// 12x12 (double) error covariance matrix
-								/// 6DoF + 6 derivate(velocita su ogni DoF)
+    MatrixXd error_covariance; 	/// 12x12 (double) error covariance matrix
+                                /// 6DoF + 6 derivate(velocita su ogni DoF)
 
 
 
-	/**
-	 * In case there aren't enough datas from Odometry sensors, a decadency motion model
-	 * will be applied on particle propagation
-	 */
-	void decadencyMotionModel();
+    /**
+     * In case there aren't enough datas from Odometry sensors, a decadency motion model
+     * will be applied on particle propagation
+     */
+    void decadencyMotionModel();
 
 public:
 
-	/**
-	 * This function will propagate the particle component using the defined
-	 * motion-model inside MotionModel.cpp
-	 * @param p_component
-	 */
+    /**
+     * This function will propagate the particle component using the defined
+     * motion-model inside MotionModel.cpp
+     * @param p_component
+     */
     VectorXd propagateComponent(VectorXd& pc_state);
 
     /**
@@ -50,14 +51,15 @@ public:
      * @param particle_state
      * @return
      */
-    VectorXd propagatePose(VectorXd& particle_state);
+//    VectorXd propagatePose(VectorXd& particle_state);
+    State6DOF propagatePose(State6DOF& p_state);
 
     /**
      * @brief motionJacobi
      * @param p_state_predicted
      * @return
      */
-    MatrixXd motionJacobi(VectorXd& p_state_predicted);
+    MatrixXd motionJacobian(State6DOF &p_state_predicted);
 
     // getters & setter ------------------------------------------------------------------------
     MatrixXd getErrorCovariance(){ return error_covariance; }
@@ -83,9 +85,9 @@ public:
     MotionModel(const MatrixXd& cov) : error_covariance(cov) {}
     MotionModel(double inc) { error_covariance = MatrixXd::Identity(12,12) * (inc*inc); }
     MotionModel() {
-		// Sets the error covariance to zero
-		MatrixXd cov = MatrixXd::Zero(12,12);
-		error_covariance = cov;
+        // Sets the error covariance to zero
+        MatrixXd cov = MatrixXd::Zero(12,12);
+        error_covariance = cov;
     }
 
     ~MotionModel(){

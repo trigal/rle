@@ -107,13 +107,12 @@ int main(int argc, char **argv)
     tf::Transform temp_t; //used for getting particle speed
     tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
     tf::Pose a,b,c;
-    a.setOrigin(tf::Vector3(0,0,0)); a.setRotation(tf::createIdentityQuaternion());
+    a.setOrigin(tf::Vector3(0,0,0)); a.setRotation(tf::createQuaternionFromRPY(0.1,0.1,0));
     b.setOrigin(tf::Vector3(1,0,0)); b.setRotation(tf::createQuaternionFromYaw(90.0f*3.14f/180.0f));
     c.setOrigin(tf::Vector3(0.1,0,0)); c.setRotation(tf::createQuaternionFromYaw(5.0f*3.14f/180.0f));
     t=a.inverseTimes(b);
     //tfb_->sendTransform(tf::StampedTransform(t, ros::Time::now(), "robot_frame", "odom_frame"));
     t.setRotation(t.getRotation().normalized());
-
 
     ros::Duration(2).sleep(); // sleep for two seconds, system startup
 
@@ -123,7 +122,7 @@ int main(int argc, char **argv)
         // rotate (before rotation, save T into a temp variable)
         temp_t = t;
         t=t*c;
-        t.setRotation(t.getRotation().normalized());
+        //t.setRotation(t.getRotation().normalized());
         tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
         // build msg

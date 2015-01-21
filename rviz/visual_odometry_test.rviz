@@ -8,9 +8,8 @@ Panels:
         - /Grid1/Offset1
         - /Odometry1
         - /PoseArray1
-        - /TF1
         - /TF1/Frames1
-        - /Pose1
+        - /Odometry2
       Splitter Ratio: 0.5
     Tree Height: 651
   - Class: rviz/Selection
@@ -56,13 +55,13 @@ Visualization Manager:
     - Angle Tolerance: 0
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: false
-      Keep: 1000
-      Length: 1
+      Enabled: true
+      Keep: 10000000
+      Length: 5
       Name: Odometry
       Position Tolerance: 0
       Topic: /visual_odometry/odometry
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 255; 0
@@ -83,19 +82,19 @@ Visualization Manager:
       Frames:
         All Enabled: false
         base_link:
-          Value: false
+          Value: true
         car:
-          Value: false
+          Value: true
         kitti_stereo:
-          Value: false
+          Value: true
         odom:
-          Value: false
+          Value: true
         odom_frame:
           Value: true
         robot_frame:
           Value: true
         start:
-          Value: false
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -116,14 +115,24 @@ Visualization Manager:
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
       Shaft Length: 1
       Shaft Radius: 0.05
       Shape: Arrow
-      Topic: /visual_odometry/pose
+      Topic: /stereo_odometer/pose
+      Value: false
+    - Angle Tolerance: 0.1
+      Class: rviz/Odometry
+      Color: 255; 85; 0
+      Enabled: true
+      Keep: 1000000
+      Length: 5
+      Name: Odometry
+      Position Tolerance: 0.1
+      Topic: /stereo_odometer/odometry
       Value: true
   Enabled: true
   Global Options:
@@ -149,22 +158,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 34.504
+      Distance: 45.3731
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 18.4157
-        Y: -0.67988
-        Z: -8.17803
+        X: 0
+        Y: 0
+        Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.465398
-      Target Frame: <Fixed Frame>
+      Pitch: 0.785398
+      Target Frame: car
       Value: Orbit (rviz)
-      Yaw: 3.1304
+      Yaw: 0.785398
     Saved: ~
 Window Geometry:
   Displays:
@@ -182,5 +191,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1650
-  X: 61
+  X: -9
   Y: 14

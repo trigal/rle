@@ -9,6 +9,7 @@
 #define ODOMETRY_H_
 
 #include "Utils.h"
+#include "particle/state6dof.h"
 
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <Eigen/Core>
@@ -18,9 +19,13 @@ using namespace Eigen;
 
 class Odometry {
 
+
+public:
+    State6DOF measurement_state;
+
 private:
-    VectorXd msr_state; /// particle measurement (12x1: 6DoF pose + 6 Speed Derivates)
-    MatrixXd msr_cov;   /// particle covariance (12x12)
+//    VectorXd msr_state; /// measurement (12x1: 6DoF pose + 6 Speed Derivates)
+    MatrixXd msr_cov;   /// measurment covariance (12x12)
     nav_msgs::Odometry msg; /// current msg arrived from Visual Odometry
 
     class Tracker{
@@ -38,18 +43,24 @@ public:
      * @param p_state_predicted
      * @return
      */
-    MatrixXd measurementJacobi(VectorXd& p_state_predicted);
+    MatrixXd measurementJacobian(State6DOF &p_state_predicted);
 
     /**
      * @param p_state
      * @return measurement vector of the given particle, obtained using measurement model equations
      */
-    VectorXd measurePose(VectorXd& p_state);
+    State6DOF measurePose(State6DOF &p_state);
 
 
     // getters & setters --------------------------------------------------------------------------
-    void setMeasureState(VectorXd& msrstate){ msr_state = msrstate; }
-    VectorXd getMeasureState(){ return msr_state; }
+    void setMeasureState(State6DOF mrs){
+        measurement_state._pose = mrs._pose;
+        measurement_state._rotation = mrs._rotation;
+        measurement_state._translational_velocity= mrs._translational_velocity;
+        measurement_state._rotational_velocity= mrs._rotational_velocity;
+    }
+
+    State6DOF getMeasureState() { return measurement_state; }
 
     void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
     void setMeasureCov(double unc){ msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
@@ -72,9 +83,10 @@ public:
 
     void setMsg(const nav_msgs::Odometry& m){
         msg = m;
-        msr_state = Utils::getPoseVectorFromOdom(m);
+        measurement_state = State6DOF(msg);
+
         msr_cov = Utils::getCovFromOdom(m);
-        Utils::printOdomMsgToCout(m);
+//        Utils::printOdomMsgToCout(m);
     }
     nav_msgs::Odometry getMsg() { return msg; }
 
@@ -82,12 +94,10 @@ public:
     Odometry(){
         // Sets all values to zero
         msr_cov = MatrixXd::Zero(12,12);
-        msr_state = VectorXd::Zero(12);
     }
 
     ~Odometry(){
         // Resize all values to zero
-        msr_state.resize(0);
         msr_cov.resize(0,0);
     }
 };

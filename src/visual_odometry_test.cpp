@@ -199,27 +199,37 @@ int main(int argc, char **argv)
             // publish it
             tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
-            std::cout << "--------------------------------------------------------------------------------" << endl;
-            std::cout << "[ Time diff ] " << time_diff << endl;
-            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
-            std::cout << " Position:" << std::endl;
-            std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
-            std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
-            std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
-            std::cout << " Orientation quaternion: " << std::endl;
-            std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
-            std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
-            std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
-            std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
-            std::cout << " Linear speed: " << std::endl;
-            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
-            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
-            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
-            std::cout << " Angular speed: " << std::endl;
-            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
-            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
-            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
-            std::cout << std::endl;
+
+            try
+            {
+                geometry_msgs::Twist diomerda;
+                tf_->lookupTwist("odom_frame", "robot_frame", ros::Time(0),ros::Duration(0.001), diomerda);
+                cout << "MAREMMAPUTTANA" << endl << msg.twist.twist.linear << endl << diomerda.linear << endl;
+            }catch(tf::TransformException &ex) {
+                ROS_ERROR("%s",ex.what());
+            }
+
+//            std::cout << "--------------------------------------------------------------------------------" << endl;
+//            std::cout << "[ Time diff ] " << time_diff << endl;
+//            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
+//            std::cout << " Position:" << std::endl;
+//            std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+//            std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+//            std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+//            std::cout << " Orientation quaternion: " << std::endl;
+//            std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+//            std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+//            std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+//            std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+//            std::cout << " Linear speed: " << std::endl;
+//            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+//            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+//            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+//            std::cout << " Angular speed: " << std::endl;
+//            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+//            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+//            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+//            std::cout << std::endl;
 
             // publish robot odom
             pub.publish(msg);

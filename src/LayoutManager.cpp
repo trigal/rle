@@ -114,9 +114,13 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            int particles_to_add = config.particles_number - num_particles;
            for(int i=0; i<particles_to_add; i++)
            {
-               VectorXd p_pose = VectorXd::Zero(12);
-               MatrixXd p_sigma = MatrixXd::Zero(12,12);
-               Particle part(counter, p_pose, p_sigma, mtn_model);
+//               VectorXd p_pose = VectorXd::Zero(12);
+//               MatrixXd p_sigma = MatrixXd::Zero(12,12);
+//               Particle part(counter, p_pose, p_sigma, mtn_model);
+               Particle part(counter, mtn_model);
+               State6DOF tmp;
+               tmp.addNoise( 0.05, 0.05, 0.05, 0.05);
+               part.setParticleState(tmp);
                current_layout.push_back(part);
                counter = counter+1;
            }
@@ -149,215 +153,217 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         if(gps_initialization)
         {
-            ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
+//            ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
-            /* -------- WAIT FOR GPS MESSAGE ----------------------------------------- */
-    //        // wait for GPS message (coming from Android device)
-    //        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
-    //        // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
-    //        double alt = gps_msg->altitude;
-    //        double lat = gps_msg->latitude;
-    //        double lon = gps_msg->longitude;
-    //        double cov1 = gps_msg->position_covariance[0];
-    //        double cov2 = gps_msg->position_covariance[4];
+//            /* -------- WAIT FOR GPS MESSAGE ----------------------------------------- */
+//    //        // wait for GPS message (coming from Android device)
+//    //        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
+//    //        // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
+//    //        double alt = gps_msg->altitude;
+//    //        double lat = gps_msg->latitude;
+//    //        double lon = gps_msg->longitude;
+//    //        double cov1 = gps_msg->position_covariance[0];
+//    //        double cov2 = gps_msg->position_covariance[4];
 
-    //        // via Chiese
-    //        double alt = 164.78;
-    //        double lat = 45.520172;
-    //        double lon = 9.217983;
-    //        double cov1 = 15;
-    //        double cov2 = 15;
+//    //        // via Chiese
+//    //        double alt = 164.78;
+//    //        double lat = 45.520172;
+//    //        double lon = 9.217983;
+//    //        double cov1 = 15;
+//    //        double cov2 = 15;
 
-            // nodo mappa oneway
-    //        double alt = 164.78;
-    //        double lat = 45.5232719;
-    //        double lon = 9.2148104;
-    //        double cov1 = 15;
-    //        double cov2 = 15;
+//            // nodo mappa oneway
+//    //        double alt = 164.78;
+//    //        double lat = 45.5232719;
+//    //        double lon = 9.2148104;
+//    //        double cov1 = 15;
+//    //        double cov2 = 15;
 
-              /* ------ simulated GPS msg ----------- */
-    //        // U14
-    //        double alt = 164.78;
-    //        double lat = 45.5238;
-    //        double lon = 9.21954;
-    //        double cov1 = 15;
-    //        double cov2 = 15;
+//              /* ------ simulated GPS msg ----------- */
+//    //        // U14
+//    //        double alt = 164.78;
+//    //        double lat = 45.5238;
+//    //        double lon = 9.21954;
+//    //        double cov1 = 15;
+//    //        double cov2 = 15;
 
-    //        // Get XY values from GPS coords
-    //        osm_cartography::latlon_2_xy latlon_2_xy_srv;
-    //        latlon_2_xy_srv.request.latitude = lat;
-    //        latlon_2_xy_srv.request.longitude = lon;
-    //        geometry_msgs::Point point;
-    //        geometry_msgs::PoseStamped fix;
+//    //        // Get XY values from GPS coords
+//    //        osm_cartography::latlon_2_xy latlon_2_xy_srv;
+//    //        latlon_2_xy_srv.request.latitude = lat;
+//    //        latlon_2_xy_srv.request.longitude = lon;
+//    //        geometry_msgs::Point point;
+//    //        geometry_msgs::PoseStamped fix;
 
-    //        if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
-    //        {
-    //             point.x = latlon_2_xy_srv.response.x;
-    //             point.y = latlon_2_xy_srv.response.y;
-    //        }
-    //        else
-    //        {
-    //          ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-    //          return;
-    //        }
+//    //        if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
+//    //        {
+//    //             point.x = latlon_2_xy_srv.response.x;
+//    //             point.y = latlon_2_xy_srv.response.y;
+//    //        }
+//    //        else
+//    //        {
+//    //          ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+//    //          return;
+//    //        }
 
-    //        // Publish GPS fix on map
-    //        fix.header.frame_id = "map";
-    //        fix.header.stamp = ros::Time::now();
-    //        fix.pose.position.x = latlon_2_xy_srv.response.x;
-    //        fix.pose.position.y = latlon_2_xy_srv.response.y;
-    //        fix.pose.orientation.w = 1;
-    //        LayoutManager::gps_pub.publish(fix);
-            /* ------------------------ END OF GPS MSG ---------------------------------- */
+//    //        // Publish GPS fix on map
+//    //        fix.header.frame_id = "map";
+//    //        fix.header.stamp = ros::Time::now();
+//    //        fix.pose.position.x = latlon_2_xy_srv.response.x;
+//    //        fix.pose.position.y = latlon_2_xy_srv.response.y;
+//    //        fix.pose.orientation.w = 1;
+//    //        LayoutManager::gps_pub.publish(fix);
+//            /* ------------------------ END OF GPS MSG ---------------------------------- */
 
-            /* ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- */
-            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
+//            /* ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- */
+//            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
 
-            // transform coordinates from 'local_map' to 'map'
-            osm_cartography::local_map_transform local_map_tf_srv;
-            double map_x; double map_y;
-            if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
-            {
-                 map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
-                 map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
-            }
-            else
-            {
-              ROS_ERROR("   Failed to call 'local_map_transform' service");
-              return;
-            }
+//            // transform coordinates from 'local_map' to 'map'
+//            osm_cartography::local_map_transform local_map_tf_srv;
+//            double map_x; double map_y;
+//            if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
+//            {
+//                 map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
+//                 map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
+//            }
+//            else
+//            {
+//              ROS_ERROR("   Failed to call 'local_map_transform' service");
+//              return;
+//            }
 
-            // convert UTM to LatLon
-            osm_cartography::xy_2_latlon xy_2_latlon_srv;
-            xy_2_latlon_srv.request.x = map_x;
-            xy_2_latlon_srv.request.y = map_y;
-            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
-                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
-                return;
-            }
+//            // convert UTM to LatLon
+//            osm_cartography::xy_2_latlon xy_2_latlon_srv;
+//            xy_2_latlon_srv.request.x = map_x;
+//            xy_2_latlon_srv.request.y = map_y;
+//            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
+//                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
+//                return;
+//            }
 
-            double alt = 0;
-            double lat = xy_2_latlon_srv.response.latitude;
-            double lon = xy_2_latlon_srv.response.longitude;
-            double cov1 = 15;
-            double cov2 = 15;
-            /* ------------------------ END RVIZ INITIAL POSE  ------------------------- */
+//            double alt = 0;
+//            double lat = xy_2_latlon_srv.response.latitude;
+//            double lon = xy_2_latlon_srv.response.longitude;
+//            double cov1 = 15;
+//            double cov2 = 15;
+//            /* ------------------------ END RVIZ INITIAL POSE  ------------------------- */
 
-            // Get XY values from GPS coords
-            osm_cartography::latlon_2_xy latlon_2_xy_srv;
-            latlon_2_xy_srv.request.latitude = lat;
-            latlon_2_xy_srv.request.longitude = lon;
-            geometry_msgs::Point point;
-            geometry_msgs::PoseStamped fix;
-            if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
-            {
-                 point.x = latlon_2_xy_srv.response.x;
-                 point.y = latlon_2_xy_srv.response.y;
-            }
-            else
-            {
-              ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-              return;
-            }
+//            // Get XY values from GPS coords
+//            osm_cartography::latlon_2_xy latlon_2_xy_srv;
+//            latlon_2_xy_srv.request.latitude = lat;
+//            latlon_2_xy_srv.request.longitude = lon;
+//            geometry_msgs::Point point;
+//            geometry_msgs::PoseStamped fix;
+//            if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
+//            {
+//                 point.x = latlon_2_xy_srv.response.x;
+//                 point.y = latlon_2_xy_srv.response.y;
+//            }
+//            else
+//            {
+//              ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+//              return;
+//            }
 
-            // Set mean
-            Eigen::Vector2d mean;
-            mean << point.x, point.y;
+//            // Set mean
+//            Eigen::Vector2d mean;
+//            mean << point.x, point.y;
 
-            // Set covariance
-            Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-            covar(0,0) = cov1;
-            covar(1,1) = cov2;
+//            // Set covariance
+//            Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
+//            covar(0,0) = cov1;
+//            covar(1,1) = cov2;
 
-            cout << "------------------------------------------------------------" << endl;
-            cout << "GPS FIX COORDINATES:" << endl;
-            cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-            cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
-            cout << endl;
-            cout << "MULTIVARIATE PARAMS: " << endl;
-            cout << "   mean: " << endl;
-            cout << mean << endl;
-            cout << "   cov: " << endl;
-            cout << covar << endl;
-            cout << "------------------------------------------------------------" << endl << endl;
+//            cout << "------------------------------------------------------------" << endl;
+//            cout << "GPS FIX COORDINATES:" << endl;
+//            cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
+//            cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
+//            cout << endl;
+//            cout << "MULTIVARIATE PARAMS: " << endl;
+//            cout << "   mean: " << endl;
+//            cout << mean << endl;
+//            cout << "   cov: " << endl;
+//            cout << covar << endl;
+//            cout << "------------------------------------------------------------" << endl << endl;
 
-            // Create a bivariate gaussian distribution of doubles.
-            // with our chosen mean and covariance
-            Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
+//            // Create a bivariate gaussian distribution of doubles.
+//            // with our chosen mean and covariance
+//            Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
 
-            // Reset current_layout
-            LayoutManager::current_layout.clear();
+//            // Reset current_layout
+//            LayoutManager::current_layout.clear();
 
-            // Populate current_layout with valid particles
-            int particle_id = 1;
-            int while_ctr = 1; // while loop infinite cycle prevenction
-            while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
-            {
-                if(while_ctr == 999){
-                    cout << "while ctr reached max limit" << endl;
-                    /**
-                     * TODO: max_radius_size * 2 and find again
-                     */
-                }
-                // Generate a sample from the bivariate Gaussian distribution
-                Matrix<double,2,-1> sample = normX.samples(1);
+//            // Populate current_layout with valid particles
+//            int particle_id = 1;
+//            int while_ctr = 1; // while loop infinite cycle prevenction
+//            while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
+//            {
+//                if(while_ctr == 999){
+//                    cout << "while ctr reached max limit" << endl;
+//                    /**
+//                     * TODO: max_radius_size * 2 and find again
+//                     */
+//                }
+//                // Generate a sample from the bivariate Gaussian distribution
+//                Matrix<double,2,-1> sample = normX.samples(1);
 
 
-                /** SNAP PARTICLE v2 **********************************************************************************/
-                // Init OSM cartography service
-                osm_cartography::snap_particle_xy srv;
-                srv.request.x = sample(0);
-                srv.request.y = sample(1);
-                srv.request.max_distance_radius = 200;
+//                /** SNAP PARTICLE v2 **********************************************************************************/
+//                // Init OSM cartography service
+//                osm_cartography::snap_particle_xy srv;
+//                srv.request.x = sample(0);
+//                srv.request.y = sample(1);
+//                srv.request.max_distance_radius = 200;
 
-                // Call snap particle service service
-                if (LayoutManager::snap_particle_xy_client.call(srv))
-                {
-                    // Init particle's pose
-                    VectorXd p_pose = VectorXd::Zero(12);
-                    p_pose(0) = srv.response.snapped_x; // update X value
-                    p_pose(1) = srv.response.snapped_y; // update Y value
-                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
+//                // Call snap particle service service
+//                if (LayoutManager::snap_particle_xy_client.call(srv))
+//                {
+//                    // Init particle's pose
+//                    VectorXd p_pose = VectorXd::Zero(12);
+//                    p_pose(0) = srv.response.snapped_x; // update X value
+//                    p_pose(1) = srv.response.snapped_y; // update Y value
+//                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
 
-                    // Init particle's sigma
-                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
+//                    // Init particle's sigma
+//                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
 
-                    // Push particle into particle-set
-                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
-                    current_layout.push_back(part);
+//                    // Push particle into particle-set
+//                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
+//                    current_layout.push_back(part);
 
-                    // Update particles id counter
-                    particle_id += 1;
+//                    // Update particles id counter
+//                    particle_id += 1;
 
-                    // Check if we should create 2 particles with opposite direction
-                    if(srv.response.way_dir_opposite_particles){
+//                    // Check if we should create 2 particles with opposite direction
+//                    if(srv.response.way_dir_opposite_particles){
 
-                        // Invert Yaw direction
-                        p_pose(5) = Utils::normalize_angle(p_pose(5) + M_PI);
+//                        // Invert Yaw direction
+//                        p_pose(5) = Utils::normalize_angle(p_pose(5) + M_PI);
 
-                        // Push particle inside particle-set
-                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-                        current_layout.push_back(opposite_part);
+//                        // Push particle inside particle-set
+//                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+//                        current_layout.push_back(opposite_part);
 
-                        // Update particles id counter
-                        particle_id += 1;
-                    }
-                }
-                else
-                {
-                    ROS_ERROR("     Failed to call 'snap_particle_xy' service");
-                    return;
-                }
+//                        // Update particles id counter
+//                        particle_id += 1;
+//                    }
+//                }
+//                else
+//                {
+//                    ROS_ERROR("     Failed to call 'snap_particle_xy' service");
+//                    return;
+//                }
 
-                // prevent infinite loop
-                while_ctr += 1;
-            } // end while loop for particles generations
+//                // prevent infinite loop
+//                while_ctr += 1;
+//            } // end while loop for particles generations
         } // end if(gps_initialization)
         else
         {
             // gps initialization disabled, just generate particles with all values set to zero
             for(int i = 0; i < config.particles_number; i++){
                 Particle zero_part(i, mtn_model);
+                MatrixXd tmp_cov = mtn_model.getErrorCovariance();
+                zero_part.setParticleSigma(tmp_cov);
                 current_layout.push_back(zero_part);
             }
         }
@@ -389,8 +395,9 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
     {
         // build Pose from Particle
         Particle p = particles.at(i);
-        VectorXd p_pose = p.getParticleState();
-        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
+//        VectorXd p_pose = p.getParticleState().toVectorXd();
+//        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
+        geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
 
         // normalize quaternion
         tf::Quaternion q;
@@ -429,41 +436,45 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         for(int i=0; i<num_particles; i++)
         {
             // init an empty particle
-            VectorXd p_pose = VectorXd::Zero(12);
+//            VectorXd p_pose = VectorXd::Zero(12);
+            State6DOF p_pose;
             MatrixXd p_sigma = MatrixXd::Zero(12,12);
             Particle part(i, p_pose, p_sigma, mtn_model);
 
             // get pose & cov from odom msg
-            VectorXd new_pose = Utils::getPoseVectorFromOdom(msg);
+//            VectorXd new_pose = Utils::getPoseVectorFromOdom(msg);
+            State6DOF new_pose(msg);
             MatrixXd new_cov = Utils::getCovFromOdom(msg);
 
             // add some random offset to particles (only the first one won't be noised)
-            if(i!=1){
-                new_pose = Utils::addOffsetToVectorXd(new_pose, 0.05, 0.05, 0.05);
+            if(i!=1)
+            {
+//                new_pose = Utils::addOffsetToVectorXd(new_pose, 0.05, 0.05, 0.05);
+                new_pose.addNoise( 0.05, 0.05, 0.05, 0.05);
             }
 
             // update particle values
             part.setParticleState(new_pose);
             part.setParticleSigma(new_cov);
 
-            // let's add a sample component in same position of the particle
-            layout_components.at(0)->particle_id = part.getId();
-            layout_components.at(0)->component_id = 0;
-            layout_components.at(0)->component_state = new_pose;
-            layout_components.at(0)->component_cov = p_sigma;
-            part.addComponent(layout_components.at(0));
+//            // let's add a sample component in same position of the particle
+//            layout_components.at(0)->particle_id = part.getId();
+//            layout_components.at(0)->component_id = 0;
+//            layout_components.at(0)->component_state = new_pose;
+//            layout_components.at(0)->component_cov = p_sigma;
+//            part.addComponent(layout_components.at(0));
 
-            layout_components.at(1)->particle_id = part.getId();
-            layout_components.at(1)->component_id = 1;
-            layout_components.at(1)->component_state = new_pose;
-            layout_components.at(1)->component_cov = p_sigma;
-            part.addComponent(layout_components.at(1));
+//            layout_components.at(1)->particle_id = part.getId();
+//            layout_components.at(1)->component_id = 1;
+//            layout_components.at(1)->component_state = new_pose;
+//            layout_components.at(1)->component_cov = p_sigma;
+//            part.addComponent(layout_components.at(1));
 
-            layout_components.at(2)->particle_id = part.getId();
-            layout_components.at(2)->component_id = 2;
-            layout_components.at(2)->component_state = new_pose;
-            layout_components.at(2)->component_cov = p_sigma;
-            part.addComponent(layout_components.at(2));
+//            layout_components.at(2)->particle_id = part.getId();
+//            layout_components.at(2)->component_id = 2;
+//            layout_components.at(2)->component_state = new_pose;
+//            layout_components.at(2)->component_cov = p_sigma;
+//            part.addComponent(layout_components.at(2));
 
             // push created particle into particle-set
             current_layout.push_back(part);
@@ -509,16 +520,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // Update old_msg with current one for next step delta_t calculation
     old_msg = msg;
-
-    // Print filtered out measure
-    nav_msgs::Odometry odom;
-    Particle p = particles.at(0);
-    odom = Utils::getOdomFromPoseAndSigma(p.getParticleState(), p.getParticleSigma());
-    odom.header.stamp = msg.header.stamp;
-    odom.header.frame_id = "robot_frame";
-    odom.child_frame_id = "odom_frame";
-    std::cout << " ******* FILTRO [particella ID: "<< p.getId() <<" (num. particelle: "<< current_layout.size() << ") *******" << std::endl;
-    Utils::printOdomMsgToCout(odom);
 }
 
 

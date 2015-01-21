@@ -25,6 +25,7 @@ using namespace std;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 tf::StampedTransform t;
+tf::TransformListener *listener;
 
 // ros publishers
 ros::Publisher pose_publisher;
@@ -40,7 +41,7 @@ bool enable_custom_twist = false;
 
 // store position
 geometry_msgs::PoseStamped old_pose;
-
+bool first_run = true;
 /***************************************************************************************************************/
 
 /**
@@ -112,16 +113,8 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     ROS_INFO_STREAM("   Odometry msg arrived");
-
-    // wait for transform
-    static tf::TransformListener listener;
     try{
-        ros::Time now = ros::Time::now();
-        ROS_INFO_STREAM("   before waiting");
-//        ros::spinOnce();
-//        listener.waitForTransform("/robot_frame", "/car", now, ros::Duration(1.0));
-        ROS_INFO_STREAM("   before lookup");
-        listener.lookupTransform("/robot_frame", "/car", ros::Time(0), t);
+        listener->lookupTransform("/robot_frame", "/car", ros::Time(0), t);
     }
     catch (tf::TransformException &ex) {
         ROS_ERROR("%s",ex.what());
@@ -129,9 +122,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     }
 
     // send tf
-    ROS_INFO_STREAM("   before sending");
     tfb_->sendTransform(tf::StampedTransform(t, t.stamp_, "robot_frame", "odom_frame"));
-    ROS_INFO_STREAM("   after sending");
 
     // Generate PoseStamped message
     ros::Time current_time = ros::Time::now();
@@ -185,12 +176,14 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         odometry.twist.covariance = odometry.twist.covariance;
     }
 
-    // store pose
-    old_pose = pose;
+    // set old_pose same as pose if it's the first msg, this means that speed will be 0 this time (if custom_twist is enabled)
+    if(first_run){
+        old_pose = pose;
+        first_run = false;
+    }
 
     // publish PoseStamped
     pose_publisher.publish(pose);
-    ROS_INFO_STREAM("   Pose published");
 
     // calculate speed with our formulas if flag is enabled
     if(enable_custom_twist){
@@ -202,10 +195,11 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         }
     }
 
+    // store pose
+    old_pose = pose;
+
     //      publish Odometry
     odom_publisher.publish(odometry);
-    ROS_INFO_STREAM("   Odometry published");
-
 
     //      print published msg
     //Utils::printPoseMsgToCout(pose);
@@ -219,6 +213,8 @@ int main(int argc, char *argv[]) {
     ros::NodeHandle nh;
 
     ROS_INFO_STREAM("VISUAL ODOMETRY KITTI-LibViso2 STARTED");
+
+    listener = new tf::TransformListener();
 
     // init dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_kitti_visoConfig> server;

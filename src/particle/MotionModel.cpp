@@ -37,7 +37,7 @@ double normalize(double angle)
  */
 VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
 
-    VectorXd new_pose = this->propagatePose(pc_state);
+//    VectorXd new_pose = this->propagatePose(pc_state);
 //    std::cout << " ******* PROPAGATED COMPONENT *******" << std::endl;\
 //    std::cout << " Position:" << std::endl;
 //    std::cout << "  x: " << pose(0) << std::endl;
@@ -58,7 +58,8 @@ VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
 //    std::cout << "  z: " << pose(11) << std::endl;
 //    std::cout << std::endl;
 
-    return new_pose;
+//    return new_pose;
+    return pc_state;
 }
 
 
@@ -67,78 +68,64 @@ VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
  * @param p_state
  * @return p_state_predicted
  */
-VectorXd MotionModel::propagatePose(VectorXd& p_state){
+State6DOF MotionModel::propagatePose(State6DOF& p_state){
     // MOTION EQUATION:
-	// s_t+1 = s_t + v_t * Delta_t + R
+    // s_t+1 = s_t + v_t * Delta_t + R
     // v_t+1 = v_t + R
 
-	// initialize values
-	VectorXd p_pose = VectorXd::Zero(6);
-	VectorXd p_vel = VectorXd::Zero(6);
-	VectorXd pose_error = VectorXd::Zero(6);
-	VectorXd vel_error = VectorXd::Zero(6);
-	VectorXd p_state_propagated = VectorXd::Zero(12);
+    // initialize values
+    State6DOF p_state_propagated;
 
-	// build values from p_state
-	p_pose = p_state.head(6);
-	p_vel = p_state.tail(6);
-	pose_error = error_covariance.diagonal().head(6);
-	vel_error = error_covariance.diagonal().tail(6);
+    // propagate _pose
+    p_state_propagated._pose = p_state._pose + (p_state._translational_velocity * LayoutManager::delta_t);// + pose_error; //random
 
-    // get a random error value from error_covariance matrix
-    for(int i=0; i<pose_error.size(); i++)
-    {
-        // temp variables
-        double p_err = pose_error(i);
-        double v_err = vel_error(i);
+    // propagate pose _rotation
+    Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
+     tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
+    p_state_propagated._rotation = tmp_angle_axis * p_state._rotation; // WARNING verify product order!!
 
-        // rand values that will be added to calculated pose/vel
-        pose_error(i) = Utils::getNoise(p_err);
-        vel_error(i) = Utils::getNoise(v_err);
-    }
 
-	// propagate p_pose
-    p_pose = p_pose + (p_vel * LayoutManager::delta_t);// + pose_error; //random
-    p_vel = p_vel;// + vel_error;
+    Eigen::Vector3d tmp_error;
+    tmp_error(0) = Utils::box_muller(0,error_covariance(6,6));
+    tmp_error(1) = Utils::box_muller(0,error_covariance(7,7));
+    tmp_error(2) = Utils::box_muller(0,error_covariance(8,8));
 
-    // normalize angles -PI, PI
-    p_pose(3) = normalize(p_pose(3));
-    p_pose(4) = normalize(p_pose(4));
-    p_pose(5) = normalize(p_pose(5));
+    // propagate velocity
+    p_state_propagated._translational_velocity = p_state._translational_velocity + tmp_error; // WARNING + verify error;
+    p_state_propagated._rotational_velocity = p_state._rotational_velocity;
+    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,error_covariance(9,9));
 
-	// build propagated p_state
-	p_state_propagated << p_pose, p_vel;
 
-	return p_state_propagated;
+    return p_state_propagated;
 }
 
 
-MatrixXd MotionModel::motionJacobi(VectorXd& p_state_predicted){
-	/**
-	 * G_t:
-	 *
-	 *  | 1 0 0 0 0 0  Dt 0 0 0 0 0 |
-	 *  | 0 1 0 0 0 0  0 Dt 0 0 0 0 |
-	 *  | 0 0 1 0 0 0  0 0 Dt 0 0 0 |
-	 *  | 0 0 0 1 0 0  0 0 0 Dt 0 0 |
-	 *  | 0 0 0 0 1 0  0 0 0 0 Dt 0 |
-	 *  | 0 0 0 0 0 1  0 0 0 0 0 Dt |
-	 *
-	 * 	| 0 0 0 0 0 0  1 0 0 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 1 0 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 1 0 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 1 0 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 0 1 0 |
-	 *  | 0 0 0 0 0 0  0 0 0 0 0 1 |
-	 */
+MatrixXd MotionModel::motionJacobian(State6DOF& p_state_predicted){
+    /**
+     * G_t:
+     *
+     *  | 1 0 0 0 0 0  Dt 0 0 0 0 0 |
+     *  | 0 1 0 0 0 0  0 Dt 0 0 0 0 |
+     *  | 0 0 1 0 0 0  0 0 Dt 0 0 0 |
+     *  | 0 0 0 1 0 0  0 0 0 Dt 0 0 |
+     *  | 0 0 0 0 1 0  0 0 0 0 Dt 0 |
+     *  | 0 0 0 0 0 1  0 0 0 0 0 Dt |
+     *
+     * 	| 0 0 0 0 0 0  1 0 0 0 0 0 |
+     *  | 0 0 0 0 0 0  0 1 0 0 0 0 |
+     *  | 0 0 0 0 0 0  0 0 1 0 0 0 |
+     *  | 0 0 0 0 0 0  0 0 0 1 0 0 |
+     *  | 0 0 0 0 0 0  0 0 0 0 1 0 |
+     *  | 0 0 0 0 0 0  0 0 0 0 0 1 |
+     */
 
 
-	// Create an identity 12x12 matrix
-	MatrixXd G_t = MatrixXd::Identity(12,12);
+    // Create an identity 12x12 matrix
+    MatrixXd G_t = MatrixXd::Identity(12,12);
 
-	// Sets diagonal of first 6x6 matrix to delta_t
-	for(int i = 0; i<6; i++)
+    // Sets diagonal of first 6x6 matrix to delta_t
+    for(int i = 0; i<6; i++)
         G_t(i,i+6) = LayoutManager::delta_t;
 
-	return G_t;
+    return G_t;
 }

@@ -52,11 +52,13 @@ catkin_package(
 ## Declare cpp executables
 add_executable(visual_odometry_fake 
 	src/visual_odometry_fake.cpp 
+        src/particle/state6dof.cpp
         src/Utils.cpp
 )
 
 add_executable(visual_odometry_test
         src/visual_odometry_test.cpp
+        src/particle/state6dof.cpp
         src/Utils.cpp
 )
 
@@ -70,17 +72,20 @@ add_executable(road_layout_estimation
         src/particle/LayoutComponent_Building.cpp
         src/particle/LayoutComponent_Crossing.cpp
         src/particle/LayoutComponent_RoadLane.cpp
+        src/particle/state6dof.cpp
         src/Utils.cpp
         src/eigenmultivariatenormal.hpp
 )
 
 add_executable(visual_odometry_nvm
         src/visual_odometry_nvm.cpp
+        src/particle/state6dof.cpp
         src/Utils.cpp
 )
 
 add_executable(visual_odometry_kitti_viso
         src/visual_odometry_kitti_viso.cpp
+        src/particle/state6dof.cpp
         src/Utils.cpp
 )
 

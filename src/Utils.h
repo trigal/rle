@@ -10,6 +10,7 @@
 #include <Eigen/Dense>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
+#include "particle/state6dof.h"
 
 using namespace Eigen;
 
@@ -85,6 +86,13 @@ public:
      * @return a random number between -err and err
      */
     static double getNoise(double err);
+
+    /**
+     * @param m
+     * @param s
+     * @return a random number sampled from normal distribution with mean m and std s
+     */
+    static double box_muller(double m, double s);
 
     /**
      * @brief getRotationMatrix

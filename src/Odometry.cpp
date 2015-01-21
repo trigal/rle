@@ -17,15 +17,17 @@
  * @param p_state 12x1 VectorXd
  * @return measured_p_state 12x1 VectorXd
  */
-VectorXd Odometry::measurePose(VectorXd& p_state){
+State6DOF Odometry::measurePose(State6DOF& p_state){
 
-    VectorXd measured_p_state = VectorXd::Zero(12);
-    measured_p_state = p_state;
+//    VectorXd measured_p_state = VectorXd::Zero(12);
+//    measured_p_state = p_state;
 
-    return measured_p_state;
+    State6DOF tmp = p_state;
+
+    return tmp;
 }
 
-MatrixXd Odometry::measurementJacobi(VectorXd& p_state_predicted){
+MatrixXd Odometry::measurementJacobian(State6DOF& p_state_predicted){
     /**
      * H_t:
      *
