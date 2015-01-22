@@ -1,9 +1,14 @@
-/*
- * LayoutManager.cpp
- *
- *  Created on: May 25, 2014
- *      Author: dario
- */
+/***************************************************************************
+ *                                                                         *
+ *   IRALab - Informatics & Robotics for Automation Laboratory             *
+ *      Universita' degli Studi Milano - Bicocca, DISCO                    *
+ *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
+ *                                                                         *
+ *   Author:    Dario Limongi                                              *
+ *   Email:     dario.limongi@gmail.com                                    *
+ *   Date:      25/05/2014                                                 *
+ *                                                                         *
+ ***************************************************************************/
 
 #include "Odometry.h"
 #include "Utils.h"
@@ -42,7 +47,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
     node_handle = n;
 
     // init subscriber
-    sub = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+    sub = node_handle.subscribe(topic, 3, &LayoutManager::odometryCallback, this);
     ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << sub.getTopic());
 
     // init values
@@ -665,7 +670,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
         //this->calculateScore();
 		// ------------------------------------------------------------------------------- //
 
-
+        // ------------------------------ resampling ------------------------------------- //
         if(new_detections)
 		{
 //			Add new candidate-components ----------------------------------------------------- //

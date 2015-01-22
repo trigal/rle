@@ -1,10 +1,14 @@
-/*
- * layout_manager.cpp
- *
- *  Created on: Jul 29, 2014
- *      Author: dario
- */
-
+/***************************************************************************
+ *                                                                         *
+ *   IRALab - Informatics & Robotics for Automation Laboratory             *
+ *      Universita' degli Studi Milano - Bicocca, DISCO                    *
+ *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
+ *                                                                         *
+ *   Author:    Dario Limongi                                              *
+ *   Email:     dario.limongi@gmail.com                                    *
+ *   Date:      29/07/2014                                                 *
+ *                                                                         *
+ ***************************************************************************/
 
 #include "Utils.h"
 #include <ros/ros.h>

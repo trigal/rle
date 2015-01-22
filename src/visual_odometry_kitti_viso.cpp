@@ -1,3 +1,15 @@
+/***************************************************************************
+ *                                                                         *
+ *   IRALab - Informatics & Robotics for Automation Laboratory             *
+ *      Universita' degli Studi Milano - Bicocca, DISCO                    *
+ *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
+ *                                                                         *
+ *   Author:    Dario Limongi                                              *
+ *   Email:     dario.limongi@gmail.com                                    *
+ *   Date:      22/01/2014                                                 *
+ *                                                                         *
+ ***************************************************************************/
+
 #include <boost/assign.hpp>
 #include "Utils.h"
 #include <string>
@@ -45,49 +57,6 @@ bool first_run = true;
 /***************************************************************************************************************/
 
 /**
- * @brief buildOdomMsgFrom2Poses
- * @param old_pose
- * @param pose
- * @param pos_err
- * @param or_err
- * @param lin_err
- * @param ang_err
- * @return
- */
-nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_pose,const geometry_msgs::PoseStamped& pose, double pos_err, double or_err, double lin_err, double ang_err)
-{
-    // calculate cov from uncertainty
-    pos_err = pos_err*pos_err;
-    or_err = or_err*or_err;
-    lin_err = lin_err*lin_err;
-    ang_err = ang_err*ang_err;
-
-    // create odom msg
-    nav_msgs::Odometry odom;
-    odom.child_frame_id = "odom_frame";
-    odom.header.frame_id = "robot_frame";
-    odom.header.stamp = pose.header.stamp;
-
-    odom.pose.pose = pose.pose;
-    odom.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
-
-    odom.twist.covariance = boost::assign::list_of  (lin_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (lin_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (lin_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (ang_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (ang_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (ang_err) ;
-
-    odom.pose.covariance = boost::assign::list_of  (pos_err) (0)   (0)  (0)  (0)  (0)
-                                                        (0)  (pos_err)  (0)  (0)  (0)  (0)
-                                                        (0)   (0)  (pos_err) (0)  (0)  (0)
-                                                        (0)   (0)   (0) (or_err) (0)  (0)
-                                                        (0)   (0)   (0)  (0) (or_err) (0)
-                                                        (0)   (0)   (0)  (0)  (0)  (or_err) ;
-    return odom;
-}
-
-/**
  * @brief reconfigureCallback
  * @param config
  * @param level
@@ -110,6 +79,7 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
  * @brief odometryCallback
  * @param msg
  */
+//int seq_num = 0;
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     ROS_INFO_STREAM("   Odometry msg arrived");
@@ -129,6 +99,8 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id ="robot_frame";
     pose.header.stamp = current_time;
+    pose.header.seq = msg.header.seq;
+//    seq_num++;
 
     //      update orientation
     pose.pose.orientation.x = t.getRotation().getX();
@@ -142,7 +114,6 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     pose.pose.position.z = t.getOrigin().getZ();
 
     nav_msgs::Odometry odometry;
-    odometry.twist.twist = msg.twist.twist;
     odometry.twist.covariance = msg.twist.covariance;
     odometry.pose.covariance = msg.pose.covariance;
     odometry.pose.pose = pose.pose;
@@ -187,12 +158,10 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     // calculate speed with our formulas if flag is enabled
     if(enable_custom_twist){
-        odometry = buildOdomMsgFrom2Poses(old_pose, pose, position_uncertainty, orientation_uncertainty, linear_uncertainty, angular_uncertainty);
-        //  re-assign message covariance if 'custom uncertainty' is disabled
-        if(!enable_custom_uncertainty){
-            odometry.twist.covariance = msg.twist.covariance;
-            odometry.pose.covariance = msg.pose.covariance;
-        }
+        odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
+    }
+    else{
+        odometry.twist.twist = msg.twist.twist;
     }
 
     // store pose
@@ -200,6 +169,8 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     //      publish Odometry
     odom_publisher.publish(odometry);
+
+    ROS_INFO_STREAM("SEQ NUMBER: " << msg.header.seq << " X: " << odometry.pose.pose.position.x << " VISO: " << msg.pose.pose.position.x);
 
     //      print published msg
     //Utils::printPoseMsgToCout(pose);
@@ -229,8 +200,8 @@ int main(int argc, char *argv[]) {
     ros::Subscriber sub = nh.subscribe("/stereo_odometer/odometry", 1, odometryCallback);
 
     // publishers
-    pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry/pose", 1);
-    odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry", 1);
+    pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry/pose", 3);
+    odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry", 3);
 
     // spin
     ros::spin();
