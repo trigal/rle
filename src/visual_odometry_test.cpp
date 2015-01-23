@@ -46,7 +46,9 @@ double time_diff;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 nav_msgs::Odometry msg;
+geometry_msgs::PoseStamped old_pose;
 double current_speed;
+double current_speed_angular;
 unsigned int msg_num;
 
 // dynamic vars
@@ -81,6 +83,9 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_testConfig &con
     orientation_uncertainty = config.orientation_uncertainty;
     linear_uncertainty = config.linear_uncertainty;
     angular_uncertainty = config.angular_uncertainty;
+
+    // set numbers of steps before changing direction
+    change_direction = config.change_direction;
 }
 
 
@@ -119,11 +124,13 @@ int main(int argc, char **argv)
     tf::Transform rotate_neg_pitch(tf::createQuaternionFromRPY(0, -angle_rate, 0), tf::Vector3(0,0,0));
     tf::Transform rotate_roll(tf::createQuaternionFromRPY(angle_rate, 0, 0), tf::Vector3(0,0,0));
     tf::Transform rotate_neg_roll(tf::createQuaternionFromRPY(-angle_rate, 0, 0), tf::Vector3(0,0,0));
+    tf::Transform yaw_rot_45(tf::createQuaternionFromYaw(45.0f*3.14f/180.0f), tf::Vector3(0,0,0));
 
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
     tf_ = new tf::TransformListener();
     tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
+//    tf::Transform t(tf::createQuaternionFromYaw(45.0f*3.14f/180.0f), tf::Vector3(0,0,0)); //WORLD
 
     // sleep for two seconds, system startup
     ros::Duration(2).sleep();
@@ -135,6 +142,7 @@ int main(int argc, char **argv)
             // --------- Publish first msg ------------------------------
             msg_num = 0;
             current_speed = movement_rate / 10;
+            current_speed_angular = angle_rate / 10;
             current_time = ros::Time::now();
 
             // send transform_msg
@@ -142,8 +150,20 @@ int main(int argc, char **argv)
 
             // init & send odom_msg
             last_msg_time = current_time;
-            msg = createOdomMsgFromTF(t);
 
+            // update last pose
+            geometry_msgs::PoseStamped pose;
+            pose.header.stamp = ros::Time::now();
+            pose.pose.position.x = t.getOrigin().getX();
+            pose.pose.position.y = t.getOrigin().getY();
+            pose.pose.position.z = t.getOrigin().getZ();
+            pose.pose.orientation.x = t.getRotation().getX();
+            pose.pose.orientation.y = t.getRotation().getY();
+            pose.pose.orientation.z = t.getRotation().getZ();
+            pose.pose.orientation.w = t.getRotation().getW();
+            old_pose = pose;
+
+            // publish and spin
             pub.publish(msg);
             ros::spinOnce();
             rate->sleep();
@@ -193,16 +213,17 @@ int main(int argc, char **argv)
                 t = t * move_x;
 
 
+            // publish it
+            tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
+
             // update current time
             current_time = ros::Time::now();
             time_diff = current_time.toSec() - last_msg_time.toSec();
             current_speed = movement_rate / time_diff;
+            current_speed_angular = angle_rate / time_diff;
 
             // create msg from transform
             msg = createOdomMsgFromTF(t);
-
-            // publish it
-            tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
 
 //            std::cout << "--------------------------------------------------------------------------------" << endl;
 //            std::cout << "[ Time diff ] " << time_diff << endl;
@@ -229,6 +250,18 @@ int main(int argc, char **argv)
             // publish robot odom
             pub.publish(msg);
 
+            // update last pose
+            geometry_msgs::PoseStamped pose;
+            pose.header.stamp = ros::Time::now();
+            pose.pose.position.x = t.getOrigin().getX();
+            pose.pose.position.y = t.getOrigin().getY();
+            pose.pose.position.z = t.getOrigin().getZ();
+            pose.pose.orientation.x = t.getRotation().getX();
+            pose.pose.orientation.y = t.getRotation().getY();
+            pose.pose.orientation.z = t.getRotation().getZ();
+            pose.pose.orientation.w = t.getRotation().getW();
+            old_pose = pose;
+
             // spin
             ros::spinOnce();
 
@@ -236,8 +269,40 @@ int main(int argc, char **argv)
             last_msg_time = current_time;
             msg_num++;
             rate->sleep();
+
+        }
+
+        // lookupTwist
+        try{
+
+            geometry_msgs::Twist frame_speed;
+            tf_->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
+            cout << "LOOKUP TWIST: " << endl;
+            std::cout << " Linear speed: " << std::endl;
+            std::cout << "  x: " << frame_speed.linear.x << std::endl;
+            std::cout << "  y: " << frame_speed.linear.y << std::endl;
+            std::cout << "  z: " << frame_speed.linear.z << std::endl;
+            std::cout << " Angular speed: " << std::endl;
+            std::cout << "  x: " << frame_speed.angular.x << std::endl;
+            std::cout << "  y: " << frame_speed.angular.y << std::endl;
+            std::cout << "  z: " << frame_speed.angular.z << std::endl << endl << endl;
+
+            cout << "MSG TWIST: " << endl;
+            std::cout << " Linear speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+            std::cout << " Angular speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+        }
+        catch (tf::TransformException &ex) {
+            ROS_ERROR("%s",ex.what());
         }
     }
+
+    // delete arg
     if(rate != NULL)
         delete rate;
 }
@@ -264,49 +329,17 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
     t.setRotation(t.getRotation().normalized());
     tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
 
-    // set speed (it will be constant for all the execution)
-
-    // apply transform
-    if(msg_num >= 0 && msg_num<(change_direction)){
-        msg.twist.twist.linear.x = current_speed;
-    }
-    else if(msg_num>=(change_direction) && msg_num< (2*change_direction)){
-        msg.twist.twist.linear.x = -current_speed;
-    }
-    else if(msg_num >= (2*change_direction) && msg_num< (3*change_direction)){
-        msg.twist.twist.linear.y = current_speed;
-    }
-    else if(msg_num>= (3*change_direction) && msg_num< (4*change_direction)){
-        msg.twist.twist.linear.y = -current_speed;
-    }
-    else if(msg_num >= (4*change_direction) && msg_num< (5*change_direction)){
-        msg.twist.twist.linear.z = current_speed;
-    }
-    else if(msg_num>=(5*change_direction) && msg_num< (6*change_direction)){
-        msg.twist.twist.linear.z = -current_speed;
-    }
-    else if(msg_num >= (6*change_direction) && msg_num< (7*change_direction)){
-        msg.twist.twist.angular.z = current_speed;
-    }
-    else if(msg_num>=(7*change_direction) && msg_num< (8*change_direction)){
-        msg.twist.twist.angular.z = -current_speed;
-    }
-    else if(msg_num >= (8*change_direction) && msg_num< (9*change_direction)){
-        msg.twist.twist.angular.y = current_speed;
-    }
-    else if(msg_num>=(9*change_direction) && msg_num< (10*change_direction)){
-        msg.twist.twist.angular.y = -current_speed;
-    }
-    else if(msg_num >= (10*change_direction) && msg_num< (11*change_direction)){
-        msg.twist.twist.angular.x = current_speed;
-    }
-    else if(msg_num>=(11*change_direction) && msg_num< (12*change_direction)){
-        msg.twist.twist.angular.x = -current_speed;
-    }
-    else{
-        msg.twist.twist.linear.x = current_speed;
-    }
-
+    // set speed
+    geometry_msgs::PoseStamped pose;
+    pose.header.stamp = ros::Time::now();
+    pose.pose.position.x = t.getOrigin().getX();
+    pose.pose.position.y = t.getOrigin().getY();
+    pose.pose.position.z = t.getOrigin().getZ();
+    pose.pose.orientation.x = t.getRotation().getX();
+    pose.pose.orientation.y = t.getRotation().getY();
+    pose.pose.orientation.z = t.getRotation().getZ();
+    pose.pose.orientation.w = t.getRotation().getW();
+    msg.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
 
     // set covs (they will be constant for all the execution)
     msg.twist.covariance =  boost::assign::list_of  (linear_uncertainty) (0)   (0)  (0)  (0)  (0)

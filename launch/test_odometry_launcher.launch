@@ -1,23 +1,28 @@
 <launch>
-    <node
-        pkg="rviz"
-        name="rviz"
-        type="rviz"
-        output="screen"
-        args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_test.rviz"
-     />
+	
+	<!-- Launch RViz 
+	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
+		args="-d /workspace/catkin_ws/src/road_layout_estimation/rviz/visual_odometry_test.rviz"
+		output="screen"
+	/>-->
 
-    <node
-        pkg="road_layout_estimation"
-        name="visual_odometry_test"
-        type="visual_odometry_test"
-        output="screen"
-    />
 
-    <node pkg="road_layout_estimation"
-        name="road_layout_estimation"
-        type="road_layout_estimation"
-        args="/visual_odometry/odometry"
-        output="screen"
-    />
+	<!-- Launch road layout estimation node -->
+	<node
+		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
+		required="true"
+		output="screen"
+		args="visual_odometry/odometry"
+	/>
+
+	<!-- Launch odometry node-->
+	<node
+		pkg="road_layout_estimation" type="visual_odometry_test" name="visual_odometry_test"
+		respawn="true"
+		output="screen"
+	/>
+
+	<!-- Launch RQT reconfigure -->
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+
 </launch>

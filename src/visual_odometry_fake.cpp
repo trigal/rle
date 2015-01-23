@@ -147,7 +147,7 @@ int main(int argc, char **argv)
         tf::quaternionTFToMsg(t.getRotation().normalized(), msg.pose.pose.orientation);
 
         // set speed
-        msg.twist.twist = Utils::getSpeed(previous_time, current_time, temp_t, t);
+        msg.twist.twist = Utils::getSpeed(previous_time, current_time, temp_t, t);        
         previous_time = current_time;
 
         // publish message on topic "visual_odometry/odometry_no_error"

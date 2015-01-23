@@ -161,6 +161,8 @@ void odometryCallback(const nav_msgs::Odometry& msg)
         odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
     }
     else{
+        geometry_msgs::Twist frame_speed;
+        listener->lookupTwist("car", "odom", "car", tf::Point(0,0,0), "car", ros::Time(0), ros::Duration(0.5), frame_speed);
         odometry.twist.twist = msg.twist.twist;
     }
 
