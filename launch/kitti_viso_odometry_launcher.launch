@@ -10,10 +10,10 @@
 	<!-- Static transform fixing Viso moving frame axis -->
 	<node pkg="tf" type="static_transform_publisher" name="base_link_to_car" 
 		args="0 0 0 0 -1.57 1.57 base_link car 100" />
-
-	<!-- Transform from local_map (osm package) to road_layout_estimation fixed frame
+		
+	<!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
 	<node pkg="tf" type="static_transform_publisher" name="local_map_to_road_layout_estimation" 
-		args="static_transform_publisher 0 0 0 0 0 0 local_map robot_frame 100" />-->
+		args="0 0 0 -1.57 0 -1.57 local_map odom 100" />
 	
 	<!-- Publishing rate of cameras -->
 	<arg name="publish_rate" default="0.2" />
