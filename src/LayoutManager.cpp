@@ -247,7 +247,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             latlon_2_xy_srv.request.latitude = lat;
             latlon_2_xy_srv.request.longitude = lon;
             geometry_msgs::Point point;
-            geometry_msgs::PoseStamped fix;
+//            geometry_msgs::PoseStamped fix; // used for GPS publisher
             if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
             {
                  point.x = latlon_2_xy_srv.response.x;
@@ -274,9 +274,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
             cout << endl;
             cout << "MULTIVARIATE PARAMS: " << endl;
-            cout << "   mean: " << endl;
-            cout << mean << endl;
-            cout << "   cov: " << endl;
+            cout << "   MEAN: " << endl;
+            cout << "   " << boost::lexical_cast<std::string>(mean(0)) << endl;
+            cout << "   " << boost::lexical_cast<std::string>(mean(1)) << endl;
+            cout << "   COV: " << endl;
             cout << covar << endl;
             cout << "------------------------------------------------------------" << endl << endl;
 
@@ -293,7 +294,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
             {
                 if(while_ctr == 999){
-                    cout << "while ctr reached max limit" << endl;
+                    cout << "   Random particle set init: while ctr reached max limit" << endl;
                     /**
                      * TODO: max_radius_size * 2 and find again
                      */
@@ -307,7 +308,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 osm_cartography::snap_particle_xy srv;
                 srv.request.x = sample(0);
                 srv.request.y = sample(1);
-                srv.request.max_distance_radius = 200;
+                srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
                 // Call snap particle service service
                 if (LayoutManager::snap_particle_xy_client.call(srv))
@@ -375,8 +376,35 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // Update first_run flag
         LayoutManager::first_run = false;
-    }
-}
+
+
+        /// print particles
+        vector<Particle> particles = current_layout;
+        for(int i = 0; i<particles.size(); i++)
+        {
+            // build Pose from Particle
+            Particle p = particles.at(i);
+            geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
+
+            // normalize quaternion
+            tf::Quaternion q;
+            tf::quaternionMsgToTF(pose.orientation,q);
+            q = q.normalize();
+            tf::quaternionTFToMsg(q, pose.orientation);
+
+            // build posestamped
+            geometry_msgs::PoseStamped pose_stamp;
+            pose_stamp.header.stamp = ros::Time::now();
+            pose_stamp.header.frame_id = "robot_frame";
+            pose_stamp.pose = pose;
+
+            // print it!
+            Utils::printPoseMsgToCout(pose_stamp);
+            cout << endl;
+        }
+
+    } // end if(first_run)
+}// end reconfigure callback
 
 
 
