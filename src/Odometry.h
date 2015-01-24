@@ -14,7 +14,7 @@
 #define ODOMETRY_H_
 
 #include "Utils.h"
-#include "particle/state6dof.h"
+#include "particle/State6DOF.h"
 
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <Eigen/Core>

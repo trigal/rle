@@ -18,7 +18,6 @@
 #include "particle/LayoutComponent.h"
 #include "eigenmultivariatenormal.hpp"
 #include <sensor_msgs/NavSatFix.h>
-//#include "osm_cartography/is_valid_location_xy.h"
 #include "osm_cartography/snap_particle_xy.h"
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
@@ -150,74 +149,65 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
     // ---------------------------------------------------------------------------------------------------------
 
-    // check this flag if we want to initialize particle-set with OSM and GPS
-    bool gps_initialization = false;
+    /// check this flag if we want to initialize particle-set with OSM and GPS
+    bool gps_initialization = true;
 
     if(LayoutManager::first_run){
 
-
         if(gps_initialization)
         {
-//            ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
+            ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
-//            /* -------- WAIT FOR GPS MESSAGE ----------------------------------------- */
-//    //        // wait for GPS message (coming from Android device)
-//    //        sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
-//    //        // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
-//    //        double alt = gps_msg->altitude;
-//    //        double lat = gps_msg->latitude;
-//    //        double lon = gps_msg->longitude;
-//    //        double cov1 = gps_msg->position_covariance[0];
-//    //        double cov2 = gps_msg->position_covariance[4];
+            // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
-//    //        // via Chiese
-//    //        double alt = 164.78;
-//    //        double lat = 45.520172;
-//    //        double lon = 9.217983;
-//    //        double cov1 = 15;
-//    //        double cov2 = 15;
+//            // wait for GPS message (coming from Android device)
+//            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
+
+//            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
+//            double alt = gps_msg->altitude;
+//            double lat = gps_msg->latitude;
+//            double lon = gps_msg->longitude;
+//            double cov1 = gps_msg->position_covariance[0];
+//            double cov2 = gps_msg->position_covariance[4];
+
+            // ------ simulated GPS msg ----------- //
+            // via Chiese
+//            double alt = 164.78;
+//            double lat = 45.520172;
+//            double lon = 9.217983;
+//            double cov1 = 15;
+//            double cov2 = 15;
 
 //            // nodo mappa oneway
-//    //        double alt = 164.78;
-//    //        double lat = 45.5232719;
-//    //        double lon = 9.2148104;
-//    //        double cov1 = 15;
-//    //        double cov2 = 15;
+//            double alt = 164.78;
+//            double lat = 45.5232719;
+//            double lon = 9.2148104;
+//            double cov1 = 15;
+//            double cov2 = 15;
 
-//              /* ------ simulated GPS msg ----------- */
-//    //        // U14
-//    //        double alt = 164.78;
-//    //        double lat = 45.5238;
-//    //        double lon = 9.21954;
-//    //        double cov1 = 15;
-//    //        double cov2 = 15;
+//            // U14
+//            double alt = 164.78;
+//            double lat = 45.5238;
+//            double lon = 9.21954;
+//            double cov1 = 15;
+//            double cov2 = 15;
 
-//    //        // Get XY values from GPS coords
-//    //        osm_cartography::latlon_2_xy latlon_2_xy_srv;
-//    //        latlon_2_xy_srv.request.latitude = lat;
-//    //        latlon_2_xy_srv.request.longitude = lon;
-//    //        geometry_msgs::Point point;
-//    //        geometry_msgs::PoseStamped fix;
+            // KITTI 01
+            double alt = 164.78;
+            double lat = 49.006719195871;
+            double lon = 8.4893558806503;
+            double cov1 = 15;
+            double cov2 = 15;
 
-//    //        if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
-//    //        {
-//    //             point.x = latlon_2_xy_srv.response.x;
-//    //             point.y = latlon_2_xy_srv.response.y;
-//    //        }
-//    //        else
-//    //        {
-//    //          ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-//    //          return;
-//    //        }
+            // Publish GPS fix on map
+//            fix.header.frame_id = "map";
+//            fix.header.stamp = ros::Time::now();
+//            fix.pose.position.x = latlon_2_xy_srv.response.x;
+//            fix.pose.position.y = latlon_2_xy_srv.response.y;
+//            fix.pose.orientation.w = 1;
+//            LayoutManager::gps_pub.publish(fix);
+            // ------------------------ END OF GPS MSG ---------------------------------- //
 
-//    //        // Publish GPS fix on map
-//    //        fix.header.frame_id = "map";
-//    //        fix.header.stamp = ros::Time::now();
-//    //        fix.pose.position.x = latlon_2_xy_srv.response.x;
-//    //        fix.pose.position.y = latlon_2_xy_srv.response.y;
-//    //        fix.pose.orientation.w = 1;
-//    //        LayoutManager::gps_pub.publish(fix);
-//            /* ------------------------ END OF GPS MSG ---------------------------------- */
 
 //            /* ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- */
 //            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
@@ -252,115 +242,121 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 //            /* ------------------------ END RVIZ INITIAL POSE  ------------------------- */
 
-//            // Get XY values from GPS coords
-//            osm_cartography::latlon_2_xy latlon_2_xy_srv;
-//            latlon_2_xy_srv.request.latitude = lat;
-//            latlon_2_xy_srv.request.longitude = lon;
-//            geometry_msgs::Point point;
-//            geometry_msgs::PoseStamped fix;
-//            if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
-//            {
-//                 point.x = latlon_2_xy_srv.response.x;
-//                 point.y = latlon_2_xy_srv.response.y;
-//            }
-//            else
-//            {
-//              ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-//              return;
-//            }
+            // Get XY values from GPS coords
+            osm_cartography::latlon_2_xy latlon_2_xy_srv;
+            latlon_2_xy_srv.request.latitude = lat;
+            latlon_2_xy_srv.request.longitude = lon;
+            geometry_msgs::Point point;
+            geometry_msgs::PoseStamped fix;
+            if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
+            {
+                 point.x = latlon_2_xy_srv.response.x;
+                 point.y = latlon_2_xy_srv.response.y;
+            }
+            else
+            {
+              ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+              return;
+            }
 
-//            // Set mean
-//            Eigen::Vector2d mean;
-//            mean << point.x, point.y;
+            // Set mean
+            Eigen::Vector2d mean;
+            mean << point.x, point.y;
 
-//            // Set covariance
-//            Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-//            covar(0,0) = cov1;
-//            covar(1,1) = cov2;
+            // Set covariance
+            Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
+            covar(0,0) = cov1;
+            covar(1,1) = cov2;
 
-//            cout << "------------------------------------------------------------" << endl;
-//            cout << "GPS FIX COORDINATES:" << endl;
-//            cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-//            cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
-//            cout << endl;
-//            cout << "MULTIVARIATE PARAMS: " << endl;
-//            cout << "   mean: " << endl;
-//            cout << mean << endl;
-//            cout << "   cov: " << endl;
-//            cout << covar << endl;
-//            cout << "------------------------------------------------------------" << endl << endl;
+            cout << "------------------------------------------------------------" << endl;
+            cout << "GPS FIX COORDINATES:" << endl;
+            cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
+            cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
+            cout << endl;
+            cout << "MULTIVARIATE PARAMS: " << endl;
+            cout << "   mean: " << endl;
+            cout << mean << endl;
+            cout << "   cov: " << endl;
+            cout << covar << endl;
+            cout << "------------------------------------------------------------" << endl << endl;
 
-//            // Create a bivariate gaussian distribution of doubles.
-//            // with our chosen mean and covariance
-//            Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
+            // Create a bivariate gaussian distribution of doubles.
+            // with our chosen mean and covariance
+            Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
 
-//            // Reset current_layout
-//            LayoutManager::current_layout.clear();
+            // Reset current_layout
+            LayoutManager::current_layout.clear();
 
-//            // Populate current_layout with valid particles
-//            int particle_id = 1;
-//            int while_ctr = 1; // while loop infinite cycle prevenction
-//            while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
-//            {
-//                if(while_ctr == 999){
-//                    cout << "while ctr reached max limit" << endl;
-//                    /**
-//                     * TODO: max_radius_size * 2 and find again
-//                     */
-//                }
-//                // Generate a sample from the bivariate Gaussian distribution
-//                Matrix<double,2,-1> sample = normX.samples(1);
+            // Populate current_layout with valid particles
+            int particle_id = 1;
+            int while_ctr = 1; // while loop infinite cycle prevenction
+            while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
+            {
+                if(while_ctr == 999){
+                    cout << "while ctr reached max limit" << endl;
+                    /**
+                     * TODO: max_radius_size * 2 and find again
+                     */
+                }
+                // Generate a sample from the bivariate Gaussian distribution
+                Matrix<double,2,-1> sample = normX.samples(1);
 
 
-//                /** SNAP PARTICLE v2 **********************************************************************************/
-//                // Init OSM cartography service
-//                osm_cartography::snap_particle_xy srv;
-//                srv.request.x = sample(0);
-//                srv.request.y = sample(1);
-//                srv.request.max_distance_radius = 200;
+                //-------------- SNAP PARTICLE v2  -------------------------------------- //
+                // Init OSM cartography service
+                osm_cartography::snap_particle_xy srv;
+                srv.request.x = sample(0);
+                srv.request.y = sample(1);
+                srv.request.max_distance_radius = 200;
 
-//                // Call snap particle service service
-//                if (LayoutManager::snap_particle_xy_client.call(srv))
-//                {
-//                    // Init particle's pose
-//                    VectorXd p_pose = VectorXd::Zero(12);
-//                    p_pose(0) = srv.response.snapped_x; // update X value
-//                    p_pose(1) = srv.response.snapped_y; // update Y value
-//                    p_pose(5) = srv.response.way_dir_rad;   // update Yaw
+                // Call snap particle service service
+                if (LayoutManager::snap_particle_xy_client.call(srv))
+                {
+                    // Init particle's pose
+                    State6DOF p_pose;
+                    p_pose._pose = Vector3d(srv.response.snapped_x, srv.response.snapped_y, 0);
 
-//                    // Init particle's sigma
-//                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
+                    // Create rotation object
+                    tf::Quaternion q = tf::createQuaternionFromYaw(srv.response.way_dir_rad);
+                    AngleAxisd rotation = AngleAxisd( Quaterniond(q.getW(), q.getX(), q.getY(), q.getZ()) );
+                    p_pose.setRotation(rotation);
 
-//                    // Push particle into particle-set
-//                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
-//                    current_layout.push_back(part);
+                    // Init particle's sigma
+                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
 
-//                    // Update particles id counter
-//                    particle_id += 1;
+                    // Push particle into particle-set
+                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
+                    current_layout.push_back(part);
 
-//                    // Check if we should create 2 particles with opposite direction
-//                    if(srv.response.way_dir_opposite_particles){
+                    // Update particles id counter
+                    particle_id += 1;
 
-//                        // Invert Yaw direction
-//                        p_pose(5) = Utils::normalize_angle(p_pose(5) + M_PI);
+                    // Check if we should create 2 particles with opposite direction
+                    if(srv.response.way_dir_opposite_particles){
 
-//                        // Push particle inside particle-set
-//                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-//                        current_layout.push_back(opposite_part);
+                        // Invert Yaw direction
+                        double inverted_angle_rad = Utils::normalize_angle(srv.response.way_dir_rad + M_PI);
+                        tf::Quaternion q = tf::createQuaternionFromYaw(inverted_angle_rad);
+                        AngleAxisd rotation = AngleAxisd( Quaterniond(q.getW(), q.getX(), q.getY(), q.getZ()) );
+                        p_pose.setRotation(rotation);
 
-//                        // Update particles id counter
-//                        particle_id += 1;
-//                    }
-//                }
-//                else
-//                {
-//                    ROS_ERROR("     Failed to call 'snap_particle_xy' service");
-//                    return;
-//                }
+                        // Push particle inside particle-set
+                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+                        current_layout.push_back(opposite_part);
 
-//                // prevent infinite loop
-//                while_ctr += 1;
-//            } // end while loop for particles generations
+                        // Update particles id counter
+                        particle_id += 1;
+                    }
+                }
+                else
+                {
+                    ROS_ERROR("     Failed to call 'snap_particle_xy' service");
+                    return;
+                }
+
+                // prevent infinite loop
+                while_ctr += 1;
+            } // end while loop for particles generations
         } // end if(gps_initialization)
         else
         {
@@ -400,8 +396,6 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
     {
         // build Pose from Particle
         Particle p = particles.at(i);
-//        VectorXd p_pose = p.getParticleState().toVectorXd();
-//        geometry_msgs::Pose pose = Utils::getPoseFromVector(p_pose);
         geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
 
         // normalize quaternion
@@ -427,7 +421,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // stampo misura arrivata
     std::cout << " ******* MSG ARRIVED. *******" << std::endl;
-    Utils::printOdomMsgToCout(msg);
+    Utils::printOdomAngleAxisToCout(msg);
 
     // if it's our first incoming odometry msg, just use it as particle-set poses initializer
     // (filter won't be called)
@@ -441,21 +435,18 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         for(int i=0; i<num_particles; i++)
         {
             // init an empty particle
-//            VectorXd p_pose = VectorXd::Zero(12);
             State6DOF p_pose;
             MatrixXd p_sigma = MatrixXd::Zero(12,12);
             Particle part(i, p_pose, p_sigma, mtn_model);
 
             // get pose & cov from odom msg
-//            VectorXd new_pose = Utils::getPoseVectorFromOdom(msg);
             State6DOF new_pose(msg);
             MatrixXd new_cov = Utils::getCovFromOdom(msg);
 
             // add some random offset to particles (only the first one won't be noised)
             if(i!=1)
             {
-//                new_pose = Utils::addOffsetToVectorXd(new_pose, 0.05, 0.05, 0.05);
-                new_pose.addNoise( 0.05, 0.05, 0.05, 0.05);
+                new_pose.addNoise(0.05, 0.05, 0.05, 0.05);
             }
 
             // update particle values

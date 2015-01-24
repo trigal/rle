@@ -14,7 +14,7 @@
 #include "Particle.h"
 #include "MotionModel.h"
 #include "../Odometry.h"
-#include "state6dof.h"
+#include "State6DOF.h"
 #include "../LayoutManager.h"
 #include <vector>
 #include <Eigen/Dense>	//used for pose matrix

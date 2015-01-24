@@ -63,45 +63,19 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_link:
-          Value: true
-        car:
-          Value: true
-        kitti_stereo:
-          Value: true
-        local_map:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        odom_frame:
-          Value: true
-        robot_frame:
-          Value: true
-        start:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          local_map:
-            odom:
-              base_link:
-                car:
-                  {}
-              robot_frame:
-                odom_frame:
-                  {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 25; 0
@@ -115,13 +89,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 170; 0
-      Enabled: true
+      Enabled: false
       Keep: 1000000
       Length: 1
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /stereo_odometer/odometry
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 255; 0
@@ -163,7 +137,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10
+      Distance: 6.36163
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -196,5 +170,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1724
-  X: 49
+  X: 55
   Y: 14

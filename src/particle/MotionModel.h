@@ -14,7 +14,7 @@
 #define MOTIONMODEL_H_
 
 #include "LayoutComponent.h"
-#include "state6dof.h"
+#include "State6DOF.h"
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <iostream>

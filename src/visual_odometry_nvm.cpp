@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
 
                 // write message on console
                 std::cout << "[ Sent msg " << i << "]:" << std::endl;
-                Utils::printOdomMsgToCout(odom);
+                Utils::printOdomAngleAxisToCout(odom);
 
                 // send transform
                 Utils::sendTfFromPoseStamped(old_pose, tfb_);
@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "--------------------------------------------------------------------------------" << endl;
                 std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
                 std::cout << "[ Sent msg " << i << "]:" << std::endl;
-                Utils::printOdomMsgToCout(odom);
+                Utils::printOdomAngleAxisToCout(odom);
 
                 // aggiorno i valori
                 old_pose = pose;

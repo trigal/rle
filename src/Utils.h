@@ -22,7 +22,7 @@
 #include <Eigen/Dense>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
-#include "particle/state6dof.h"
+#include "particle/State6DOF.h"
 
 using namespace Eigen;
 
@@ -49,6 +49,8 @@ public:
     static geometry_msgs::Twist getSpeedFrom2PoseStamped(const geometry_msgs::PoseStamped & pose_prec, const geometry_msgs::PoseStamped & pose_t);
 
     static void sendTfFromPoseStamped(const geometry_msgs::PoseStamped &pose, tf::TransformBroadcaster *tfb);
+
+    static void printOdomAngleAxisToCout(const nav_msgs::Odometry& msg);
 
     static void printOdomMsgToCout(const nav_msgs::Odometry& msg);
 

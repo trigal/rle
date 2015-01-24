@@ -1,4 +1,4 @@
-#include "state6dof.h"
+#include "State6DOF.h"
 
 State6DOF::State6DOF()
 {
@@ -23,22 +23,22 @@ State6DOF State6DOF::addVectorXd(Eigen::VectorXd &to_be_added)
     tmp._pose = tmp_v.block(0,0,3,1);
     if(tmp_v.block(3,0,3,1) == Eigen::VectorXd::Zero(3))
     {
-        Eigen::VectorXd asd = Eigen::VectorXd::Zero(3);
-        asd(0) = 1.0;
-        tmp._rotation = Eigen::AngleAxisd(0,asd);
+        Eigen::VectorXd angle = Eigen::VectorXd::Zero(3);
+        angle(0) = 1.0;
+        tmp._rotation = Eigen::AngleAxisd(0,angle);
     }
     else
-        tmp._rotation = Eigen::AngleAxisd(tmp_v.block(3,0,3,1).norm(),tmp_v.block(3,0,3,1).normalized());
+        tmp._rotation = Eigen::AngleAxisd(tmp_v.block(3,0,3,1).norm(), tmp_v.block(3,0,3,1).normalized());
 
     tmp._translational_velocity = tmp_v.block(6,0,3,1);
     if(tmp_v.block(9,0,3,1) == Eigen::VectorXd::Zero(3))
     {
-        Eigen::VectorXd asd = Eigen::VectorXd::Zero(3);
-        asd(0) = 1.0;
-        tmp._rotational_velocity = Eigen::AngleAxisd(0,asd);
+        Eigen::VectorXd angle = Eigen::VectorXd::Zero(3);
+        angle(0) = 1.0;
+        tmp._rotational_velocity = Eigen::AngleAxisd(0, angle);
     }
     else
-        tmp._rotational_velocity = Eigen::AngleAxisd(tmp_v.block(9,0,3,1).norm(),tmp_v.block(9,0,3,1).normalized());
+        tmp._rotational_velocity = Eigen::AngleAxisd(tmp_v.block(9,0,3,1).norm(), tmp_v.block(9,0,3,1).normalized());
     return tmp;
 }
 

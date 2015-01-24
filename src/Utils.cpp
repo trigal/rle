@@ -348,25 +348,27 @@ void Utils::sendTfFromPoseStamped(const geometry_msgs::PoseStamped& pose, tf::Tr
 
 void Utils::printOdomMsgToCout(const nav_msgs::Odometry& msg)
 {
-//    std::cout << " Position:" << std::endl;
-//    std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
-//    std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
-//    std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
-//    std::cout << " Orientation quaternion: " << std::endl;
-//    std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
-//    std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
-//    std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
-//    std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
-//    std::cout << " Linear speed: " << std::endl;
-//    std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
-//    std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
-//    std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
-//    std::cout << " Angular speed: " << std::endl;
-//    std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
-//    std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
-//    std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+    std::cout << " Position:" << std::endl;
+    std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+    std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+    std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+    std::cout << " Orientation quaternion: " << std::endl;
+    std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+    std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+    std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+    std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+    std::cout << " Linear speed: " << std::endl;
+    std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+    std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+    std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+    std::cout << " Angular speed: " << std::endl;
+    std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+    std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+    std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+}
 
-
+void Utils::printOdomAngleAxisToCout(const nav_msgs::Odometry& msg)
+{
     State6DOF tmp(msg);
 
     std::cout << "[measure_t ]" << std::endl;

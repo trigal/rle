@@ -50,6 +50,7 @@ double orientation_uncertainty = 0;
 double linear_uncertainty = 0;
 double angular_uncertainty = 0;
 bool enable_custom_twist = false;
+bool enable_lookup_twist = false;
 
 // store position
 geometry_msgs::PoseStamped old_pose;
@@ -71,6 +72,7 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
 
     // speed calculation
     enable_custom_twist = config.enable_custom_twist;
+    enable_lookup_twist = config.enable_lookup_twist;
 }
 
 
@@ -79,11 +81,11 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
  * @brief odometryCallback
  * @param msg
  */
-//int seq_num = 0;
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     ROS_INFO_STREAM("   Odometry msg arrived");
     try{
+        listener->waitForTransform("/robot_frame", "/car", ros::Time(0), ros::Duration(0.1));
         listener->lookupTransform("/robot_frame", "/car", ros::Time(0), t);
     }
     catch (tf::TransformException &ex) {
@@ -100,7 +102,6 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     pose.header.frame_id ="robot_frame";
     pose.header.stamp = current_time;
     pose.header.seq = msg.header.seq;
-//    seq_num++;
 
     //      update orientation
     pose.pose.orientation.x = t.getRotation().getX();
@@ -158,11 +159,17 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     // calculate speed with our formulas if flag is enabled
     if(enable_custom_twist){
-        odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
+        if(enable_lookup_twist){
+            geometry_msgs::Twist frame_speed;
+            listener->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.2), frame_speed);
+            odometry.twist.twist = frame_speed;
+        }
+        else{
+            odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
+        }
     }
-    else{
-        geometry_msgs::Twist frame_speed;
-        listener->lookupTwist("car", "odom", "car", tf::Point(0,0,0), "car", ros::Time(0), ros::Duration(0.5), frame_speed);
+    else {
+        // Use libviso2 twist message
         odometry.twist.twist = msg.twist.twist;
     }
 
@@ -171,8 +178,6 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     //      publish Odometry
     odom_publisher.publish(odometry);
-
-    ROS_INFO_STREAM("SEQ NUMBER: " << msg.header.seq << " X: " << odometry.pose.pose.position.x << " VISO: " << msg.pose.pose.position.x);
 
     //      print published msg
     //Utils::printPoseMsgToCout(pose);
