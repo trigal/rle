@@ -163,7 +163,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            // wait for GPS message (coming from Android device)
 //            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
 
-//            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a msg)
+//            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
 //            double alt = gps_msg->altitude;
 //            double lat = gps_msg->latitude;
 //            double lon = gps_msg->longitude;
@@ -198,6 +198,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             double lon = 8.4893558806503;
             double cov1 = 15;
             double cov2 = 15;
+            ros::Duration(0.3).sleep(); // sleep for 2 secs
+                                        // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
             // Publish GPS fix on map
 //            fix.header.frame_id = "map";
@@ -209,7 +211,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // ------------------------ END OF GPS MSG ---------------------------------- //
 
 
-//            /* ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- */
+            // ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- //
+//            cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
 //            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
 
 //            // transform coordinates from 'local_map' to 'map'
@@ -240,7 +243,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double lon = xy_2_latlon_srv.response.longitude;
 //            double cov1 = 15;
 //            double cov2 = 15;
-//            /* ------------------------ END RVIZ INITIAL POSE  ------------------------- */
+            // ------------------------ END RVIZ INITIAL POSE  ------------------------- //
 
             // Get XY values from GPS coords
             osm_cartography::latlon_2_xy latlon_2_xy_srv;
@@ -275,11 +278,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             cout << endl;
             cout << "MULTIVARIATE PARAMS: " << endl;
             cout << "   MEAN: " << endl;
-            cout << "   " << boost::lexical_cast<std::string>(mean(0)) << endl;
-            cout << "   " << boost::lexical_cast<std::string>(mean(1)) << endl;
+            cout << "       " << boost::lexical_cast<std::string>(mean(0)) << endl;
+            cout << "       " << boost::lexical_cast<std::string>(mean(1)) << endl;
             cout << "   COV: " << endl;
             cout << covar << endl;
             cout << "------------------------------------------------------------" << endl << endl;
+
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
@@ -323,7 +327,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     p_pose.setRotation(rotation);
 
                     // Init particle's sigma
-                    MatrixXd p_sigma = MatrixXd::Zero(12,12);
+                    MatrixXd p_sigma = mtn_model.getErrorCovariance();
 
                     // Push particle into particle-set
                     Particle part(particle_id, p_pose, p_sigma, mtn_model);
@@ -378,7 +382,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         LayoutManager::first_run = false;
 
 
-        /// print particles
+        // print particle poses
+
+        cout << "Random initialized particle set: " << endl;
         vector<Particle> particles = current_layout;
         for(int i = 0; i<particles.size(); i++)
         {
@@ -399,6 +405,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             pose_stamp.pose = pose;
 
             // print it!
+            cout << "Particle ID: " << p.getId() << endl;
             Utils::printPoseMsgToCout(pose_stamp);
             cout << endl;
         }

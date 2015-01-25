@@ -66,13 +66,13 @@ void Particle::particleEstimation(Odometry& odometry){
     // calcolo belief predetto:
     stato_t_predetto = mtn_model.propagatePose(stato_t);
 
-    cout << "[delta t] " << endl << " "  << LayoutManager::delta_t << endl;
-
-    cout << "[stato_t ]" << endl;
+    cout << "[particle_id] " << particle_id << endl;
+    cout << "[delta t]     " << LayoutManager::delta_t << endl;
+    cout << "[stato_t]" << endl;
     cout << "       pose: " << stato_t._pose.transpose() << endl << "orientation: " << stato_t._rotation.angle() << " " << stato_t._rotation.axis().transpose() << endl;
     cout << "     linear: " << stato_t._translational_velocity.transpose() << endl << "    angular: " << stato_t._rotational_velocity.angle() << " " << stato_t._rotational_velocity.axis().transpose() << endl << endl;
 
-    cout << "[stato_t_predetto ]" << endl;
+    cout << "[stato_t_predetto]" << endl;
     cout << "       pose: " << stato_t_predetto._pose.transpose() << endl << "orientation: " << stato_t_predetto._rotation.angle() << " " << stato_t_predetto._rotation.axis().transpose() << endl;
     cout << "     linear: " << stato_t_predetto._translational_velocity.transpose() << endl << "    angular: " << stato_t_predetto._rotational_velocity.angle() << " " << stato_t_predetto._rotational_velocity.axis().transpose() << endl << endl;
 
@@ -106,7 +106,6 @@ void Particle::particleEstimation(Odometry& odometry){
     K_t = E_t_pred * H_t.transpose() * temp.inverse();
     kalman_gain = K_t; //this value will be used later on score calculation
 
-
 //    // diference between measures
 //    State6DOF measure_difference = measure_t - measure_t_pred;
 
@@ -126,14 +125,12 @@ void Particle::particleEstimation(Odometry& odometry){
     State6DOF stato_filtrato = stato_t_predetto.addVectorXd(kalman_per_msr_diff);
     E_t = (MatrixXd::Identity(12,12) - K_t * H_t) * E_t_pred;
 
-
     // update particle values
     particle_state = stato_filtrato;
     particle_sigma = E_t;
 
-
     //DEBUG:stampare stato_t_predetto
-    cout << "[stato_t_filtrato ]" << endl;
+    cout << "[stato_t_filtrato]" << endl;
     cout << "       pose: " << stato_filtrato._pose.transpose() << endl << "orientation: " << stato_filtrato._rotation.angle() << " " << stato_filtrato._rotation.axis().transpose() << endl;
     cout << "     linear: " << stato_filtrato._translational_velocity.transpose() << endl << "    angular: " << stato_filtrato._rotational_velocity.angle() << " " << stato_filtrato._rotational_velocity.axis().transpose() << endl << endl;
 

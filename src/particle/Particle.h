@@ -28,7 +28,7 @@ using std::vector;
 class Particle {
 
 private:
-    unsigned int id;			/// particle id
+    unsigned int particle_id;			/// particle id
     State6DOF particle_state;	/// particle state (12x1: 6DoF pose + 6 Speed Derivates)
 
     MatrixXd particle_sigma;	/// particle state error covariance (12x12)
@@ -69,8 +69,8 @@ public:
 
 
     //getters & setters -----------------------------------------------------------------
-    int getId() const { return id; }
-    void setId(int id) { id = id; }
+    int getId() const { return particle_id; }
+    void setId(int id) { particle_id = id; }
 
     void particleEstimation(Odometry &odometry);
 
@@ -91,30 +91,30 @@ public:
 
     //constructor ----------------------------------------------------------------------
     Particle(){
-        id = 0;
+        particle_id = 0;
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int num, MotionModel& mt_md) : id(num), mtn_model(mt_md) {
+    Particle(unsigned int id, MotionModel& mt_md) : particle_id(id), mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int num, State6DOF& state, MotionModel& mt_md )
-        : id(num), particle_state(state), mtn_model(mt_md)  {
+    Particle(unsigned int id, State6DOF& state, MotionModel& mt_md )
+        : particle_id(id), particle_state(state), mtn_model(mt_md)  {
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int num, State6DOF& state, MatrixXd& state_sigma, MotionModel& mt_md)
-        : id(num), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {
+    Particle(unsigned int id, State6DOF& state, MatrixXd& state_sigma, MotionModel& mt_md)
+        : particle_id(id), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
 
     //destructor -------------------------------------------------------------
     ~Particle(){
-        id = 0;
+        particle_id = 0;
         kalman_gain.resize(0,0);
         particle_sigma.resize(0,0);
         particle_components.resize(0);

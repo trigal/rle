@@ -8,13 +8,11 @@ using std::vector;
 
 class LayoutComponent {
 protected:
-
-
 public:
-    unsigned int particle_id;
-    unsigned int component_id;
-    double weight;
-    VectorXd component_state;	 /// current particle-component pose (12x1: 6DoF + 6 speed derivates)
+    unsigned int particle_id;   /// Tells particle ID of where this component is living
+    unsigned int component_id;  /// Component ID
+    double weight;              /// Used for resampling
+    VectorXd component_state;	/// current particle-component pose (12x1: 6DoF + 6 speed derivates)
     MatrixXd component_cov;
 
     /**
