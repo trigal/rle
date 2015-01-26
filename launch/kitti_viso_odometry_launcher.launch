@@ -1,6 +1,6 @@
 <launch>
 	<!-- Arguments -->
-	<arg name="bagfile" default="/home/dario/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
+	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
 
 	<!-- Static transform from Viso fixed frame to our fixed frame-->
@@ -16,7 +16,7 @@
 		args="0 0 0 -1.57 0 -1.57 local_map odom 100" />
 	
 	<!-- Publishing rate of cameras -->
-	<arg name="publish_rate" default="0.4" />
+	<arg name="publish_rate" default="0.2" />
 
 	<param name="/use_sim_time" value="true"/>
 
@@ -27,13 +27,20 @@
 		output="screen"
 	/>
 	
-	<!-- Launch ROAD LAYOUT ESTIMATION node -->
+	<!-- Launch ROAD LANE DETECTOR -->
+	<node
+		pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
+		required="true"
+		output="screen"
+	/>
+	
+	<!-- Launch ROAD LAYOUT ESTIMATION node 
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
 		required="true"
 		output="screen"
 		args="visual_odometry/odometry"
-	/>
+	/>-->
 
 	<!-- Run the rosbag -->
 	<node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile) -r $(arg publish_rate) -l"/>
@@ -57,7 +64,7 @@
 
 	<!-- Launch RViz-->
 	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
-		args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
+		args="-d /home/limongi/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
 		output="screen"
 	/>
 

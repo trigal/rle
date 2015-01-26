@@ -24,9 +24,9 @@
 #include "osm_cartography/local_map_transform.h"
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
-#include <vector>	//used for vector
+#include <vector>
 #include <Eigen/Core>
-#include <Eigen/Dense>	//used for motion threshold matrix
+#include <Eigen/Dense>
 #include <iostream>
 #include <math.h>
 using Eigen::ArrayXd;
@@ -35,27 +35,64 @@ using namespace std;
 
 double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
 bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
+bool LayoutManager::first_msg = true;   /// first odometry msg flag
+int LayoutManager::step = 0;            /// filter step counter
+
+/**
+ * @brief buildPoseArrayMsg
+ * @param particles
+ * @return
+ */
+geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>& particles)
+{
+    // init array_msg
+    geometry_msgs::PoseArray array_msg;
+    array_msg.header.frame_id = "robot_frame";
+
+    // Insert all particles inside msg
+    for(int i = 0; i<particles.size(); i++)
+    {
+        // build Pose from Particle
+        Particle p = particles.at(i);
+        geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
+
+        // normalize quaternion
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(pose.orientation,q);
+        q = q.normalize();
+        tf::quaternionTFToMsg(q, pose.orientation);
+
+        // push it!
+        array_msg.poses.push_back( pose );
+    }
+
+    return array_msg;
+}
 
 /**
  * Main LayoutManager constructor
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<LayoutComponent*> l_components){
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     // set this node_handle as the same of 'road_layout_manager'
     node_handle = n;
 
-    // init subscriber
-    sub = node_handle.subscribe(topic, 3, &LayoutManager::odometryCallback, this);
-    ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << sub.getTopic());
+    // init odometry subscriber
+    odometry_sub = node_handle.subscribe(topic, 3, &LayoutManager::odometryCallback, this);
+    ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << odometry_sub.getTopic());
+
+    // init road_lane_detection subscriber
+    road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
 
     // init values
     step = 0;
     num_particles = 0;
-    first_msg = true;
-    layout_components = l_components;
-    mtn_model.setErrorCovariance(0);
-    odometry.setMeasureCov(0);
+    LayoutManager::first_msg = true;
+
+    // init motion model
+//    mtn_model = new MotionModel();
+    odometry = new Odometry();
 
     // init header timestamp
     old_msg.header.stamp = ros::Time::now();
@@ -93,15 +130,28 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, vector<Layo
  */
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    cout << "   Reconfigure callback. Current layout size: " << current_layout.size() << endl;
-    // update errors values -----------------------------------------------------------------------------------------
+    cout << "   Reconfigure callback" << endl;
+
+    // update uncertainty values -----------------------------------------------------------------------------------
+    for(int i=0; i<current_layout.size(); ++i){
+        Particle* particle_ptr = &current_layout.at(i);
+        MotionModel* mtn_model_ptr = particle_ptr->getMotionModelPtr();
+        mtn_model_ptr->setErrorCovariance(
+                    config.mtn_model_position_uncertainty,
+                    config.mtn_model_orientation_uncertainty,
+                    config.mtn_model_linear_uncertainty,
+                    config.mtn_model_angular_uncertainty
+                    );
+    }
+
     mtn_model.setErrorCovariance(
                 config.mtn_model_position_uncertainty,
                 config.mtn_model_orientation_uncertainty,
                 config.mtn_model_linear_uncertainty,
                 config.mtn_model_angular_uncertainty
                 );
-    odometry.setMeasureCov(
+
+    odometry->setMeasureCov(
                 config.msr_model_position_uncertainty,
                 config.msr_model_orientation_uncertainty,
                 config.msr_model_linear_uncertainty,
@@ -109,7 +159,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     // update particle-set number (only if this isn't the first run) ------------------------------------------------
-//    LayoutManager::first_run = false;
     if(!LayoutManager::first_run){
         if(config.particles_number > num_particles)
         {
@@ -118,14 +167,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            int particles_to_add = config.particles_number - num_particles;
            for(int i=0; i<particles_to_add; i++)
            {
-//               VectorXd p_pose = VectorXd::Zero(12);
-//               MatrixXd p_sigma = MatrixXd::Zero(12,12);
-//               Particle part(counter, p_pose, p_sigma, mtn_model);
                Particle part(counter, mtn_model);
+
                State6DOF tmp;
-               tmp.addNoise( 0.05, 0.05, 0.05, 0.05);
+               tmp.addNoise(0.5, 0.5, 0.5, 0.5);
+
                part.setParticleState(tmp);
+
+               // Push particle
                current_layout.push_back(part);
+
+               // Update counter
                counter = counter+1;
            }
         }
@@ -138,14 +190,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                current_layout.erase(current_layout.end());
            }
         }
+
         num_particles = config.particles_number;
     }
-
-
-    ROS_INFO("Particles Number: %d, Listening topic: %s",
-           config.particles_number,
-           sub.getTopic().c_str()
-          );
 
     // ---------------------------------------------------------------------------------------------------------
 
@@ -414,37 +461,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 }// end reconfigure callback
 
 
-
-/**
- * @brief buildPoseArrayMsg
- * @param particles
- * @return
- */
-geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>& particles)
-{
-    // init array_msg
-    geometry_msgs::PoseArray array_msg;
-    array_msg.header.frame_id = "robot_frame";
-
-    // Insert all particles inside msg
-    for(int i = 0; i<particles.size(); i++)
-    {
-        // build Pose from Particle
-        Particle p = particles.at(i);
-        geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
-
-        // normalize quaternion
-        tf::Quaternion q;
-        tf::quaternionMsgToTF(pose.orientation,q);
-        q = q.normalize();
-        tf::quaternionTFToMsg(q, pose.orientation);
-
-        // push it!
-        array_msg.poses.push_back( pose );
-    }
-
-    return array_msg;
-}
 /** *************************************************************************************************
  * Callback called on nav_msg::Odometry arrival
  * @param msg
@@ -460,7 +476,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // if it's our first incoming odometry msg, just use it as particle-set poses initializer
     // (filter won't be called)
-    if(first_msg && current_layout.size() == 0){
+    if(LayoutManager::first_msg && current_layout.size() == 0){
         cout << "   First Odometry message arrived, generating particles set" << endl;
 
         //clear current layout
@@ -512,13 +528,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         }
 
         // update flag
-        first_msg=false;
+        LayoutManager::first_msg = false;
 
         // update old_msg
         old_msg = msg;
 
         // set odometry msg
-        odometry.setMsg(msg);
+        odometry->setMsg(msg);
 
         // publish it!
         geometry_msgs::PoseArray array_msg;
@@ -531,7 +547,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     }
 
     // retrieve measurement from odometry
-    odometry.setMsg(msg);
+    odometry->setMsg(msg);
 
     // calculate delta_t
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
@@ -543,7 +559,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // BUILD POSEARRAY MSG
     // Get particle-set
     vector<Particle> particles = current_layout;
-    geometry_msgs::PoseArray array_msg = buildPoseArrayMsg(particles);
+    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
     array_msg.header.stamp = msg.header.stamp;
 
     // Publish it!
@@ -565,6 +581,38 @@ bool LayoutManager::checkHasMoved(){
 
     return true;
 }
+
+/**
+ * @brief LayoutManager::roadLaneCallback
+ * @param msg
+ */
+void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg){
+    // Add it to all particles
+    for(int i=0; i<current_layout.size(); ++i){
+
+        // Get all layout components of particle
+        Particle* particle = &current_layout.at(i);
+        vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
+
+        // Cycle through all lanes
+        for(int k=0; k<msg.road_lane_vector.size(); ++k){
+
+            // Create a new roadlane component
+            road_lane_detection::road_lane lane = msg.road_lane_vector.at(k);
+
+            LayoutComponent_RoadLane * road_lane = new LayoutComponent_RoadLane();
+            road_lane->setParticleId(particle->getId());
+            road_lane->setComponentId(layout_components->size());
+            road_lane->setK1(lane.k1);
+            road_lane->setK3(lane.k3);
+
+            // Add lane to layout components
+            layout_components->push_back(road_lane);
+        }
+    }
+}
+
+
 
 /** **************************************************************************************************************/
 /**

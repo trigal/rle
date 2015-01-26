@@ -13,10 +13,14 @@
 #ifndef LAYOUTMANAGER_H_
 #define LAYOUTMANAGER_H_
 
+#include "Utils.h"
 #include "Odometry.h"
 #include "particle/Particle.h"
 #include <vector>
 #include "nav_msgs/Odometry.h"
+#include "road_lane_detection/road_lane.h"
+#include "road_lane_detection/road_lane_array.h"
+#include "particle/LayoutComponent_RoadLane.h"
 #include <sensor_msgs/NavSatFix.h>
 #include "geometry_msgs/PoseArray.h"
 #include <Eigen/Dense>
@@ -73,25 +77,30 @@ using std::vector;
  */
 class LayoutManager {
 public:
-    Odometry odometry;	/// used for getting car motion
-    static double delta_t;
-    static bool first_run;
+    Odometry* odometry;     /// our Measurment Model
+    static double delta_t;  /// time between current message and last arrived message
 
-    //refactor
-    nav_msgs::Odometry old_msg; /// used for delta_t calculation
+    // Publishers
     ros::Publisher array_pub;
     ros::Publisher gps_pub;
+
+    // Subscriber
+    ros::Subscriber odometry_sub;
+    ros::Subscriber road_lane_sub;
+
+    // Services from OpenStreetMap package
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient local_map_tf_client;
     ros::ServiceClient snap_particle_xy_client;
+
     int num_particles;
-    bool first_msg; /// flag used for init particle-set
-    int step;   /// stores the current layout_manager step
+
+    static int step;           /// stores the current layout_manager step
     MotionModel mtn_model;
-    vector<LayoutComponent*> layout_components;
-    ros::Subscriber sub;
+
+    // Dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
     ros::NodeHandle node_handle;
@@ -99,12 +108,19 @@ public:
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
 private:
-    bool new_detections;				/// indicates detectors found new detections
-//    vector<double> score_vector;
 
+    static bool first_run;  /// flag used for initiliazing particle-set with gps
+    static bool first_msg;  /// flag used for init particle-set
+    nav_msgs::Odometry old_msg; /// used for delta_t calculation
+
+    bool new_detections;				/// indicates detectors found new detections (not used)
     vector<Particle> current_layout;	/// stores the current layout
 
 
+    /**
+     * @brief checkHasMoved
+     * @return
+     */
     bool checkHasMoved();
 
     /**
@@ -174,18 +190,25 @@ public:
      */
     void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level);
 
+    /**
+     * @brief roadLaneCallback
+     * @param msg
+     */
+    void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
+
     // getters & setters ----------------------------------------------------------------------------
-    void setOdometry(Odometry& v_odom){ odometry = v_odom; }
-    Odometry getVisualOdometry(){ return odometry; }
+//    Odometry getVisualOdometry(){ return odometry; }
+//    void setOdometry(Odometry* v_odom){ odometry = v_odom; }
 
     vector<Particle> getCurrentLayout(){ return current_layout; }
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-    LayoutManager(ros::NodeHandle& n, std::string& topic, vector<LayoutComponent*> l_components);
+    LayoutManager(ros::NodeHandle& n, std::string& topic);
 
     ~LayoutManager(){
-        current_layout.resize(0);
+        current_layout.clear();
+        delete odometry;
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);

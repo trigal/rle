@@ -3,13 +3,18 @@
 
 #include "LayoutComponent.h"
 #include <iostream>
+#include <ros/ros.h>
 
 using namespace std;
 
 class LayoutComponent_RoadLane : public LayoutComponent
 {
-public:
+private:
 
+    double k1; /// First parameter of parabola equation
+    double k3; /// Third parameter of parabola equation
+    ros::Time timestamp;
+public:
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
@@ -24,21 +29,13 @@ public:
         cout << "Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
     }
 
-    /**
-     * @brief LayoutComponent_RoadLane constructor
-     * @param p_id
-     * @param c_id
-     * @param c_state
-     * @param c_cov
-     */
-    LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov){
-        particle_id = p_id;
-        component_id = c_id;
-        weight = 0;
-        component_state = c_state;
-        component_cov = c_cov;
-    }
+    // Getters and setters ----------------------------------------------------------------------
+    void setK1(double val){ k1 = val; }
+    double getK1() { return k1; }
+    void setK3(double val){ k3 = val; }
+    double getK3() { return k3; }
 
+    // Constructors and destructors -------------------------------------------------------------
     LayoutComponent_RoadLane(){
         particle_id = 0;
         component_id = 0;
@@ -46,7 +43,13 @@ public:
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12,12);
     }
-
+    LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov){
+        particle_id = p_id;
+        component_id = c_id;
+        weight = 0;
+        component_state = c_state;
+        component_cov = c_cov;
+    }
     ~LayoutComponent_RoadLane(){
         particle_id = 0;
         component_id = 0;

@@ -58,7 +58,7 @@ public:
 
 
     // getters & setters --------------------------------------------------------------------------
-    void setMeasureState(State6DOF mrs){
+    void setMeasureState(State6DOF& mrs){
         measurement_state._pose = mrs._pose;
         measurement_state._rotation = mrs._rotation;
         measurement_state._translational_velocity= mrs._translational_velocity;
@@ -71,18 +71,18 @@ public:
     void setMeasureCov(double unc){ msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
     void setMeasureCov(double pos_unc, double ori_unc, double lin_unc, double ang_unc) {
         msr_cov = MatrixXd::Zero(12,12);
-        msr_cov(0,0) = pos_unc;
-        msr_cov(1,1) = pos_unc;
-        msr_cov(2,2) = pos_unc;
-        msr_cov(3,3) = ori_unc;
-        msr_cov(4,4) = ori_unc;
-        msr_cov(5,5) = ori_unc;
-        msr_cov(6,6) = lin_unc;
-        msr_cov(7,7) = lin_unc;
-        msr_cov(8,8) = lin_unc;
-        msr_cov(9,9) = ang_unc;
-        msr_cov(10,10) = ang_unc;
-        msr_cov(11,11) = ang_unc;
+        msr_cov(0,0) = pos_unc*pos_unc;
+        msr_cov(1,1) = pos_unc*pos_unc;
+        msr_cov(2,2) = pos_unc*pos_unc;
+        msr_cov(3,3) = ori_unc*ori_unc;
+        msr_cov(4,4) = ori_unc*ori_unc;
+        msr_cov(5,5) = ori_unc*ori_unc;
+        msr_cov(6,6) = lin_unc*lin_unc;
+        msr_cov(7,7) = lin_unc*lin_unc;
+        msr_cov(8,8) = lin_unc*lin_unc;
+        msr_cov(9,9) = ang_unc*ang_unc;
+        msr_cov(10,10) = ang_unc*ang_unc;
+        msr_cov(11,11) = ang_unc*ang_unc;
     }
     MatrixXd getMeasureCov(){ return msr_cov; }
 

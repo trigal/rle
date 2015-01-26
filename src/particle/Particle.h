@@ -13,6 +13,7 @@
 #ifndef PARTICLE_H_
 #define PARTICLE_H_
 
+#include <boost/ptr_container/ptr_vector.hpp>
 #include "LayoutComponent.h"
 #include "MotionModel.h"
 #include "../Odometry.h"
@@ -28,17 +29,16 @@ using std::vector;
 class Particle {
 
 private:
-    unsigned int particle_id;			/// particle id
+    unsigned int particle_id;   /// particle id
     State6DOF particle_state;	/// particle state (12x1: 6DoF pose + 6 Speed Derivates)
-
     MatrixXd particle_sigma;	/// particle state error covariance (12x12)
     vector<LayoutComponent*> particle_components; /// array of particle-components
-    MatrixXd kalman_gain;     /// kalman gain got while estimating the pose
+
+    MatrixXd kalman_gain;    /// kalman gain got while estimating the pose
     double particle_score;   /// score got with particle-score formula
+    MotionModel particle_mtn_model;	 /// particle motion model
 
 public:
-//    State6DOF _particle_state;
-    MotionModel mtn_model;	/// particle motion model
 
     /**
      * This function will use "motion-model" class to propagate all particle's components
@@ -72,9 +72,10 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particleEstimation(Odometry &odometry);
+    void particleEstimation(Odometry *odometry);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
+    vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}
     void setLayoutComponents(vector<LayoutComponent*> vec){ particle_components = vec; }
 
     State6DOF getParticleState(){ return particle_state; }
@@ -89,6 +90,21 @@ public:
     double getParticleScore(){return particle_score;}
     void setParticleScore(double score){particle_score = score;}
 
+    MotionModel getMotionModel() { return particle_mtn_model; }
+    MotionModel* getMotionModelPtr() { return &particle_mtn_model; }
+    void setMotionModel(MotionModel m){ particle_mtn_model = m; }
+    void setMotionModelErrorCovariance(double position_uncertainty,
+                                       double orientation_uncertainty,
+                                       double linear_uncertainty,
+                                       double angular_uncertainty){
+        particle_mtn_model.setErrorCovariance(
+                    position_uncertainty,
+                    orientation_uncertainty,
+                    linear_uncertainty,
+                    angular_uncertainty
+                    );
+    }
+
     //constructor ----------------------------------------------------------------------
     Particle(){
         particle_id = 0;
@@ -96,18 +112,18 @@ public:
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int id, MotionModel& mt_md) : particle_id(id), mtn_model(mt_md) {
+    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int id, State6DOF& state, MotionModel& mt_md )
-        : particle_id(id), particle_state(state), mtn_model(mt_md)  {
+    Particle(unsigned int id, State6DOF& state, MotionModel mt_md )
+        : particle_id(id), particle_state(state), particle_mtn_model(mt_md)  {
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int id, State6DOF& state, MatrixXd& state_sigma, MotionModel& mt_md)
-        : particle_id(id), particle_state(state), particle_sigma(state_sigma), mtn_model(mt_md) {
+    Particle(unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
+        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md) {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
@@ -119,6 +135,11 @@ public:
         particle_sigma.resize(0,0);
         particle_components.resize(0);
         particle_score = 0;
+
+        // delete all particle's components
+        for(int i=0; i<particle_components.size(); ++i){
+            delete particle_components.at(i);
+        }
     }
 };
 

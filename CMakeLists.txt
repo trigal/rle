@@ -64,6 +64,7 @@ add_executable(visual_odometry_test
 
 add_executable(road_layout_estimation
         src/road_layout_estimation.cpp
+        src/Utils.cpp
 	src/LayoutManager.cpp 
         src/Odometry.cpp
 	src/particle/MotionModel.cpp
@@ -73,7 +74,6 @@ add_executable(road_layout_estimation
         src/particle/LayoutComponent_Crossing.cpp
         src/particle/LayoutComponent_RoadLane.cpp
         src/particle/State6DOF.cpp
-        src/Utils.cpp
         src/eigenmultivariatenormal.hpp
 )
 

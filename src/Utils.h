@@ -21,12 +21,13 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <nav_msgs/Odometry.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include "particle/State6DOF.h"
 
 using namespace Eigen;
 
 class Utils{
+
 public:
 
     struct Coordinates
@@ -55,6 +56,7 @@ public:
     static void printOdomMsgToCout(const nav_msgs::Odometry& msg);
 
     static void printPoseMsgToCout(const geometry_msgs::PoseStamped &pose);
+
 
     /**
      * @param pose

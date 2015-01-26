@@ -38,37 +38,25 @@
 using namespace Eigen;
 using namespace std;
 
-// components (they are defined here since they will be deleted once out of scope)
-LayoutComponent_Building p_comp0;
-LayoutComponent_RoadLane p_comp1;
-LayoutComponent_Crossing p_comp2;
-
 /** ************************************************************************************************
  * @brief main
  **************************************************************************************************/
+
 int main(int argc, char *argv[])
 {
 	// init ROS and NodeHandle
     ros::init(argc, argv, "road_layout_estimation");
     ros::NodeHandle node_handle;
 
-    // init layout_components
-    vector<LayoutComponent*> layout_components;
-    layout_components.push_back(&p_comp0);
-    layout_components.push_back(&p_comp1);
-    layout_components.push_back(&p_comp2);
-
     // init subscriber
     std::cout << "argc: " << argc << endl;
-    string argomento = "/visual_odometry_nvm/odometry";
+    string argomento = "/visual_odometry/odometry";
     if(argc > 2)
     {
         ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");
         ROS_INFO_STREAM("Example:");
         ROS_INFO_STREAM("/visual_odometry/odometry");
-        ROS_INFO_STREAM("/visual_odometry/odometry_no_error");
         ROS_INFO_STREAM("/visual_odometry_nvm/odometry");
-        ROS_INFO_STREAM("/visual_odometry_test/odometry");
         return -1;
     }
     else{
@@ -78,7 +66,7 @@ int main(int argc, char *argv[])
     }
 
     // init layout_manager
-    LayoutManager layout_manager(node_handle, argomento, layout_components);
+    LayoutManager layout_manager(node_handle, argomento);
 
     ros::spin();
 

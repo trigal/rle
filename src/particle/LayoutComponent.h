@@ -7,13 +7,15 @@ using namespace Eigen;
 using std::vector;
 
 class LayoutComponent {
+
 protected:
-public:
     unsigned int particle_id;   /// Tells particle ID of where this component is living
     unsigned int component_id;  /// Component ID
     double weight;              /// Used for resampling
     VectorXd component_state;	/// current particle-component pose (12x1: 6DoF + 6 speed derivates)
     MatrixXd component_cov;
+
+public:
 
     /**
      * This function compute particle-componenet weight, used during P.F. resampling
@@ -39,7 +41,7 @@ public:
     void setComponentId(unsigned int id){ component_id = id; }
 
     unsigned int getParticleId(){return particle_id;}
-    void setParticletId(unsigned int id){ particle_id = id; }
+    void setParticleId(unsigned int id){ particle_id = id; }
 
     double getComponentWeight(){return weight;}
     void setComponentWeight(double w){weight=w;}
@@ -74,5 +76,6 @@ public:
 //        particle_id(p_id), component_id(id), component_state(pose) {}
 
 };
+
 
 #endif // LAYOUTCOMPONENT_H
