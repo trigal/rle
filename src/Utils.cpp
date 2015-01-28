@@ -651,8 +651,15 @@ double Utils::angle_diff(double a, double b)
     return(d2);
 }
 
-double Utils::box_muller(double m, double s)	/* normal random variate generator */
-{				        /* mean m, standard deviation s */
+/**
+ * @brief Normal random variate generator
+ * @param m
+ * @param s
+ * @return
+ */
+double Utils::box_muller(double m, double s)
+{
+    /* mean m, standard deviation s */
     double x1, x2, w, y1;
     static double y2;
     static int use_last = 0;

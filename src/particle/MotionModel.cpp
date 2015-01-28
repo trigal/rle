@@ -89,7 +89,7 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
      tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
     p_state_propagated._rotation = tmp_angle_axis * p_state._rotation; // WARNING verify product order!!
 
-
+    // Generate random error with box_muller function
     Eigen::Vector3d tmp_error;
     tmp_error(0) = Utils::box_muller(0,error_covariance(6,6));
     tmp_error(1) = Utils::box_muller(0,error_covariance(7,7));

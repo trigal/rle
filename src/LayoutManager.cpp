@@ -594,6 +594,9 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
         Particle* particle = &current_layout.at(i);
         vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
 
+        // Clear old layout_components
+        layout_components->clear();
+
         // Cycle through all lanes
         for(int k=0; k<msg.road_lane_vector.size(); ++k){
 
@@ -605,6 +608,8 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
             road_lane->setComponentId(layout_components->size());
             road_lane->setK1(lane.k1);
             road_lane->setK3(lane.k3);
+            road_lane->setHomographyYResolution(msg.homography_y_resolution);
+            road_lane->setTimestamp(msg.timestamp);
 
             // Add lane to layout components
             layout_components->push_back(road_lane);

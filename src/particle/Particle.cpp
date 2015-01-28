@@ -105,9 +105,7 @@ void Particle::particleEstimation(Odometry* odometry){
 
     // calculate belief
     State6DOF stato_filtrato = stato_t_predetto.addVectorXd(kalman_per_msr_diff);
-    cout << E_t << endl << endl;
     E_t = (MatrixXd::Identity(12,12) - (K_t * H_t)) * E_t_pred;
-    cout << E_t << endl << endl;
     // update particle values
     particle_state = stato_filtrato;
     particle_sigma = E_t;
