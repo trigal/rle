@@ -5,6 +5,11 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/normal_distribution.hpp>    
 
+/**
+ * This class is an implementation of an 'N' dimensional normal distribution
+ * It's used for random particle set generation given GPS covariance and GPS position (distribution mean)
+ */
+
 /*
   We need a functor that can pretend it's const,
   but to be a good random number generator 

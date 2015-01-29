@@ -27,12 +27,12 @@
 		output="screen"
 	/>
 	
-	<!-- Launch ROAD LANE DETECTOR 
+	<!-- Launch ROAD LANE DETECTOR -->
 	<node
 		pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
 		required="true"
 		output="screen"
-	/>-->
+	/>
 	
 	<!-- Launch ROAD LAYOUT ESTIMATION node-->
 	<node

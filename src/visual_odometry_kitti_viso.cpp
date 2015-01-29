@@ -161,8 +161,15 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     if(enable_custom_twist){
         if(enable_lookup_twist){
             geometry_msgs::Twist frame_speed;
-            listener->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.2), frame_speed);
-            odometry.twist.twist = frame_speed;
+            try{
+                listener->waitForTransform("/odom_frame", "/robot_frame", ros::Time(0), ros::Duration(0.1));
+                listener->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.2), frame_speed);
+                odometry.twist.twist = frame_speed;
+            }
+            catch (tf::TransformException &ex) {
+                ROS_ERROR("%s",ex.what());
+                odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
+            }
         }
         else{
             odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
