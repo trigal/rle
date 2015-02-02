@@ -20,20 +20,6 @@
 
 	<param name="/use_sim_time" value="true"/>
 
-	<!-- Launch VISUAL ODOMETRY KITTI-VISO node-->
-	<node
-		pkg="road_layout_estimation" type="visual_odometry_kitti_viso" name="visual_odometry_kitti_viso"
-		required="true"
-		output="screen"
-	/>
-	
-	<!-- Launch ROAD LANE DETECTOR -->
-	<node
-		pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
-		required="true"
-		output="screen"
-	/>
-	
 	<!-- Launch ROAD LAYOUT ESTIMATION node-->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
@@ -41,6 +27,22 @@
 		output="screen"
 		args="visual_odometry/odometry"
 	/> 
+	
+
+	
+	<!-- Launch ROAD LANE DETECTOR 
+	<node
+		pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
+		required="true"
+		output="screen"
+	/>-->
+	
+	<!-- Launch VISUAL ODOMETRY KITTI-VISO node-->
+	<node
+		pkg="road_layout_estimation" type="visual_odometry_kitti_viso" name="visual_odometry_kitti_viso"
+		required="true"
+		output="screen"
+	/>
 
 	<!-- Run the rosbag -->
 	<node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile) -r $(arg publish_rate) -l"/>
