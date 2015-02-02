@@ -111,15 +111,17 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
 
-    // BUILD POSEARRAY MSG
-    // Get particle-set
-    vector<Particle> particles = current_layout;
-    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
-    array_msg.header.stamp = ros::Time::now();
-    array_msg.header.frame_id = "map";
+//    // BUILD POSEARRAY MSG
+//    // Get particle-set
+//    vector<Particle> particles = current_layout;
+//    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+//    array_msg.header.stamp = ros::Time::now();
 
-    // Publish it!
-    LayoutManager::array_pub.publish(array_msg);
+//    cout << "poses size: " << array_msg.poses.size() << endl;
+//    cout << "frame id: " << array_msg.header.frame_id.c_str() << endl;
+
+//    // Publish it!
+//    LayoutManager::array_pub.publish(array_msg);
 }
 
 
@@ -240,12 +242,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
             // KITTI 01
-//            double alt = 164.78;
-//            double lat = 49.006719195871;
-//            double lon = 8.4893558806503;
-//            double cov1 = 15;
-//            double cov2 = 15;
-//            ros::Duration(0.3).sleep(); // sleep for 2 secs
+            double alt = 164.78;
+            double lat = 49.006719195871;
+            double lon = 8.4893558806503;
+            double cov1 = 15;
+            double cov2 = 15;
+            ros::Duration(0.5).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
             // Publish GPS fix on map
@@ -259,37 +261,37 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
             // ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- //
-            cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
-            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
+//            cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
+//            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
 
-            // transform coordinates from 'local_map' to 'map'
-            osm_cartography::local_map_transform local_map_tf_srv;
-            double map_x; double map_y;
-            if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
-            {
-                 map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
-                 map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
-            }
-            else
-            {
-              ROS_ERROR("   Failed to call 'local_map_transform' service");
-              return;
-            }
+//            // transform coordinates from 'local_map' to 'map'
+//            osm_cartography::local_map_transform local_map_tf_srv;
+//            double map_x; double map_y;
+//            if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
+//            {
+//                 map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
+//                 map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
+//            }
+//            else
+//            {
+//              ROS_ERROR("   Failed to call 'local_map_transform' service");
+//              return;
+//            }
 
-            // convert UTM to LatLon
-            osm_cartography::xy_2_latlon xy_2_latlon_srv;
-            xy_2_latlon_srv.request.x = map_x;
-            xy_2_latlon_srv.request.y = map_y;
-            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
-                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
-                return;
-            }
+//            // convert UTM to LatLon
+//            osm_cartography::xy_2_latlon xy_2_latlon_srv;
+//            xy_2_latlon_srv.request.x = map_x;
+//            xy_2_latlon_srv.request.y = map_y;
+//            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
+//                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
+//                return;
+//            }
 
-            double alt = 0;
-            double lat = xy_2_latlon_srv.response.latitude;
-            double lon = xy_2_latlon_srv.response.longitude;
-            double cov1 = 15;
-            double cov2 = 15;
+//            double alt = 0;
+//            double lat = xy_2_latlon_srv.response.latitude;
+//            double lon = xy_2_latlon_srv.response.longitude;
+//            double cov1 = 15;
+//            double cov2 = 15;
             // ------------------------ END RVIZ INITIAL POSE  ------------------------- //
 
             // Get XY values from GPS coords
@@ -454,7 +456,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             cout << "Particle ID: " << p.getId() << endl;
             Utils::printPoseMsgToCout(pose_stamp);
             cout << endl;
-        }
+        }// end print random particles
+
+
+        // BUILD POSEARRAY MSG
+        // Get particle-set
+        geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+        array_msg.header.stamp = ros::Time::now();
+        cout << "poses size: " << array_msg.poses.size() << endl;
+        cout << "frame id: " << array_msg.header.frame_id.c_str() << endl;
+        // Publish it!
+        ros::Duration(0.5).sleep(); // sleep for 2 secs
+        LayoutManager::array_pub.publish(array_msg);
 
     } // end if(first_run)
 }// end reconfigure callback
@@ -481,69 +494,72 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         //clear current layout
 //        current_layout.clear();
 
-        // generate particle set
-        for(int i=0; i<num_particles; i++)
-        {
-            // init an empty particle
-            State6DOF p_pose;
-            MatrixXd p_sigma = MatrixXd::Zero(12,12);
-            Particle part(i, p_pose, p_sigma, mtn_model);
+//        // generate particle set
+//        for(int i=0; i<num_particles; i++)
+//        {
+//            // init an empty particle
+//            State6DOF p_pose;
+//            MatrixXd p_sigma = MatrixXd::Zero(12,12);
+//            Particle part(i, p_pose, p_sigma, mtn_model);
 
-            // get pose & cov from odom msg
-            State6DOF new_pose(msg);
-            MatrixXd new_cov = Utils::getCovFromOdom(msg);
+//            // get pose & cov from odom msg
+//            State6DOF new_pose(msg);
+//            MatrixXd new_cov = Utils::getCovFromOdom(msg);
 
-            // add some random offset to particles (only the first one won't be noised)
-            if(i!=1)
-            {
-                new_pose.addNoise(0.05, 0.05, 0.05, 0.05);
-            }
+//            // add some random offset to particles (only the first one won't be noised)
+//            if(i!=1)
+//            {
+//                new_pose.addNoise(0.05, 0.05, 0.05, 0.05);
+//            }
 
-            // update particle values
-            part.setParticleState(new_pose);
-            part.setParticleSigma(new_cov);
+//            // update particle values
+//            part.setParticleState(new_pose);
+//            part.setParticleSigma(new_cov);
 
-//            // let's add a sample component in same position of the particle
-//            layout_components.at(0)->particle_id = part.getId();
-//            layout_components.at(0)->component_id = 0;
-//            layout_components.at(0)->component_state = new_pose;
-//            layout_components.at(0)->component_cov = p_sigma;
-//            part.addComponent(layout_components.at(0));
+////            // let's add a sample component in same position of the particle
+////            layout_components.at(0)->particle_id = part.getId();
+////            layout_components.at(0)->component_id = 0;
+////            layout_components.at(0)->component_state = new_pose;
+////            layout_components.at(0)->component_cov = p_sigma;
+////            part.addComponent(layout_components.at(0));
 
-//            layout_components.at(1)->particle_id = part.getId();
-//            layout_components.at(1)->component_id = 1;
-//            layout_components.at(1)->component_state = new_pose;
-//            layout_components.at(1)->component_cov = p_sigma;
-//            part.addComponent(layout_components.at(1));
+////            layout_components.at(1)->particle_id = part.getId();
+////            layout_components.at(1)->component_id = 1;
+////            layout_components.at(1)->component_state = new_pose;
+////            layout_components.at(1)->component_cov = p_sigma;
+////            part.addComponent(layout_components.at(1));
 
-//            layout_components.at(2)->particle_id = part.getId();
-//            layout_components.at(2)->component_id = 2;
-//            layout_components.at(2)->component_state = new_pose;
-//            layout_components.at(2)->component_cov = p_sigma;
-//            part.addComponent(layout_components.at(2));
+////            layout_components.at(2)->particle_id = part.getId();
+////            layout_components.at(2)->component_id = 2;
+////            layout_components.at(2)->component_state = new_pose;
+////            layout_components.at(2)->component_cov = p_sigma;
+////            part.addComponent(layout_components.at(2));
 
-            // push created particle into particle-set
-            current_layout.push_back(part);
-        }
+//            // push created particle into particle-set
+//            current_layout.push_back(part);
+//        }
 
-        // update flag
-        LayoutManager::first_msg = false;
+//        // update flag
+//        LayoutManager::first_msg = false;
 
-        // update old_msg
-        old_msg = msg;
+//        // update old_msg
+//        old_msg = msg;
 
-        // set odometry msg
-        odometry->setMsg(msg);
+//        // set odometry msg
+//        odometry->setMsg(msg);
 
-        // publish it!
-        geometry_msgs::PoseArray array_msg;
-        array_msg.header.stamp = msg.header.stamp;
-        array_msg.header.frame_id = "robot_frame";
-        array_msg.poses.push_back(msg.pose.pose);
-        array_pub.publish(array_msg);
+//        // publish it!
+//        geometry_msgs::PoseArray array_msg;
+//        array_msg.header.stamp = msg.header.stamp;
+//        array_msg.header.frame_id = "robot_frame";
+//        array_msg.poses.push_back(msg.pose.pose);
+//        array_pub.publish(array_msg);
 
         return;
     }
+
+    // update flag
+    LayoutManager::first_msg = false;
 
     // retrieve measurement from odometry
     odometry->setMsg(msg);

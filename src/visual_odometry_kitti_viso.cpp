@@ -83,7 +83,7 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
  */
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
-    ROS_INFO_STREAM("   Libviso2 odometry msg arrived");
+    ROS_INFO_STREAM("   Visual Odometry: Libviso2 odometry msg arrived");
     try{
         listener->waitForTransform("/robot_frame", "/car", ros::Time(0), ros::Duration(0.1));
         listener->lookupTransform("/robot_frame", "/car", ros::Time(0), t);
@@ -185,6 +185,7 @@ void odometryCallback(const nav_msgs::Odometry& msg)
 
     //      publish Odometry
     odom_publisher.publish(odometry);
+    ROS_INFO_STREAM("   Visual Odometry: odometry msg sent");
 
     //      print published msg
     //Utils::printPoseMsgToCout(pose);
