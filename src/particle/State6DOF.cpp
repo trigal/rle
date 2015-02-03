@@ -8,12 +8,22 @@ State6DOF::State6DOF()
     _rotational_velocity = Eigen::AngleAxisd::Identity();
 }
 
-Eigen::MatrixXd State6DOF::subtract(State6DOF &to_be_subtracted)
+Eigen::MatrixXd State6DOF::subtract_vect(State6DOF &to_be_subtracted)
 {
     Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
     return tmp_matrix;
 }
 
+State6DOF State6DOF::subtract_state6DOF(State6DOF &to_be_subtracted)
+{
+    State6DOF tmp;
+    tmp.setPose(this->getPose() - to_be_subtracted.getPose());
+    tmp.setRotation(Eigen::AngleAxisd(this->getRotation().inverse() * to_be_subtracted.getRotation()));
+    tmp.setTranslationalVelocity(this->getTranslationalVelocity() - to_be_subtracted.getTranslationalVelocity());
+    tmp.setRotationalVelocity(Eigen::AngleAxisd(this->getRotationalVelocity().inverse() * to_be_subtracted.getRotationalVelocity()));
+
+    return tmp;
+}
 
 State6DOF State6DOF::addVectorXd(Eigen::VectorXd &to_be_added)
 {
@@ -72,10 +82,16 @@ geometry_msgs::Pose State6DOF::toGeometryMsgPose()
 
 State6DOF::State6DOF(const nav_msgs::Odometry &odom_msg)
 {
+    // Set pose from position
     this->_pose << odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, odom_msg.pose.pose.position.z;
+
+    // Set rotation from pose quaternion
     this->_rotation = Eigen::AngleAxisd(Eigen::Quaterniond(odom_msg.pose.pose.orientation.w,odom_msg.pose.pose.orientation.x,odom_msg.pose.pose.orientation.y,odom_msg.pose.pose.orientation.z));
+
+    // Set translational velocity
     this->_translational_velocity << odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z;
 
+    // Set rotational velocity: create quaternion from twist RPY
     tf::Matrix3x3 tmp_rot;
     tmp_rot.setEulerYPR(odom_msg.twist.twist.angular.z, odom_msg.twist.twist.angular.y, odom_msg.twist.twist.angular.x);
     tf::Quaternion q;

@@ -27,6 +27,7 @@
 #include <Eigen/Core>
 #include <dynamic_reconfigure/server.h>
 #include <road_layout_estimation/road_layout_estimationConfig.h>
+ #include <tf/transform_listener.h>
 
 using namespace Eigen;
 using Eigen::MatrixXd;
@@ -92,7 +93,6 @@ public:
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
     ros::ServiceClient xy_2_latlon_client;
-    ros::ServiceClient local_map_tf_client;
     ros::ServiceClient snap_particle_xy_client;
 
     int num_particles;
@@ -108,6 +108,8 @@ public:
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
 private:
+
+    tf::TransformListener tf_listener;
 
     static bool first_run;  /// flag used for initiliazing particle-set with gps
     static bool first_msg;  /// flag used for init particle-set

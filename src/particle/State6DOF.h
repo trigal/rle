@@ -27,7 +27,8 @@ public:
     State6DOF(const nav_msgs::Odometry &odom_msg);
 
     // methods ------------------------------------------------------------------------
-    Eigen::MatrixXd subtract(State6DOF &to_be_subtracted);
+    Eigen::MatrixXd subtract_vect(State6DOF &to_be_subtracted);
+    State6DOF subtract_state6DOF(State6DOF &to_be_subtracted);
     State6DOF addVectorXd(Eigen::VectorXd &to_be_added);
     Eigen::VectorXd toVectorXd();
     geometry_msgs::Pose toGeometryMsgPose();
@@ -45,6 +46,8 @@ public:
 
     AngleAxisd getRotationalVelocity() { return _rotational_velocity; }
     void setRotationalVelocity(AngleAxisd rot_velocity) { _rotational_velocity = rot_velocity; }
+
+
 };
 
 #endif // STATE6DOF_H

@@ -81,7 +81,7 @@ Visualization Manager:
       Color: 255; 25; 0
       Enabled: true
       Keep: 1000000
-      Length: 1
+      Length: 10
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /visual_odometry/odometry
@@ -96,7 +96,7 @@ Visualization Manager:
       Position Tolerance: 0.1
       Topic: /stereo_odometer/odometry
       Value: false
-    - Arrow Length: 0.3
+    - Arrow Length: 10
       Class: rviz/PoseArray
       Color: 255; 255; 0
       Enabled: true
@@ -136,23 +136,23 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 80.6529
+      Class: rviz/XYOrbit
+      Distance: 196.103
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 34.9546
+        Y: 0.081907
+        Z: -1.20966e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.690398
+      Pitch: 1.5698
       Target Frame: odom_frame
-      Value: Orbit (rviz)
-      Yaw: 2.3204
+      Value: XYOrbit (rviz)
+      Yaw: 5.97041
     Saved: ~
 Window Geometry:
   Displays:

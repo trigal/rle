@@ -21,7 +21,6 @@
 #include "osm_cartography/snap_particle_xy.h"
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
-#include "osm_cartography/local_map_transform.h"
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <vector>
@@ -104,24 +103,11 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     // init ROS service client
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
     xy_2_latlon_client = n.serviceClient<osm_cartography::xy_2_latlon>("/osm_cartography/xy_2_latlon");
-    local_map_tf_client = n.serviceClient<osm_cartography::local_map_transform>("/osm_latlon_converter/local_map_transform");
     snap_particle_xy_client = n.serviceClient<osm_cartography::snap_particle_xy>("/osm_cartography/snap_particle_xy");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
-
-//    // BUILD POSEARRAY MSG
-//    // Get particle-set
-//    vector<Particle> particles = current_layout;
-//    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
-//    array_msg.header.stamp = ros::Time::now();
-
-//    cout << "poses size: " << array_msg.poses.size() << endl;
-//    cout << "frame id: " << array_msg.header.frame_id.c_str() << endl;
-
-//    // Publish it!
-//    LayoutManager::array_pub.publish(array_msg);
 }
 
 
@@ -264,24 +250,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
 //            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
 
-//            // transform coordinates from 'local_map' to 'map'
-//            osm_cartography::local_map_transform local_map_tf_srv;
-//            double map_x; double map_y;
-//            if (LayoutManager::local_map_tf_client.call(local_map_tf_srv))
-//            {
-//                 map_x = rviz_msg->pose.pose.position.x + local_map_tf_srv.response.tf_x;
-//                 map_y = rviz_msg->pose.pose.position.y + local_map_tf_srv.response.tf_y;
-//            }
-//            else
-//            {
-//              ROS_ERROR("   Failed to call 'local_map_transform' service");
-//              return;
-//            }
+//            // Get PoseStamped from Rviz msg
+//            geometry_msgs::PoseStamped pose_local_map_frame;
+//            pose_local_map_frame.pose = rviz_msg->pose.pose;
+//            pose_local_map_frame.header = rviz_msg->header;
+//            pose_local_map_frame.header.stamp = ros::Time::now(); // Rviz msg has no stamp
+
+//            // Create tf::Pose
+//            tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+//            tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+
+//            // Transform pose from "map" to "local_map"
+//            tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
 
 //            // convert UTM to LatLon
 //            osm_cartography::xy_2_latlon xy_2_latlon_srv;
-//            xy_2_latlon_srv.request.x = map_x;
-//            xy_2_latlon_srv.request.y = map_y;
+//            xy_2_latlon_srv.request.x = tf_pose_map_frame.getOrigin().getX();
+//            xy_2_latlon_srv.request.y = tf_pose_map_frame.getOrigin().getY();
 //            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
 //                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
 //                return;
@@ -331,8 +316,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             cout << "       " << boost::lexical_cast<std::string>(mean(1)) << endl;
             cout << "   COV: " << endl;
             cout << covar << endl;
-            cout << "------------------------------------------------------------" << endl << endl;
-
+            cout << "------------------------------------------------------------" << endl;
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
@@ -366,13 +350,32 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // Call snap particle service service
                 if (LayoutManager::snap_particle_xy_client.call(srv))
                 {
+                    geometry_msgs::PoseStamped pose_map_frame;
+                    pose_map_frame.header.frame_id = "map";
+                    pose_map_frame.header.stamp = ros::Time::now();
+                    pose_map_frame.pose.position.x = srv.response.snapped_x;
+                    pose_map_frame.pose.position.y = srv.response.snapped_y;
+                    pose_map_frame.pose.position.z = 0.0;
+                    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(srv.response.way_dir_rad),pose_map_frame.pose.orientation);
+
+                    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+                    tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
+
+                    // Transform pose from "map" to "local_map"
+                    tf_listener.transformPose("local_map", ros::Time(0), tf_pose_map_frame, "map", tf_pose_local_map_frame);
+
                     // Init particle's pose
                     State6DOF p_pose;
-                    p_pose._pose = Vector3d(srv.response.snapped_x, srv.response.snapped_y, 0);
+                    p_pose._pose = Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0);
 
                     // Create rotation object
-                    tf::Quaternion q = tf::createQuaternionFromYaw(srv.response.way_dir_rad);
-                    AngleAxisd rotation = AngleAxisd( Quaterniond(q.getW(), q.getX(), q.getY(), q.getZ()) );
+                    AngleAxisd rotation = AngleAxisd(
+                                Quaterniond(
+                                    tf_pose_local_map_frame.getRotation().getW(),
+                                    tf_pose_local_map_frame.getRotation().getX(),
+                                    tf_pose_local_map_frame.getRotation().getY(),
+                                    tf_pose_local_map_frame.getRotation().getZ()
+                                    ));
                     p_pose.setRotation(rotation);
 
                     // Init particle's sigma
@@ -389,10 +392,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     if(srv.response.way_dir_opposite_particles){
 
                         // Invert Yaw direction
-                        double inverted_angle_rad = Utils::normalize_angle(srv.response.way_dir_rad + M_PI);
-                        tf::Quaternion q = tf::createQuaternionFromYaw(inverted_angle_rad);
-                        AngleAxisd rotation = AngleAxisd( Quaterniond(q.getW(), q.getX(), q.getY(), q.getZ()) );
-                        p_pose.setRotation(rotation);
+                        p_pose.setRotation(Eigen::AngleAxisd(M_PI + part.getParticleState().getRotation().angle(),part.getParticleState().getRotation().axis()));
 
                         // Push particle inside particle-set
                         Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
@@ -464,9 +464,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
         array_msg.header.stamp = ros::Time::now();
         cout << "poses size: " << array_msg.poses.size() << endl;
+        array_msg.header.frame_id = "local_map";
         cout << "frame id: " << array_msg.header.frame_id.c_str() << endl;
         // Publish it!
-        ros::Duration(0.5).sleep(); // sleep for 2 secs
         LayoutManager::array_pub.publish(array_msg);
 
     } // end if(first_run)
@@ -490,71 +490,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // (filter won't be called)
     if(LayoutManager::first_msg && current_layout.size() == 0){
         cout << "   First Odometry message arrived, generating particles set" << endl;
-
-        //clear current layout
-//        current_layout.clear();
-
-//        // generate particle set
-//        for(int i=0; i<num_particles; i++)
-//        {
-//            // init an empty particle
-//            State6DOF p_pose;
-//            MatrixXd p_sigma = MatrixXd::Zero(12,12);
-//            Particle part(i, p_pose, p_sigma, mtn_model);
-
-//            // get pose & cov from odom msg
-//            State6DOF new_pose(msg);
-//            MatrixXd new_cov = Utils::getCovFromOdom(msg);
-
-//            // add some random offset to particles (only the first one won't be noised)
-//            if(i!=1)
-//            {
-//                new_pose.addNoise(0.05, 0.05, 0.05, 0.05);
-//            }
-
-//            // update particle values
-//            part.setParticleState(new_pose);
-//            part.setParticleSigma(new_cov);
-
-////            // let's add a sample component in same position of the particle
-////            layout_components.at(0)->particle_id = part.getId();
-////            layout_components.at(0)->component_id = 0;
-////            layout_components.at(0)->component_state = new_pose;
-////            layout_components.at(0)->component_cov = p_sigma;
-////            part.addComponent(layout_components.at(0));
-
-////            layout_components.at(1)->particle_id = part.getId();
-////            layout_components.at(1)->component_id = 1;
-////            layout_components.at(1)->component_state = new_pose;
-////            layout_components.at(1)->component_cov = p_sigma;
-////            part.addComponent(layout_components.at(1));
-
-////            layout_components.at(2)->particle_id = part.getId();
-////            layout_components.at(2)->component_id = 2;
-////            layout_components.at(2)->component_state = new_pose;
-////            layout_components.at(2)->component_cov = p_sigma;
-////            part.addComponent(layout_components.at(2));
-
-//            // push created particle into particle-set
-//            current_layout.push_back(part);
-//        }
-
-//        // update flag
-//        LayoutManager::first_msg = false;
-
-//        // update old_msg
-//        old_msg = msg;
-
-//        // set odometry msg
-//        odometry->setMsg(msg);
-
-//        // publish it!
-//        geometry_msgs::PoseArray array_msg;
-//        array_msg.header.stamp = msg.header.stamp;
-//        array_msg.header.frame_id = "robot_frame";
-//        array_msg.poses.push_back(msg.pose.pose);
-//        array_pub.publish(array_msg);
-
         return;
     }
 
@@ -568,7 +503,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
     // call particle_estimation
-    layoutEstimation();
+//    layoutEstimation();
+    vector<Particle>::iterator particle_itr;
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        (*particle_itr).particleEstimation(odometry);
+    }
 
     // --------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
@@ -713,7 +652,7 @@ void LayoutManager::calculateLayoutComponentsWeight(){
  *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.) nella stessa particella
  *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.) nella stessa particella
  *
- * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+ * Nessuna particella verrà eliminata durante il procedimento di calcolo dello scoState6DOFre,
  * essa sarà mantenuta in vita nonostante lo score sia basso.
  * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
  * uno score di valore basso per motivi di natura diversa.

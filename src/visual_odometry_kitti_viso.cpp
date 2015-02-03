@@ -55,6 +55,10 @@ bool enable_lookup_twist = false;
 // store position
 geometry_msgs::PoseStamped old_pose;
 bool first_run = true;
+geometry_msgs::Twist frame_speed; // stores last frame speed
+tf::StampedTransform frame_pose;  // stores last frame pose
+State6DOF old_state;              // stores last state 6Dof (calculated from frame_speed and frame_pose)
+
 /***************************************************************************************************************/
 
 /**
@@ -81,6 +85,32 @@ void reconfigureCallback(road_layout_estimation::visual_odometry_kitti_visoConfi
  * @brief odometryCallback
  * @param msg
  */
+void createState6DOF()
+{
+    // Set pose from origin
+    old_state.setPose(Vector3d(frame_pose.getOrigin().getX(),frame_pose.getOrigin().getY(),frame_pose.getOrigin().getZ()));
+
+    // Set rotation from pose rotation
+    old_state.setRotation(AngleAxisd(
+                              Quaterniond(
+                                  frame_pose.getRotation().getW(),
+                                  frame_pose.getRotation().getX(),
+                                  frame_pose.getRotation().getY(),
+                                  frame_pose.getRotation().getZ()
+                                  )
+                              )
+                          );
+    // Create vector3 from twist.linear
+    old_state.setTranslationalVelocity(Vector3d(frame_speed.linear.x, frame_speed.linear.y, frame_speed.linear.z));
+
+    // Get quaternion from twist.angular RPY
+    tf::Matrix3x3 tmp_rot;
+    tmp_rot.setEulerYPR(frame_speed.angular.z, frame_speed.angular.y, frame_speed.angular.x);
+    tf::Quaternion q;
+    tmp_rot.getRotation(q);
+    old_state.setRotationalVelocity(AngleAxisd(Quaterniond(q.getW(),q.getX(), q.getY(), q.getZ())));
+}
+
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     ROS_INFO_STREAM("   Visual Odometry: Libviso2 odometry msg arrived");
@@ -158,15 +188,32 @@ void odometryCallback(const nav_msgs::Odometry& msg)
     pose_publisher.publish(pose);
 
     // calculate speed with our formulas if flag is enabled
-    if(enable_custom_twist){
-        if(enable_lookup_twist){
-            geometry_msgs::Twist frame_speed;
-            try{
-                listener->waitForTransform("/odom_frame", "/robot_frame", ros::Time(0), ros::Duration(0.1));
+    if(enable_custom_twist)
+    {
+        if(enable_lookup_twist)
+        {
+            try
+            {
+//                listener->waitForTransform("/odom_frame", "/robot_frame", ros::Time(0), ros::Duration(0.1));
+
+                // Alternativa a lookupTransform
+//                tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)),msg.header.stamp,"odom_frame");
+//                tf::Stamped<tf::Pose> odom_pose;
+//                listener->transformPose("robot_frame",ident,odom_pose);
+
+                // Pose odom rispetto a robot_frame
+                listener->lookupTransform("robot_frame", "odom_frame", msg.header.stamp, frame_pose);
+
+                // Velocità odom_frame rispetto a robot_frame
                 listener->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.2), frame_speed);
                 odometry.twist.twist = frame_speed;
+
+                // Aggiorna il vecchio State6DOF data la nuova frame_pose e frame_speed
+                createState6DOF();
+
             }
-            catch (tf::TransformException &ex) {
+            catch (tf::TransformException &ex)
+            {
                 ROS_ERROR("%s",ex.what());
                 odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
             }
