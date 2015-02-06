@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
     // init subscriber
     std::cout << "argc: " << argc << endl;
-    string argomento = "/visual_odometry/odometry";
+    string argomento = "/stereo_odometer/odometry"; //"/visual_odometry/odometry";
     if(argc > 2)
     {
         ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");

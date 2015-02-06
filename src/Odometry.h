@@ -19,19 +19,21 @@
 #include <Eigen/Dense>	//used for motion threshold matrix
 #include <Eigen/Core>
 #include <nav_msgs/Odometry.h>
+#include <tf/transform_listener.h>
 
 using namespace Eigen;
 
 class Odometry {
 
-
-public:
-    State6DOF measurement_state;
-
 private:
 //    VectorXd msr_state; /// measurement (12x1: 6DoF pose + 6 Speed Derivates)
-    MatrixXd msr_cov;   /// measurment covariance (12x12)
-    nav_msgs::Odometry msg; /// current msg arrived from Visual Odometry
+    MatrixXd _msr_cov;   /// measurment covariance (12x12)
+    State6DOF _measure;
+    tf::TransformListener *_listener;
+    tf::StampedTransform _old_transform;
+    bool _first_run;
+    bool _msg_valid;
+    nav_msgs::Odometry _msg, _old_msg; /// current msg arrived from Visual Odometry
 
     class Tracker{
 
@@ -59,51 +61,54 @@ public:
 
     // getters & setters --------------------------------------------------------------------------
     void setMeasureState(State6DOF& mrs){
-        measurement_state._pose = mrs._pose;
-        measurement_state._rotation = mrs._rotation;
-        measurement_state._translational_velocity= mrs._translational_velocity;
-        measurement_state._rotational_velocity= mrs._rotational_velocity;
+        _measure._pose = mrs._pose;
+        _measure._rotation = mrs._rotation;
+        _measure._translational_velocity= mrs._translational_velocity;
+        _measure._rotational_velocity= mrs._rotational_velocity;
     }
 
-    State6DOF getMeasureState() { return measurement_state; }
+    State6DOF getMeasureState() { return _measure; }
 
-    void setMeasureCov(MatrixXd& msrcov){ msr_cov = msrcov; }
-    void setMeasureCov(double unc){ msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
+    void setMeasureCov(MatrixXd& msrcov){ _msr_cov = msrcov; }
+    void setMeasureCov(double unc){ _msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
     void setMeasureCov(double pos_unc, double ori_unc, double lin_unc, double ang_unc) {
-        msr_cov = MatrixXd::Zero(12,12);
-        msr_cov(0,0) = pos_unc*pos_unc;
-        msr_cov(1,1) = pos_unc*pos_unc;
-        msr_cov(2,2) = pos_unc*pos_unc;
-        msr_cov(3,3) = ori_unc*ori_unc;
-        msr_cov(4,4) = ori_unc*ori_unc;
-        msr_cov(5,5) = ori_unc*ori_unc;
-        msr_cov(6,6) = lin_unc*lin_unc;
-        msr_cov(7,7) = lin_unc*lin_unc;
-        msr_cov(8,8) = lin_unc*lin_unc;
-        msr_cov(9,9) = ang_unc*ang_unc;
-        msr_cov(10,10) = ang_unc*ang_unc;
-        msr_cov(11,11) = ang_unc*ang_unc;
+        _msr_cov = MatrixXd::Zero(12,12);
+        _msr_cov(0,0) = pos_unc*pos_unc;
+        _msr_cov(1,1) = pos_unc*pos_unc;
+        _msr_cov(2,2) = pos_unc*pos_unc;
+        _msr_cov(3,3) = ori_unc*ori_unc;
+        _msr_cov(4,4) = ori_unc*ori_unc;
+        _msr_cov(5,5) = ori_unc*ori_unc;
+        _msr_cov(6,6) = lin_unc*lin_unc;
+        _msr_cov(7,7) = lin_unc*lin_unc;
+        _msr_cov(8,8) = lin_unc*lin_unc;
+        _msr_cov(9,9) = ang_unc*ang_unc;
+        _msr_cov(10,10) = ang_unc*ang_unc;
+        _msr_cov(11,11) = ang_unc*ang_unc;
     }
-    MatrixXd getMeasureCov(){ return msr_cov; }
+    MatrixXd getMeasureCov(){ return _msr_cov; }
 
-    void setMsg(const nav_msgs::Odometry& m){
-        msg = m;
-        measurement_state = State6DOF(msg);
 
-        msr_cov = Utils::getCovFromOdom(m);
-//        Utils::printOdomMsgToCout(m);
-    }
-    nav_msgs::Odometry getMsg() { return msg; }
+
+    void setMsg(const nav_msgs::Odometry& m);
+    bool isMeasureValid() { return _msg_valid; }
+
+    nav_msgs::Odometry getMsg() { return _msg; }
+    nav_msgs::Odometry getOldMsg() { return _old_msg; }
 
     // constructor & destructor -------------------------------------------------------------------
     Odometry(){
         // Sets all values to zero
-        msr_cov = MatrixXd::Zero(12,12);
+        _msr_cov = MatrixXd::Zero(12,12);
+        _listener = new tf::TransformListener();
+        _first_run = true;
+        _msg_valid = false;
     }
 
     ~Odometry(){
         // Resize all values to zero
-        msr_cov.resize(0,0);
+        _msr_cov.resize(0,0);
+        delete _listener;
     }
 };
 

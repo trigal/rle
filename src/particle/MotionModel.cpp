@@ -81,13 +81,17 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
     // initialize values
     State6DOF p_state_propagated;
 
+    cout << (p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t)).transpose() << endl;
+
     // propagate _pose
-    p_state_propagated._pose = p_state._pose + (p_state._translational_velocity * LayoutManager::delta_t);// + pose_error; //random
+    p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t);// + pose_error; //random
 
     // propagate pose _rotation
     Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
      tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
     p_state_propagated._rotation = tmp_angle_axis * p_state._rotation; // WARNING verify product order!!
+
+
 
     // Generate random error with box_muller function
     Eigen::Vector3d tmp_error;
@@ -97,6 +101,7 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
 
     // propagate velocity
     p_state_propagated._translational_velocity = p_state._translational_velocity + tmp_error; // WARNING + verify error;
+
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
     p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,error_covariance(9,9));
 

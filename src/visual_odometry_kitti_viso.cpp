@@ -37,11 +37,17 @@ using namespace std;
 tf::TransformBroadcaster* tfb_;
 tf::TransformListener* tf_;
 tf::StampedTransform t;
+tf::StampedTransform fixed_transform;
+tf::StampedTransform old_transform, old_diocan;
 tf::TransformListener *listener;
 
+
+nav_msgs::Odometry old_msg;
+
 // ros publishers
-ros::Publisher pose_publisher;
-ros::Publisher odom_publisher;
+//ros::Publisher pose_publisher;
+//ros::Publisher odom_publisher;
+ros::Publisher delta_odom_publisher;
 
 // dynamic reconfigure parameters
 bool enable_custom_uncertainty = false;
@@ -114,128 +120,140 @@ void createState6DOF()
 void odometryCallback(const nav_msgs::Odometry& msg)
 {
     ROS_INFO_STREAM("   Visual Odometry: Libviso2 odometry msg arrived");
-    try{
-        listener->waitForTransform("/robot_frame", "/car", ros::Time(0), ros::Duration(0.1));
-        listener->lookupTransform("/robot_frame", "/car", ros::Time(0), t);
+
+
+    tf::StampedTransform new_transform;
+    new_transform.setOrigin(tf::Vector3(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z));
+    new_transform.setRotation(tf::Quaternion( msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w));
+
+    tfb_->sendTransform(tf::StampedTransform(new_transform, msg.header.stamp, "FANCULO", "CAMERE"));
+
+
+    tf::StampedTransform t1,t2;
+    tf::Transform t3;
+    tf::Vector3 velculo;
+
+    try
+    {
+        listener->lookupTransform("visual_odometry_odom_x_forward","odom",msg.header.stamp,fixed_transform);
+        listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed);
+
+        listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",msg.header.stamp,t1);
+        listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",msg.header.stamp - ros::Duration(0.5),t2);
+        t3 = t2.inverseTimes(t1);
+        velculo = t3.getOrigin() / 0.5;
+        Eigen::AngleAxisd tmp_rot_vel(Eigen::Quaterniond(t3.getRotation().getW(),t3.getRotation().getX(),t3.getRotation().getY(),t3.getRotation().getZ()));
+        tmp_rot_vel.angle() /= 0.5;
+        Eigen::Quaterniond cane(tmp_rot_vel);
+        tf::Quaternion culo;
+        culo = t3.getRotation().slerp(tf::createIdentityQuaternion(),0.5);
+        cout << endl;
     }
-    catch (tf::TransformException &ex) {
+    catch (tf::TransformException &ex)
+    {
         ROS_ERROR("%s",ex.what());
+    }
+
+
+    tf::StampedTransform diocan = tf::StampedTransform(new_transform,msg.header.stamp,"","");
+    tfb_->sendTransform(tf::StampedTransform(diocan, msg.header.stamp, "FANCULO", "DIOCAN"));
+    tfb_->sendTransform(tf::StampedTransform(old_diocan, msg.header.stamp, "FANCULO", "DIOCAN_OLD"));
+
+    new_transform = tf::StampedTransform(fixed_transform * new_transform,msg.header.stamp,"","");
+    tfb_->sendTransform(tf::StampedTransform(new_transform, msg.header.stamp, "FANCULO", "CAMERE_X_FWD"));
+    tfb_->sendTransform(tf::StampedTransform(old_transform, msg.header.stamp, "FANCULO", "CAMERE_X_FWD_OLD"));
+
+
+
+    if(first_run)
+    {
+        old_diocan = diocan;
+        old_transform = new_transform;
+        first_run = false;
         return;
     }
 
-    // send tf
-    tfb_->sendTransform(tf::StampedTransform(t, t.stamp_, "robot_frame", "odom_frame"));
 
-    // Generate PoseStamped message
-    ros::Time current_time = ros::Time::now();
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id ="robot_frame";
-    pose.header.stamp = current_time;
-    pose.header.seq = msg.header.seq;
+    tf::Transform delta_transform;
+    tf::Transform delta_transform2;
+    tf::Transform delta_transform3;
 
-    //      update orientation
-    pose.pose.orientation.x = t.getRotation().getX();
-    pose.pose.orientation.y = t.getRotation().getY();
-    pose.pose.orientation.z = t.getRotation().getZ();
-    pose.pose.orientation.w = t.getRotation().getW();
+    delta_transform = old_transform.inverseTimes(new_transform);
 
-    //      update position
-    pose.pose.position.x = t.getOrigin().getX();
-    pose.pose.position.y = t.getOrigin().getY();
-    pose.pose.position.z = t.getOrigin().getZ();
+    delta_transform2 = fixed_transform * old_diocan.inverse() * diocan ;
 
-    nav_msgs::Odometry odometry;
-    odometry.twist.covariance = msg.twist.covariance;
-    odometry.pose.covariance = msg.pose.covariance;
-    odometry.pose.pose = pose.pose;
-    odometry.header.stamp = current_time;
-    odometry.header.frame_id = "robot_frame";
-    odometry.child_frame_id = "odom_frame";
+    delta_transform3.setOrigin(fixed_transform * old_diocan.inverse() * diocan.getOrigin());
+    delta_transform3.setBasis(old_diocan.inverse().getBasis() * diocan.getBasis());
 
-    // change covariance depending on selected flag
-    if(enable_custom_uncertainty){
-        double linear_err = linear_uncertainty * linear_uncertainty;
-        double angular_err = angular_uncertainty * angular_uncertainty;
-        double position_err = position_uncertainty * position_uncertainty;
-        double orientation_err = orientation_uncertainty * orientation_uncertainty;
-        odometry.twist.covariance = boost::assign::list_of  (linear_err) (0)   (0)  (0)  (0)  (0)
-                (0)  (linear_err)  (0)  (0)  (0)  (0)
-                (0)   (0)  (linear_err) (0)  (0)  (0)
-                (0)   (0)   (0) (angular_err) (0)  (0)
-                (0)   (0)   (0)  (0) (angular_err) (0)
-                (0)   (0)   (0)  (0)  (0)  (angular_err) ;
+//    delta_transform2.setBasis(fixed_transform.getBasis() * old_diocan.inverse().getBasis());
+//    delta_transform2.setOrigin(fixed_transform * old_diocan.inverse() * diocan.getOrigin());
 
-        odometry.pose.covariance = boost::assign::list_of  (position_err) (0)   (0)  (0)  (0)  (0)
-                (0)  (position_err)  (0)  (0)  (0)  (0)
-                (0)   (0)  (position_err) (0)  (0)  (0)
-                (0)   (0)   (0) (orientation_err) (0)  (0)
-                (0)   (0)   (0)  (0) (orientation_err) (0)
-                (0)   (0)   (0)  (0)  (0)  (orientation_err) ;
-    }
-    else
-    {
-        odometry.pose.covariance = msg.pose.covariance;
-        odometry.twist.covariance = odometry.twist.covariance;
-    }
+    tfb_->sendTransform(tf::StampedTransform(delta_transform, msg.header.stamp, "CAMERE_X_FWD_OLD","COLCAZZO"));
 
-    // set old_pose same as pose if it's the first msg, this means that speed will be 0 this time (if custom_twist is enabled)
-    if(first_run){
-        old_pose = pose;
-        first_run = false;
-    }
 
-    // publish PoseStamped
-    pose_publisher.publish(pose);
+    tfb_->sendTransform(tf::StampedTransform(delta_transform2, msg.header.stamp, "FANCULO","DIOCAN_COLCAZZO"));
+    tfb_->sendTransform(tf::StampedTransform(delta_transform3, msg.header.stamp, "FANCULO","DIOCAN_COLCAZZO2"));
 
-    // calculate speed with our formulas if flag is enabled
-    if(enable_custom_twist)
-    {
-        if(enable_lookup_twist)
-        {
-            try
-            {
-//                listener->waitForTransform("/odom_frame", "/robot_frame", ros::Time(0), ros::Duration(0.1));
+    old_transform = new_transform;
+    old_diocan = diocan;
+    old_msg = msg;
 
-                // Alternativa a lookupTransform
-//                tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)),msg.header.stamp,"odom_frame");
-//                tf::Stamped<tf::Pose> odom_pose;
-//                listener->transformPose("robot_frame",ident,odom_pose);
+//    delta_odom_publisher.publish();
 
-                // Pose odom rispetto a robot_frame
-                listener->lookupTransform("robot_frame", "odom_frame", msg.header.stamp, frame_pose);
 
-                // Velocità odom_frame rispetto a robot_frame
-                listener->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.2), frame_speed);
-                odometry.twist.twist = frame_speed;
 
-                // Aggiorna il vecchio State6DOF data la nuova frame_pose e frame_speed
-                createState6DOF();
 
-            }
-            catch (tf::TransformException &ex)
-            {
-                ROS_ERROR("%s",ex.what());
-                odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
-            }
-        }
-        else{
-            odometry.twist.twist = Utils::getSpeedFrom2PoseStamped(old_pose, pose);
-        }
-    }
-    else {
-        // Use libviso2 twist message
-        odometry.twist.twist = msg.twist.twist;
-    }
 
-    // store pose
-    old_pose = pose;
 
-    //      publish Odometry
-    odom_publisher.publish(odometry);
-    ROS_INFO_STREAM("   Visual Odometry: odometry msg sent");
 
-    //      print published msg
-    //Utils::printPoseMsgToCout(pose);
+
+
+
+
+
+
+
+
+
+//    geometry_msgs::PoseStamped pose_in, pose_out;
+//    tf::StampedTransform t,t1,t2;
+//    tf::Transform t3;
+//    pose_in.header = msg.header;
+//    pose_in.pose = msg.pose.pose;
+
+//    tf::Vector3 gigi1,gigi2;
+//    tf::Vector3 velculo;
+
+//        listener->transformPose("visual_odometry_odom_x_forward",msg.header.stamp,pose_in,"odom",pose_out);
+//        listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",msg.header.stamp,t);
+
+//        listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",msg.header.stamp,t1);
+//        listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",msg.header.stamp - ros::Duration(0.5),t2);
+
+//        t3 = t2.inverseTimes(t1);
+//        velculo = t3.getOrigin() / 0.5;
+
+//        listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed);
+//        frame_speed = t * msg.twist.twist;
+//        tf::Vector3 ident(0,0,0);
+//        gigi1 = t * ident;
+//        gigi2 = t.inverse() * ident;
+
+
+//    try{
+//        listener->waitForTransform("visual_odometry_odom_x_forward", "visual_odometry_car_frame", ros::Time(0), ros::Duration(0.1));
+//        listener->lookupTransform("visual_odometry_odom_x_forward", "visual_odometry_car_frame", ros::Time(0), t);
+//    }
+//    catch (tf::TransformException &ex) {
+//        ROS_ERROR("%s",ex.what());
+//        return;
+//    }
+
+
+//    // send tf
+//    tfb_->sendTransform(tf::StampedTransform(t, t.stamp_, "robot_frame", "odom_frame"));
+
+
 }
 
 /** ***********************************************************************************************************
@@ -262,9 +280,9 @@ int main(int argc, char *argv[]) {
     ros::Subscriber sub = nh.subscribe("/stereo_odometer/odometry", 1, odometryCallback);
 
     // publishers
-    pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry/pose", 3);
-    odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry", 3);
-
+//    pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry/pose", 3);
+//    odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry", 3);
+    delta_odom_publisher = nh.advertise<nav_msgs::Odometry>("/delta_visual_odometry_x_forward", 3);
     // spin
     ros::spin();
 

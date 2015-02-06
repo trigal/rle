@@ -37,8 +37,6 @@ private:
     MatrixXd kalman_gain;    /// kalman gain got while estimating the pose
     double particle_score;   /// score got with particle-score formula
     MotionModel particle_mtn_model;	 /// particle motion model
-    State6DOF old_measure;
-
 
 public:
 

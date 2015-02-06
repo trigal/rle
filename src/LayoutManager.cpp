@@ -46,7 +46,7 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
 {
     // init array_msg
     geometry_msgs::PoseArray array_msg;
-    array_msg.header.frame_id = "robot_frame";
+    array_msg.header.frame_id = "local_map";
 
     // Insert all particles inside msg
     for(int i = 0; i<particles.size(); i++)
@@ -449,7 +449,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // build posestamped
             geometry_msgs::PoseStamped pose_stamp;
             pose_stamp.header.stamp = ros::Time::now();
-            pose_stamp.header.frame_id = "robot_frame";
+            pose_stamp.header.frame_id = "local_map";
             pose_stamp.pose = pose;
 
             // print it!
@@ -497,6 +497,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     LayoutManager::first_msg = false;
 
     // retrieve measurement from odometry
+    State6DOF(odometry->getOldMsg()).printState("[old_msg]");
     odometry->setMsg(msg);
 
     // calculate delta_t

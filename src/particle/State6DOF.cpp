@@ -8,7 +8,7 @@ State6DOF::State6DOF()
     _rotational_velocity = Eigen::AngleAxisd::Identity();
 }
 
-Eigen::MatrixXd State6DOF::subtract_vect(State6DOF &to_be_subtracted)
+Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
 {
     Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
     return tmp_matrix;
@@ -25,7 +25,15 @@ State6DOF State6DOF::subtract_state6DOF(State6DOF &to_be_subtracted)
     return tmp;
 }
 
-State6DOF State6DOF::addVectorXd(Eigen::VectorXd &to_be_added)
+void State6DOF::printState(std::string head_string)
+{
+    std::cout << head_string << std::endl;
+    std::cout << "       pose: " << this->_pose.transpose() << std::endl << "orientation: " << this->_rotation.angle() << " @ " << this->_rotation.axis().transpose() << std::endl;
+    std::cout << "     linear: " << this->_translational_velocity.transpose() << std::endl << "    angular: " << this->_rotational_velocity.angle() << " @ " << this->_rotational_velocity.axis().transpose() << std::endl << std::endl;
+
+}
+
+State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)
 {
     State6DOF tmp;
     Eigen::VectorXd tmp_v = this->toVectorXd() + to_be_added;
@@ -49,6 +57,17 @@ State6DOF State6DOF::addVectorXd(Eigen::VectorXd &to_be_added)
     }
     else
         tmp._rotational_velocity = Eigen::AngleAxisd(tmp_v.block(9,0,3,1).norm(), tmp_v.block(9,0,3,1).normalized());
+    return tmp;
+}
+
+State6DOF State6DOF::add_state6DOF(State6DOF &to_be_added)
+{
+    State6DOF tmp;
+    tmp.setPose(this->getPose() + to_be_added.getPose());
+    tmp.setRotation(Eigen::AngleAxisd(this->getRotation() * to_be_added.getRotation()));
+    tmp.setTranslationalVelocity(this->getTranslationalVelocity() + to_be_added.getTranslationalVelocity());
+    tmp.setRotationalVelocity(Eigen::AngleAxisd(this->getRotationalVelocity() * to_be_added.getRotationalVelocity()));
+
     return tmp;
 }
 

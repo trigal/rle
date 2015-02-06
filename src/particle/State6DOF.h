@@ -27,12 +27,14 @@ public:
     State6DOF(const nav_msgs::Odometry &odom_msg);
 
     // methods ------------------------------------------------------------------------
-    Eigen::MatrixXd subtract_vect(State6DOF &to_be_subtracted);
+    Eigen::MatrixXd subtract_vectXd(State6DOF &to_be_subtracted);
     State6DOF subtract_state6DOF(State6DOF &to_be_subtracted);
-    State6DOF addVectorXd(Eigen::VectorXd &to_be_added);
+    State6DOF add_vectXd(Eigen::VectorXd &to_be_added);
+    State6DOF add_state6DOF(State6DOF &to_be_added);
     Eigen::VectorXd toVectorXd();
     geometry_msgs::Pose toGeometryMsgPose();
     void addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset);
+    void printState(std::string head_string);
 
     // getters & setters --------------------------------------------------------------
     Vector3d getPose() { return _pose; }

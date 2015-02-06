@@ -64,46 +64,66 @@ void Particle::particleEstimation(Odometry* odometry){
     // calcolo belief predetto:
     stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
 
+    // Print
     cout << "[particle_id] " << particle_id << endl;
     cout << "[delta t]     " << LayoutManager::delta_t << endl;
-    cout << "[stato_t]" << endl;
-    cout << "       pose: " << stato_t._pose.transpose() << endl << "orientation: " << stato_t._rotation.angle() << " " << stato_t._rotation.axis().transpose() << endl;
-    cout << "     linear: " << stato_t._translational_velocity.transpose() << endl << "    angular: " << stato_t._rotational_velocity.angle() << " " << stato_t._rotational_velocity.axis().transpose() << endl << endl;
-
-    cout << "[stato_t_predetto]" << endl;
-    cout << "       pose: " << stato_t_predetto._pose.transpose() << endl << "orientation: " << stato_t_predetto._rotation.angle() << " " << stato_t_predetto._rotation.axis().transpose() << endl;
-    cout << "     linear: " << stato_t_predetto._translational_velocity.transpose() << endl << "    angular: " << stato_t_predetto._rotational_velocity.angle() << " " << stato_t_predetto._rotational_velocity.axis().transpose() << endl << endl;
+    stato_t.printState("[stato_t]");
+    State6DOF(odometry->getMsg()).printState("[msg]");
+    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
 
     // applicazione proprietà gaussiane:
     G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
     E_t_pred = G_t * E_t * G_t.transpose() + R_t;
 
+    // Check if the measure is valid
+    if(!odometry->isMeasureValid())
+    {
+        ROS_WARN("Invalid measure detected");
+        // TODO: smorzare il moto
+        particle_state = stato_t_predetto;
+        particle_sigma = E_t_pred;
+
+        //DEBUG:stampa stato_t_predetto
+        particle_state.printState("[stato_t_filtrato_prediction_only]");
+
+        cout << "--------------------------------------------------------------------------------" << endl;
+
+        return;
+    }
+
+
     // ------- UPDATE STEP -------
-    State6DOF measure_t = odometry->getMeasureState();                  // differenza tra odometria arrivata
-    State6DOF delta_measure = measure_t.subtract_state6DOF(old_measure);
-    old_measure = measure_t;
 
-    State6DOF delta_stato = stato_t_predetto.subtract_state6DOF(stato_t);
-    State6DOF measure_delta_stato = odometry->measurePose(delta_stato); //odometry->measurePose(stato_t_predetto); //  stato_t-1_predett - stato_t_predetto
+    State6DOF delta_measure = odometry->getMeasureState();                  // differenza tra odometria arrivata
+    State6DOF predicted_measure;
 
+    predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    predicted_measure.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
 
-    // CHECK FOR ANGLE-AXIS REPRESENTATION SWITCH
-    Vector3d tmp_check_vect(0.23,-0.41,0.93);
-    double angle_axis_norm = (delta_measure._rotation.angle() * delta_measure._rotation.axis() - measure_delta_stato._rotation.angle() * measure_delta_stato._rotation.axis()).norm();
-    double random_vector_transform_norm = (delta_measure._rotation * tmp_check_vect - measure_delta_stato._rotation * tmp_check_vect).norm();
-    if( fabs(angle_axis_norm / random_vector_transform_norm) > 5)
-    {
-        Q_t.block(3,3,3,3) = MatrixXd::Zero(3,3);
-        ROS_WARN("Angle-axis Rotation representation switch detected");
-    }
+    predicted_measure.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
+    predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
+    State6DOF measure_stato = odometry->measurePose(stato_t_predetto);
 
-    angle_axis_norm = (delta_measure._rotational_velocity.angle() * delta_measure._rotational_velocity.axis() - measure_delta_stato._rotational_velocity.angle() * measure_delta_stato._rotational_velocity.axis()).norm();
-    random_vector_transform_norm = (delta_measure._rotational_velocity * tmp_check_vect - measure_delta_stato._rotational_velocity * tmp_check_vect).norm();
-    if( fabs(angle_axis_norm / random_vector_transform_norm) > 5)
-    {
-        Q_t.block(9,9,3,3) = MatrixXd::Zero(3,3);
-        ROS_WARN("Angle-axis Rotational Velocity representation switch detected");
-    }
+    predicted_measure.printState("[predicted measure]");
+    stato_t_predetto.printState("[stato_t_predetto]");
+
+//    // CHECK FOR ANGLE-AXIS REPRESENTATION SWITCH
+//    Vector3d tmp_check_vect(0.23,-0.41,0.93);
+//    double angle_axis_norm = (delta_measure._rotation.angle() * delta_measure._rotation.axis() - measure_delta_stato._rotation.angle() * measure_delta_stato._rotation.axis()).norm();
+//    double random_vector_transform_norm = (delta_measure._rotation * tmp_check_vect - measure_delta_stato._rotation * tmp_check_vect).norm();
+//    if( fabs(angle_axis_norm / random_vector_transform_norm) > 5)
+//    {
+//        Q_t.block(3,3,3,3) = MatrixXd::Zero(3,3);
+//        ROS_WARN("Angle-axis Rotation representation switch detected");
+//    }
+
+//    angle_axis_norm = (delta_measure._rotational_velocity.angle() * delta_measure._rotational_velocity.axis() - measure_delta_stato._rotational_velocity.angle() * measure_delta_stato._rotational_velocity.axis()).norm();
+//    random_vector_transform_norm = (delta_measure._rotational_velocity * tmp_check_vect - measure_delta_stato._rotational_velocity * tmp_check_vect).norm();
+//    if( fabs(angle_axis_norm / random_vector_transform_norm) > 5)
+//    {
+//        Q_t.block(9,9,3,3) = MatrixXd::Zero(3,3);
+//        ROS_WARN("Angle-axis Rotational Velocity representation switch detected");
+//    }
 
     H_t = odometry->measurementJacobian(stato_t_predetto);
 
@@ -112,19 +132,18 @@ void Particle::particleEstimation(Odometry* odometry){
     kalman_gain = K_t; //this value will be used later on score calculation
 
     // kalman gain
-    VectorXd kalman_per_msr_diff = K_t * delta_measure.subtract_vect(measure_delta_stato);
+//    VectorXd kalman_per_msr_diff = K_t * delta_measure.subtract_vect(measure_delta_stato);
+    VectorXd kalman_per_msr_diff = K_t * predicted_measure.subtract_vectXd(measure_stato);
 
     // calculate belief
-    State6DOF stato_filtrato = stato_t_predetto.addVectorXd(kalman_per_msr_diff);
+    State6DOF stato_filtrato = stato_t_predetto.add_vectXd(kalman_per_msr_diff);
     E_t = (MatrixXd::Identity(12,12) - (K_t * H_t)) * E_t_pred;
     // update particle values
     particle_state = stato_filtrato;
     particle_sigma = E_t;
 
     //DEBUG:stampa stato_t_predetto
-    cout << "[stato_t_filtrato]" << endl;
-    cout << "       pose: " << stato_filtrato._pose.transpose() << endl << "orientation: " << stato_filtrato._rotation.angle() << " " << stato_filtrato._rotation.axis().transpose() << endl;
-    cout << "     linear: " << stato_filtrato._translational_velocity.transpose() << endl << "    angular: " << stato_filtrato._rotational_velocity.angle() << " " << stato_filtrato._rotational_velocity.axis().transpose() << endl << endl;
+    stato_filtrato.printState("[stato_t_filtrato]");
 
     cout << "--------------------------------------------------------------------------------" << endl;
 }
