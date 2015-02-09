@@ -95,15 +95,15 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
 
     // Generate random error with box_muller function
     Eigen::Vector3d tmp_error;
-    tmp_error(0) = Utils::box_muller(0,error_covariance(6,6));
-    tmp_error(1) = Utils::box_muller(0,error_covariance(7,7));
-    tmp_error(2) = Utils::box_muller(0,error_covariance(8,8));
+    tmp_error(0) = Utils::box_muller(0,0.7); //error_covariance(6,6));
+    tmp_error(1) = Utils::box_muller(0,0.2); //error_covariance(7,7));
+    tmp_error(2) = Utils::box_muller(0,0.1); //error_covariance(8,8));
 
     // propagate velocity
     p_state_propagated._translational_velocity = p_state._translational_velocity + tmp_error; // WARNING + verify error;
 
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
-    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,error_covariance(9,9));
+    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,0.3); //error_covariance(9,9));
 
 
     return p_state_propagated;

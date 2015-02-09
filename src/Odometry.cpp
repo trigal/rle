@@ -50,7 +50,7 @@ void Odometry::setMsg(const nav_msgs::Odometry &m)
 
         try
         {
-            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,ros::Duration(2));
+            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,ros::Duration(0.1));
             _listener->lookupTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,fixed_transform);
 //            _listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed); // TODO: wishful thinking
 
