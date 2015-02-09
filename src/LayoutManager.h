@@ -28,7 +28,21 @@
 #include <dynamic_reconfigure/server.h>
 #include <road_layout_estimation/road_layout_estimationConfig.h>
 #include <tf/transform_listener.h>
+#include <boost/math/distributions/normal.hpp>
+#include <boost/random/uniform_real.hpp>
+#include "eigenmultivariatenormal.hpp"
+#include "particle/LayoutComponent_Building.h"
+#include "particle/LayoutComponent.h"
+#include "osm_cartography/snap_particle_xy.h"
+#include "osm_cartography/latlon_2_xy.h"
+#include "osm_cartography/xy_2_latlon.h"
+#include "osm_cartography/get_closest_way_distance_utm.h"
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <fstream>
+#include <iostream>
+#include <math.h>
 
+using boost::math::normal;
 using namespace Eigen;
 using Eigen::MatrixXd;
 using std::vector;
@@ -111,6 +125,8 @@ public:
 private:
 
     tf::TransformListener tf_listener;
+    boost::mt19937 rng;                /// The uniform pseudo-random algorithm
+    double street_distribution_sigma;    /// road gaussian distribution sigma
 
     static bool openstreetmap_enabled; /// check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool first_run;  /// flag used for initiliazing particle-set with gps

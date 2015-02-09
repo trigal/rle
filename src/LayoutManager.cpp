@@ -9,33 +9,8 @@
  *   Date:      25/05/2014                                                 *
  *                                                                         *
  ***************************************************************************/
-
-#include "MeasurementModel.h"
-#include "Utils.h"
 #include "LayoutManager.h"
-#include "particle/Particle.h"
-#include "particle/LayoutComponent_Building.h"
-#include "particle/LayoutComponent.h"
-#include "eigenmultivariatenormal.hpp"
-#include <sensor_msgs/NavSatFix.h>
-#include "osm_cartography/snap_particle_xy.h"
-#include "osm_cartography/latlon_2_xy.h"
-#include "osm_cartography/xy_2_latlon.h"
-#include "osm_cartography/get_closest_way_distance_utm.h"
-#include <boost/math/distributions/normal.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <fstream>
-#include <vector>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <iostream>
-#include <math.h>
-using boost::math::normal;
-using Eigen::ArrayXd;
-using Eigen::MatrixXd;
-using namespace std;
-boost::mt19937 rng;                        // The uniform pseudo-random algorithm
+
 bool LayoutManager::openstreetmap_enabled = true; /// check this flag if we want to initialize particle-set with OSM and GPS
 double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
 bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
@@ -127,6 +102,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 {
     cout << "   Reconfigure callback" << endl;
 
+    // update street guassian distribution
+    street_distribution_sigma = config.street_distribution_sigma;
+
     // update uncertainty values -----------------------------------------------------------------------------------
     for(int i=0; i<current_layout.size(); ++i){
         Particle* particle_ptr = &current_layout.at(i);
@@ -202,17 +180,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
 
                    // Build request
-                   osm_cartography::get_closest_way_distance_utm srv;
+                   osm_cartography::snap_particle_xy srv;
                    srv.request.x = tf_pose_map_frame.getOrigin().getX();
                    srv.request.y = tf_pose_map_frame.getOrigin().getY();
                    srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
                    // Get distance from closest street and set it as particle score
                    // init normal distribution
-                   boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
-                   if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
+                   boost::math::normal normal_dist(0, street_distribution_sigma);
+                   if (LayoutManager::snap_particle_xy_client.call(srv))
                    {
-                       part.setParticleScore(pdf(normal_dist, srv.response.distance));
+                       // calculate difference between original particle position and snapped particle position
+                       // use it to set particle score using normal distribution PDF
+                       double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
+                       double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
+                       double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
+                       double distance = sqrt(fabs(dx*dx + dy*dy + dz*dz));
+                       part.setParticleScore(pdf(normal_dist, distance));
                    }
                    else
                    {
@@ -401,7 +385,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 srv.request.x = sample(0);
                 srv.request.y = sample(1);
                 srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
-                boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
+                boost::math::normal normal_dist(0, street_distribution_sigma);
 
                 // Call snap particle service
                 if (LayoutManager::snap_particle_xy_client.call(srv))
@@ -439,7 +423,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Create particle and set its score
                     Particle part(particle_id, p_pose, p_sigma, mtn_model);
-                    part.setParticleScore(pdf(normal_dist, srv.response.distance_from_way));
+                    part.setParticleScore(pdf(normal_dist,0)); // dont' calculate score with distance because particle is snapped
 
                     // Push particle into particle-set
                     current_layout.push_back(part);
@@ -455,7 +439,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         // Create particle and set its score
                         Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-                        part.setParticleScore(pdf(normal_dist, srv.response.distance_from_way));
+                        opposite_part.setParticleScore(pdf(normal_dist,0)); // don't calculate score with distance because particle is snapped
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -591,16 +575,22 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
 
             // Build request
-            osm_cartography::get_closest_way_distance_utm srv;
+            osm_cartography::snap_particle_xy srv;
             srv.request.x = tf_pose_map_frame.getOrigin().getX();
             srv.request.y = tf_pose_map_frame.getOrigin().getY();
             srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
             // Get distance from closest street and set it as particle score
-            boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
-            if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
+            boost::math::normal normal_dist(0, street_distribution_sigma);
+            if (LayoutManager::snap_particle_xy_client.call(srv))
             {
-                (*particle_itr).setParticleScore(pdf(normal_dist, srv.response.distance));
+                // calculate distance from original particle positin and snapped particle position
+                // use it for score calculation with normal distribution PDF
+                double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
+                double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
+                double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
+                double distance = sqrt(fabs(dx*dx + dy*dy + dz*dz));
+                (*particle_itr).setParticleScore(pdf(normal_dist, distance));
             }
             else
             {
