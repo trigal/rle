@@ -22,6 +22,8 @@
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
 #include "osm_cartography/get_closest_way_distance_utm.h"
+#include <boost/math/distributions/normal.hpp>
+#include <boost/random/uniform_real.hpp>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <vector>
@@ -29,15 +31,17 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <math.h>
+using boost::math::normal;
 using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
-
-bool LayoutManager::openstreetmap_enabled = false; /// check this flag if we want to initialize particle-set with OSM and GPS
+boost::mt19937 rng;                        // The uniform pseudo-random algorithm
+bool LayoutManager::openstreetmap_enabled = true; /// check this flag if we want to initialize particle-set with OSM and GPS
 double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
 bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
 bool LayoutManager::first_msg = true;   /// first odometry msg flag
 int LayoutManager::step = 0;            /// filter step counter
+
 
 /**
  * @brief buildPoseArrayMsg
@@ -204,14 +208,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
                    // Get distance from closest street and set it as particle score
+                   // init normal distribution
+                   boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
                    if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
                    {
-                       part.setParticleScore(srv.response.distance);
+                       part.setParticleScore(pdf(normal_dist, srv.response.distance));
                    }
                    else
                    {
                        // Either service is down or particle is too far from a street
-                       part.setParticleScore(9999999);
+                       part.setParticleScore(0);
                    }
                }
 
@@ -395,6 +401,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 srv.request.x = sample(0);
                 srv.request.y = sample(1);
                 srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+                boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
 
                 // Call snap particle service
                 if (LayoutManager::snap_particle_xy_client.call(srv))
@@ -432,7 +439,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Create particle and set its score
                     Particle part(particle_id, p_pose, p_sigma, mtn_model);
-                    part.setParticleScore(srv.response.distance_from_way);
+                    part.setParticleScore(pdf(normal_dist, srv.response.distance_from_way));
 
                     // Push particle into particle-set
                     current_layout.push_back(part);
@@ -448,7 +455,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         // Create particle and set its score
                         Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-                        part.setParticleScore(srv.response.distance_from_way);
+                        part.setParticleScore(pdf(normal_dist, srv.response.distance_from_way));
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -558,7 +565,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // calculate delta_t
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
-    // call particle_estimation
+    // call particle_estimation -------------------------------------------------------------------------------------------------------
     vector<Particle>::iterator particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
 
@@ -590,19 +597,58 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
             // Get distance from closest street and set it as particle score
+            boost::math::normal normal_dist(0, 5); // TODO: parametrizzare & mettere come attributo di classe
             if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
             {
-                (*particle_itr).setParticleScore(srv.response.distance);
+                (*particle_itr).setParticleScore(pdf(normal_dist, srv.response.distance));
             }
             else
             {
                 // Either service is down or particle is too far from a street
-                (*particle_itr).setParticleScore(9999999);
+                (*particle_itr).setParticleScore(0);
             }
 
             cout << "   Particle score: " << (*particle_itr).getParticleScore() << endl;
         }
     }
+    // -------------------------------------------------------------------------------------------------------------------------------------
+
+
+    // resampling --------------------------------------------------------------------------------------------------------------------------
+    vector<Particle> new_current_layout;
+    vector<double> particles_weights;
+    double cum_weight_sum = 0;
+    for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+         cum_weight_sum += (*particle_itr).getParticleScore();
+         particles_weights.push_back(cum_weight_sum);
+    }
+    boost::uniform_real<double> uniform_rand(0, cum_weight_sum);
+
+    // find weight that is at least num
+    vector<double>::iterator weight_itr;
+
+    for(int k = 0; k<current_layout.size(); ++k)
+    {
+        double num = uniform_rand(rng);
+        int particle_counter = 0;
+        for(weight_itr = particles_weights.begin(); weight_itr != particles_weights.end(); weight_itr++ )
+        {
+
+            if( *weight_itr >= num){
+                new_current_layout.push_back(current_layout.at(particle_counter));
+                break;
+            }
+            particle_counter++;
+        }
+    }
+
+    // copy resampled particle-set
+    current_layout.clear();
+    current_layout = new_current_layout;
+
+
+
+    // -------------------------------------------------------------------------------------------------------------------------------------
 
     // --------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
