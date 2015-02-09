@@ -15,7 +15,6 @@ generate_dynamic_reconfigure_options(
     cfg/visual_odometry_fake.cfg
     cfg/visual_odometry_nvm.cfg
     cfg/visual_odometry_test.cfg
-    cfg/visual_odometry_kitti_viso.cfg
 )
 
 #find_package( PCL REQUIRED )
@@ -66,7 +65,7 @@ add_executable(road_layout_estimation
         src/road_layout_estimation.cpp
         src/Utils.cpp
 	src/LayoutManager.cpp 
-        src/Odometry.cpp
+        src/MeasurementModel.cpp
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp
         src/particle/LayoutComponent.cpp
@@ -83,12 +82,6 @@ add_executable(visual_odometry_nvm
         src/Utils.cpp
 )
 
-add_executable(visual_odometry_kitti_viso
-        src/visual_odometry_kitti_viso.cpp
-        src/particle/State6DOF.cpp
-        src/Utils.cpp
-)
-
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
@@ -97,8 +90,6 @@ add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_fake ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_nvm ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_test ${PROJECT_NAME}_gencfgf)
-add_dependencies(visual_odometry_kitti_viso ${PROJECT_NAME}_gencfgf)
-
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(road_layout_estimation
@@ -115,9 +106,5 @@ target_link_libraries(visual_odometry_test
 
 target_link_libraries(visual_odometry_nvm
 #   ${PCL_LIBRARIES}
-    ${catkin_LIBRARIES}
-)
-
-target_link_libraries(visual_odometry_kitti_viso
     ${catkin_LIBRARIES}
 )

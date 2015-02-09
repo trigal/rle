@@ -84,26 +84,24 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
     cout << (p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t)).transpose() << endl;
 
     // propagate _pose
-    p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t);// + pose_error; //random
+    p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t);
 
     // propagate pose _rotation
     Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
     tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
-    p_state_propagated._rotation = tmp_angle_axis * p_state._rotation; // WARNING verify product order!!
-
-
+    p_state_propagated._rotation = tmp_angle_axis * p_state._rotation;
 
     // Generate random error with box_muller function
     Eigen::Vector3d tmp_error;
-    tmp_error(0) = Utils::box_muller(0,0.7); //error_covariance(6,6));
-    tmp_error(1) = Utils::box_muller(0,0.2); //error_covariance(7,7));
-    tmp_error(2) = Utils::box_muller(0,0.1); //error_covariance(8,8));
+    tmp_error(0) = Utils::box_muller(0,propagate_translational_vel_error_x);
+    tmp_error(1) = Utils::box_muller(0,propagate_translational_vel_error_y);
+    tmp_error(2) = Utils::box_muller(0,propagate_translational_vel_error_z);
 
     // propagate velocity
     p_state_propagated._translational_velocity = p_state._translational_velocity + tmp_error; // WARNING + verify error;
 
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
-    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,0.3); //error_covariance(9,9));
+    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,propagate_rotational_vel_error);
 
 
     return p_state_propagated;

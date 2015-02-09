@@ -1,6 +1,6 @@
 <launch>
 	<!-- Arguments -->
-	<arg name="bagfile" default="/media/furlan/storage/datasets/kitti_01.bag"/> <!-- Your bagfile here -->
+	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
 
 	<!-- Static transform from Viso fixed frame to our fixed frame
@@ -27,13 +27,6 @@
 	<!-- Launch ROAD LANE DETECTOR 
 	<node
 		pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
-		required="true"
-		output="screen"
-	/> -->
-	
-	<!-- Launch VISUAL ODOMETRY KITTI-VISO node
-	<node
-		pkg="road_layout_estimation" type="visual_odometry_kitti_viso" name="visual_odometry_kitti_viso"
 		required="true"
 		output="screen"
 	/> -->
@@ -69,7 +62,7 @@
 
 	<!-- Launch RViz-->
 	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
-		args="-d /home/furlan/workspace/catkin_ws/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
+		args="-d /home/limongi/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
 		output="screen"
 	/>
 

@@ -16,7 +16,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "LayoutComponent.h"
 #include "MotionModel.h"
-#include "../Odometry.h"
+#include "../MeasurementModel.h"
 #include "../Utils.h"
 #include <vector>
 #include <Eigen/Dense>	//used for pose matrix
@@ -72,7 +72,7 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particleEstimation(Odometry *odometry);
+    void particleEstimation(MeasurementModel *odometry);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
     vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}

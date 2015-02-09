@@ -23,7 +23,7 @@
 
 using namespace Eigen;
 
-class Odometry {
+class MeasurementModel {
 
 private:
 //    VectorXd msr_state; /// measurement (12x1: 6DoF pose + 6 Speed Derivates)
@@ -97,7 +97,7 @@ public:
     nav_msgs::Odometry getOldMsg() { return _old_msg; }
 
     // constructor & destructor -------------------------------------------------------------------
-    Odometry(){
+    MeasurementModel(){
         // Sets all values to zero
         _msr_cov = MatrixXd::Zero(12,12);
         _listener = new tf::TransformListener();
@@ -105,7 +105,7 @@ public:
         _msg_valid = false;
     }
 
-    ~Odometry(){
+    ~MeasurementModel(){
         // Resize all values to zero
         _msr_cov.resize(0,0);
         delete _listener;

@@ -10,7 +10,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#include "Odometry.h"
+#include "MeasurementModel.h"
 #include "Utils.h"
 #include "LayoutManager.h"
 #include "particle/Particle.h"
@@ -21,6 +21,7 @@
 #include "osm_cartography/snap_particle_xy.h"
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
+#include "osm_cartography/get_closest_way_distance_utm.h"
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <vector>
@@ -32,6 +33,7 @@ using Eigen::ArrayXd;
 using Eigen::MatrixXd;
 using namespace std;
 
+bool LayoutManager::openstreetmap_enabled = false; /// check this flag if we want to initialize particle-set with OSM and GPS
 double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
 bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
 bool LayoutManager::first_msg = true;   /// first odometry msg flag
@@ -91,7 +93,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
 
     // init motion model
 //    mtn_model = new MotionModel();
-    odometry = new Odometry();
+    measurement_model = new MeasurementModel();
 
     // init header timestamp
     old_msg.header.stamp = ros::Time::now();
@@ -104,6 +106,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
     xy_2_latlon_client = n.serviceClient<osm_cartography::xy_2_latlon>("/osm_cartography/xy_2_latlon");
     snap_particle_xy_client = n.serviceClient<osm_cartography::snap_particle_xy>("/osm_cartography/snap_particle_xy");
+    get_closest_way_distance_utm_client = n.serviceClient<osm_cartography::get_closest_way_distance_utm>("/osm_cartography/get_closest_way_distance_utm");
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -130,16 +133,31 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     config.mtn_model_linear_uncertainty,
                     config.mtn_model_angular_uncertainty
                     );
+
+        mtn_model_ptr->setPropagationError(
+                    config.propagate_translational_vel_error_x,
+                    config.propagate_translational_vel_error_y,
+                    config.propagate_translational_vel_error_z,
+                    config.propagate_rotational_vel_error
+                    );
     }
 
+
+    // WARNING in teoria questi due non sono più necessari.
     mtn_model.setErrorCovariance(
                 config.mtn_model_position_uncertainty,
                 config.mtn_model_orientation_uncertainty,
                 config.mtn_model_linear_uncertainty,
                 config.mtn_model_angular_uncertainty
                 );
+    mtn_model.setPropagationError(
+                config.propagate_translational_vel_error_x,
+                config.propagate_translational_vel_error_y,
+                config.propagate_translational_vel_error_z,
+                config.propagate_rotational_vel_error
+                );
 
-    odometry->setMeasureCov(
+    measurement_model->setMeasureCov(
                 config.msr_model_position_uncertainty,
                 config.msr_model_orientation_uncertainty,
                 config.msr_model_linear_uncertainty,
@@ -162,6 +180,41 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                part.setParticleState(tmp);
 
+               // update particle score using OpenStreetMap
+               if(LayoutManager::openstreetmap_enabled){
+                   // Get particle state
+                   Vector3d p_state = part.getParticleState().getPose();
+                   geometry_msgs::PoseStamped pose_local_map_frame;
+                   pose_local_map_frame.header.frame_id = "local_map";
+                   pose_local_map_frame.header.stamp = ros::Time::now();
+                   pose_local_map_frame.pose.position.x = p_state(0);
+                   pose_local_map_frame.pose.position.y =  p_state(1);
+                   pose_local_map_frame.pose.position.z =  p_state(2);
+
+                   tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+                   tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+
+                   // Transform pose from "local_map" to "map"
+                   tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+
+                   // Build request
+                   osm_cartography::get_closest_way_distance_utm srv;
+                   srv.request.x = tf_pose_map_frame.getOrigin().getX();
+                   srv.request.y = tf_pose_map_frame.getOrigin().getY();
+                   srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+
+                   // Get distance from closest street and set it as particle score
+                   if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
+                   {
+                       part.setParticleScore(srv.response.distance);
+                   }
+                   else
+                   {
+                       // Either service is down or particle is too far from a street
+                       part.setParticleScore(9999999);
+                   }
+               }
+
                // Push particle
                current_layout.push_back(part);
 
@@ -183,13 +236,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     }
 
     // ---------------------------------------------------------------------------------------------------------
-
-    /// check this flag if we want to initialize particle-set with OSM and GPS
-    bool gps_initialization = true;
-
     if(LayoutManager::first_run){
 
-        if(gps_initialization)
+        if(LayoutManager::openstreetmap_enabled)
         {
             ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
@@ -275,8 +324,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double alt = 0;
 //            double lat = xy_2_latlon_srv.response.latitude;
 //            double lon = xy_2_latlon_srv.response.longitude;
-//            double cov1 = 15;
-//            double cov2 = 15;
+//            double cov1 = 0;
+//            double cov2 = 0;
             // ------------------------ END RVIZ INITIAL POSE  ------------------------- //
 
             // Get XY values from GPS coords
@@ -347,7 +396,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 srv.request.y = sample(1);
                 srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
 
-                // Call snap particle service service
+                // Call snap particle service
                 if (LayoutManager::snap_particle_xy_client.call(srv))
                 {
                     geometry_msgs::PoseStamped pose_map_frame;
@@ -381,8 +430,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's sigma
                     MatrixXd p_sigma = mtn_model.getErrorCovariance();
 
-                    // Push particle into particle-set
+                    // Create particle and set its score
                     Particle part(particle_id, p_pose, p_sigma, mtn_model);
+                    part.setParticleScore(srv.response.distance_from_way);
+
+                    // Push particle into particle-set
                     current_layout.push_back(part);
 
                     // Update particles id counter
@@ -394,8 +446,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         // Invert Yaw direction
                         p_pose.setRotation(Eigen::AngleAxisd(M_PI + part.getParticleState().getRotation().angle(),part.getParticleState().getRotation().axis()));
 
-                        // Push particle inside particle-set
+                        // Create particle and set its score
                         Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+                        part.setParticleScore(srv.response.distance_from_way);
+
+                        // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
 
                         // Update particles id counter
@@ -497,17 +552,56 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     LayoutManager::first_msg = false;
 
     // retrieve measurement from odometry
-    State6DOF(odometry->getOldMsg()).printState("[old_msg]");
-    odometry->setMsg(msg);
+    State6DOF(measurement_model->getOldMsg()).printState("[old_msg]");
+    measurement_model->setMsg(msg);
 
     // calculate delta_t
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
     // call particle_estimation
-//    layoutEstimation();
     vector<Particle>::iterator particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-        (*particle_itr).particleEstimation(odometry);
+
+        // estimate particle
+        (*particle_itr).particleEstimation(measurement_model);
+
+        // update particle score using OpenStreetMap
+        if(LayoutManager::openstreetmap_enabled){
+
+            // Get particle state
+            Vector3d p_state = (*particle_itr).getParticleState().getPose();
+            geometry_msgs::PoseStamped pose_local_map_frame;
+            pose_local_map_frame.header.frame_id = "local_map";
+            pose_local_map_frame.header.stamp = ros::Time::now();
+            pose_local_map_frame.pose.position.x = p_state(0);
+            pose_local_map_frame.pose.position.y =  p_state(1);
+            pose_local_map_frame.pose.position.z =  p_state(2);
+
+            tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+            tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+
+            // Transform pose from "local_map" to "map"
+            tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+
+            // Build request
+            osm_cartography::get_closest_way_distance_utm srv;
+            srv.request.x = tf_pose_map_frame.getOrigin().getX();
+            srv.request.y = tf_pose_map_frame.getOrigin().getY();
+            srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+
+            // Get distance from closest street and set it as particle score
+            if (LayoutManager::get_closest_way_distance_utm_client.call(srv))
+            {
+                (*particle_itr).setParticleScore(srv.response.distance);
+            }
+            else
+            {
+                // Either service is down or particle is too far from a street
+                (*particle_itr).setParticleScore(9999999);
+            }
+
+            cout << "   Particle score: " << (*particle_itr).getParticleScore() << endl;
+        }
     }
 
     // --------------------------------------------------------------------------------------
@@ -694,7 +788,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
 		// ----------------- predict and update layout poses using E.K.F ----------------- //
 		vector<Particle>::iterator particle_itr;
 		for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-            (*particle_itr).particleEstimation(odometry);
+            (*particle_itr).particleEstimation(measurement_model);
 		}
 		// ------------------------------------------------------------------------------- //
 

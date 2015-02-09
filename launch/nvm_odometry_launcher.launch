@@ -1,22 +1,22 @@
 <launch>
 
-        <!-- Static transform fixing Viso moving frame axis -->
-        <node pkg="tf" type="static_transform_publisher" name="visual_odometry_camera_frame_to_visual_odometry_car_frame"
-                args="0 0 0 0 0 0 visual_odometry_camera_frame visual_odometry_car_frame 100" />
+	<!-- Static transform fixing Viso moving frame axis -->
+	<node pkg="tf" type="static_transform_publisher" name="visual_odometry_camera_frame_to_visual_odometry_car_frame"
+		    args="0 0 0 0 0 0 visual_odometry_camera_frame visual_odometry_car_frame 100" />
 
-        <!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
-        <node pkg="tf" type="static_transform_publisher" name="odom_to_visual_odometry_odom_x_forward"
-                args="0 0 0 0 0 0 visual_odometry_odom_x_forward odom 100" />
+	<!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
+	<node pkg="tf" type="static_transform_publisher" name="odom_to_visual_odometry_odom_x_forward"
+		    args="0 0 0 0 0 0 visual_odometry_odom_x_forward odom 100" />
 
-        <!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
-        <node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
-                args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 100" />
+	<!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
+	<node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
+		    args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 100" />
 
 
 	<!-- Launch RViz -->
         <node
             pkg="rviz" name="rviz" type="rviz" output="screen"
-            args="-d /home/furlan/workspace/catkin_ws/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
+            args="-d /home/limongi/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
          />
 
         <!-- Launch odometry node-->
@@ -26,7 +26,7 @@
             type="visual_odometry_nvm"
             output="screen"
 	    required="true"
-            args="/media/furlan/storage/datasets/dataset_dany.txt"
+            args="/home/limongi/workspace_ros/src/road_layout_estimation/dataset/dataset_dany.txt"
         />
 
 	<!-- Road layout estimation -->

@@ -14,7 +14,7 @@
 #define LAYOUTMANAGER_H_
 
 #include "Utils.h"
-#include "Odometry.h"
+#include "MeasurementModel.h"
 #include "particle/Particle.h"
 #include <vector>
 #include "nav_msgs/Odometry.h"
@@ -78,7 +78,7 @@ using std::vector;
  */
 class LayoutManager {
 public:
-    Odometry* odometry;     /// our Measurment Model
+    MeasurementModel* measurement_model;     /// our Measurment Model
     static double delta_t;  /// time between current message and last arrived message
 
     // Publishers
@@ -94,6 +94,7 @@ public:
     ros::ServiceClient latlon_2_xy_client;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
+    ros::ServiceClient get_closest_way_distance_utm_client;
 
     int num_particles;
 
@@ -111,6 +112,7 @@ private:
 
     tf::TransformListener tf_listener;
 
+    static bool openstreetmap_enabled; /// check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool first_run;  /// flag used for initiliazing particle-set with gps
     static bool first_msg;  /// flag used for init particle-set
     nav_msgs::Odometry old_msg; /// used for delta_t calculation
@@ -199,8 +201,8 @@ public:
     void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
 
     // getters & setters ----------------------------------------------------------------------------
-//    Odometry getVisualOdometry(){ return odometry; }
-//    void setOdometry(Odometry* v_odom){ odometry = v_odom; }
+//    MeasurementModel getVisualOdometry(){ return odometry; }
+//    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }
 
     vector<Particle> getCurrentLayout(){ return current_layout; }
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
@@ -210,7 +212,7 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
-        delete odometry;
+        delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);

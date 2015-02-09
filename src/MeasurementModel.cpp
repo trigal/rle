@@ -10,7 +10,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#include "Odometry.h"
+#include "MeasurementModel.h"
 
 /**
  * No measurement model equations are applied in this case for measuring the particle since
@@ -22,7 +22,7 @@
  * @param p_state 12x1 VectorXd
  * @return measured_p_state 12x1 VectorXd
  */
-State6DOF Odometry::measurePose(State6DOF& p_state){
+State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 //    VectorXd measured_p_state = VectorXd::Zero(12);
 //    measured_p_state = p_state;
@@ -32,7 +32,7 @@ State6DOF Odometry::measurePose(State6DOF& p_state){
     return tmp;
 }
 
-void Odometry::setMsg(const nav_msgs::Odometry &m)
+void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
         _msg = m;
         _msr_cov = Utils::getCovFromOdom(m);
@@ -95,7 +95,7 @@ void Odometry::setMsg(const nav_msgs::Odometry &m)
         _old_msg = _msg;
 }
 
-MatrixXd Odometry::measurementJacobian(State6DOF& p_state_predicted){
+MatrixXd MeasurementModel::measurementJacobian(State6DOF& p_state_predicted){
     /**
      * H_t:
      *

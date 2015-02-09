@@ -13,7 +13,7 @@
 #include "LayoutComponent.h"
 #include "Particle.h"
 #include "MotionModel.h"
-#include "../Odometry.h"
+#include "../MeasurementModel.h"
 #include "State6DOF.h"
 #include "../LayoutManager.h"
 #include <vector>
@@ -44,7 +44,7 @@ void Particle::propagateLayoutComponents(){
  * @brief Implementation of E.K.F. used for particle Odometry estimation
  * @param particle
  */
-void Particle::particleEstimation(Odometry* odometry){
+void Particle::particleEstimation(MeasurementModel* odometry){
 
     // initialize variables
     State6DOF stato_t = particle_state; /// initial state

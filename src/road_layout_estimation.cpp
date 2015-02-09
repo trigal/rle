@@ -27,7 +27,7 @@
 #include "particle/MotionModel.h"
 #include "particle/Particle.h"
 #include "LayoutManager.h"
-#include "Odometry.h"
+#include "MeasurementModel.h"
 #include "Eigen/Core"
 #include "Eigen/Dense"
 #include <vector>
@@ -50,11 +50,12 @@ int main(int argc, char *argv[])
 
     // init subscriber
     std::cout << "argc: " << argc << endl;
-    string argomento = "/stereo_odometer/odometry"; //"/visual_odometry/odometry";
+    string argomento = "/stereo_odometer/odometry";
     if(argc > 2)
     {
         ROS_INFO_STREAM("NO ODOMETRY TOPIC GIVEN AS ARGUMENT, NODE WILL NOT RUN");
         ROS_INFO_STREAM("Example:");
+        ROS_INFO_STREAM("/stereo_odometer/odometry");
         ROS_INFO_STREAM("/visual_odometry/odometry");
         ROS_INFO_STREAM("/visual_odometry_nvm/odometry");
         return -1;
