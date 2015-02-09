@@ -1,25 +1,37 @@
 <launch>
+
+        <!-- Static transform fixing Viso moving frame axis -->
+        <node pkg="tf" type="static_transform_publisher" name="visual_odometry_camera_frame_to_visual_odometry_car_frame"
+                args="0 0 0 0 0 0 visual_odometry_camera_frame visual_odometry_car_frame 100" />
+
+        <!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
+        <node pkg="tf" type="static_transform_publisher" name="odom_to_visual_odometry_odom_x_forward"
+                args="0 0 0 0 0 0 visual_odometry_odom_x_forward odom 100" />
+
+        <!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
+        <node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
+                args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 100" />
+
+
+	<!-- Launch RViz -->
         <node
-            pkg="rviz"
-            name="rviz"
-            type="rviz"
-            output="screen"
-            args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
+            pkg="rviz" name="rviz" type="rviz" output="screen"
+            args="-d /home/furlan/workspace/catkin_ws/src/road_layout_estimation/rviz/visual_odometry_nvm.rviz"
          />
 
+        <!-- Launch odometry node-->
         <node
             pkg="road_layout_estimation"
             name="visual_odometry_nvm"
             type="visual_odometry_nvm"
             output="screen"
 	    required="true"
-            args="/home/dario/workspace_ros/src/road_layout_estimation/dataset/dataset_dany.txt"
+            args="/media/furlan/storage/datasets/dataset_dany.txt"
         />
 
-        <node pkg="road_layout_estimation"
-            name="road_layout_estimation"
-            type="road_layout_estimation"
-            args="/visual_odometry_nvm/odometry"
+	<!-- Road layout estimation -->
+        <node pkg="road_layout_estimation" name="road_layout_estimation" type="road_layout_estimation"
+            args="/stereo_odometer/odometry"
             output="screen"
         />
 	

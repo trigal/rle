@@ -88,7 +88,7 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
 
     // propagate pose _rotation
     Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
-     tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
+    tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t;
     p_state_propagated._rotation = tmp_angle_axis * p_state._rotation; // WARNING verify product order!!
 
 

@@ -58,7 +58,7 @@ Visualization Manager:
       Length: 1
       Name: Odometry
       Position Tolerance: 0
-      Topic: /visual_odometry_nvm/odometry
+      Topic: /stereo_odometer/odometry
       Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
@@ -82,19 +82,25 @@ Visualization Manager:
       Topic: /visual_odometry_nvm/pose
       Value: false
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        odom:
+          Value: true
+        visual_odometry_camera_frame:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        odom:
+          visual_odometry_camera_frame:
+            {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 1
@@ -105,7 +111,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: robot_frame
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -126,22 +132,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.10707
+      Distance: 6.57274
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.693344
-        Y: -0.208879
-        Z: 0.204145
+        X: 0.893253
+        Y: -0.0238106
+        Z: 0.63375
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.440202
+      Pitch: 0.635202
       Target Frame: odom_frame
       Value: Orbit (rviz)
-      Yaw: 3.15491
+      Yaw: 3.12991
     Saved: ~
 Window Geometry:
   Displays:
@@ -159,5 +165,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1366
-  X: 49
+  X: 29
   Y: 14

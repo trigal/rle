@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // Create publisher object
-    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/visual_odometry/odometry",1);
+    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/stereo_odometer/odometry",1);
 
     // init dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::visual_odometry_testConfig> server;
@@ -146,7 +146,9 @@ int main(int argc, char **argv)
             current_time = ros::Time::now();
 
             // send transform_msg
-            tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
+            tfb_->sendTransform(tf::StampedTransform(t, current_time, "odom", "visual_odometry_camera_frame"));
+
+            msg = createOdomMsgFromTF(t);
 
             // init & send odom_msg
             last_msg_time = current_time;
@@ -214,10 +216,10 @@ int main(int argc, char **argv)
 
 
             // publish it
-            tfb_->sendTransform(tf::StampedTransform(t, current_time, "robot_frame", "odom_frame"));
-
             // update current time
             current_time = ros::Time::now();
+            tfb_->sendTransform(tf::StampedTransform(t, current_time, "odom", "visual_odometry_camera_frame"));
+
             time_diff = current_time.toSec() - last_msg_time.toSec();
             current_speed = movement_rate / time_diff;
             current_speed_angular = angle_rate / time_diff;
@@ -276,7 +278,8 @@ int main(int argc, char **argv)
         try{
 
             geometry_msgs::Twist frame_speed;
-            tf_->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
+//            tf_->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
+            tf_->lookupTwist("visual_odometry_camera_frame", "odom", "visual_odometry_camera_frame", tf::Point(0,0,0), "visual_odometry_camera_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
             cout << "LOOKUP TWIST: " << endl;
             std::cout << " Linear speed: " << std::endl;
             std::cout << "  x: " << frame_speed.linear.x << std::endl;
@@ -317,8 +320,8 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
 {
     nav_msgs::Odometry msg;
     msg.header.stamp = current_time;
-    msg.header.frame_id = "robot_frame";
-    msg.child_frame_id = "odom_frame";
+    msg.header.frame_id = "odom";
+    msg.child_frame_id = "visual_odometry_camera_frame";
 
     // set initial position
     msg.pose.pose.position.x = t.getOrigin().getX();

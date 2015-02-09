@@ -343,7 +343,7 @@ void Utils::sendTfFromPoseStamped(const geometry_msgs::PoseStamped& pose, tf::Tr
     tf::quaternionMsgToTF(pose.pose.orientation, q);
     t1.setOrigin(point);
     t1.setRotation(q);
-    tfb->sendTransform(tf::StampedTransform(t1, pose.header.stamp, "robot_frame", "odom_frame"));
+    tfb->sendTransform(tf::StampedTransform(t1, pose.header.stamp, "odom", "visual_odometry_camera_frame"));
 }
 
 void Utils::printOdomMsgToCout(const nav_msgs::Odometry& msg)

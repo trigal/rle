@@ -107,6 +107,8 @@ void Particle::particleEstimation(Odometry* odometry){
     predicted_measure.printState("[predicted measure]");
     stato_t_predetto.printState("[stato_t_predetto]");
 
+    //TODO: stocazzo
+
 //    // CHECK FOR ANGLE-AXIS REPRESENTATION SWITCH
 //    Vector3d tmp_check_vect(0.23,-0.41,0.93);
 //    double angle_axis_norm = (delta_measure._rotation.angle() * delta_measure._rotation.axis() - measure_delta_stato._rotation.angle() * measure_delta_stato._rotation.axis()).norm();

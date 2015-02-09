@@ -15,10 +15,10 @@ class State6DOF
 
 //private:
 public:
-    Eigen::Vector3d _pose;
-    Eigen::AngleAxisd _rotation;
-    Eigen::Vector3d _translational_velocity;
-    Eigen::AngleAxisd _rotational_velocity;
+    Eigen::Vector3d _pose;                      // wrt world
+    Eigen::AngleAxisd _rotation;                // wrt world
+    Eigen::Vector3d _translational_velocity;    // wrt robot
+    Eigen::AngleAxisd _rotational_velocity;     // wrt robot
 
 
 public:

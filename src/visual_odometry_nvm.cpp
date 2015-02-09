@@ -86,11 +86,12 @@ int loadNVM(const char* path) {
             q1 = q;
             Eigen::Matrix3d m; /* fix axis */
             m << 0,0,1,1,0,0,0,1,0;
-            r = m*Utils::getRotationMatrix(q);
+//            r = m*Utils::getRotationMatrix(q);
+            r = Utils::getRotationMatrix(q);
             t = Utils::getCameraCenterAfterRotation(c, r);
 
             geometry_msgs::PoseStamped pose;
-            pose.header.frame_id = "robot_frame";
+            pose.header.frame_id = "odom";
             pose.header.stamp = ros::Time::now();
 
             if(scale_factor_enabled)
@@ -130,8 +131,8 @@ nav_msgs::Odometry buildOdomMsgFrom2Poses(const geometry_msgs::PoseStamped& old_
 
     // create odom msg
     nav_msgs::Odometry odom;
-    odom.child_frame_id = "odom_frame";
-    odom.header.frame_id = "robot_frame";
+    odom.child_frame_id = "visual_odometry_camera_frame";
+    odom.header.frame_id = "odom";
     odom.header.stamp = pose.header.stamp;
 
     odom.pose.pose = pose.pose;
@@ -164,8 +165,8 @@ nav_msgs::Odometry buildOdomMsgFrom1Pose(const geometry_msgs::PoseStamped& old_p
     ang_err = ang_err*ang_err;
 
     // create odom msg
-    odom.child_frame_id = "odom_frame";
-    odom.header.frame_id = "robot_frame";
+    odom.child_frame_id = "visual_odometry_camera_frame";
+    odom.header.frame_id = "odom";
     odom.header.stamp = old_pose.header.stamp;
     odom.pose.pose = old_pose.pose;
     odom.twist.covariance = boost::assign::list_of  (lin_err) (0)   (0)  (0)  (0)  (0)
@@ -225,8 +226,8 @@ int main(int argc, char *argv[]) {
     server.setCallback(f);
 
     // publishers
-    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/visual_odometry_nvm/pose", 1);
-    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("/visual_odometry_nvm/odometry", 1);
+    ros::Publisher pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/stereo_odometer/pose", 1);
+    ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>("/stereo_odometer/odometry", 1);
 
     // tf variables
     tfb_ = new tf::TransformBroadcaster();
@@ -266,7 +267,7 @@ int main(int argc, char *argv[]) {
                 // build first msg ------------------------------------------------------------------------------------
                 old_pose = pose_vec[0];
                 old_pose.header.stamp = ros::Time::now();
-                old_pose.header.frame_id = "robot_frame";
+                old_pose.header.frame_id = "odom";
                 pose_publisher.publish(old_pose);
 
                 // odometry msg ----------------------------------------------------------------------------------
@@ -280,8 +281,8 @@ int main(int argc, char *argv[]) {
                 odom_publisher.publish(odom);
 
                 // write message on console
-                std::cout << "[ Sent msg " << i << "]:" << std::endl;
-                Utils::printOdomAngleAxisToCout(odom);
+//                std::cout << "[ Sent msg " << i << "]:" << std::endl;
+//                Utils::printOdomAngleAxisToCout(odom);
 
                 // send transform
                 Utils::sendTfFromPoseStamped(old_pose, tfb_);
@@ -294,7 +295,7 @@ int main(int argc, char *argv[]) {
                 // pose msg ---------------------------------------------------------------------------------------
                 geometry_msgs::PoseStamped pose = pose_vec[i%CAMERAS_NUMBER];
                 pose.header.stamp = ros::Time::now();
-                pose.header.frame_id = "robot_frame";
+                pose.header.frame_id = "odom";
                 pose_publisher.publish(pose);
 
                 // odometry msg ----------------------------------------------------------------------------------
@@ -311,10 +312,10 @@ int main(int argc, char *argv[]) {
 
                 // -----------------------------------------------------------------------------------------------
 
-                std::cout << "--------------------------------------------------------------------------------" << endl;
-                std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
-                std::cout << "[ Sent msg " << i << "]:" << std::endl;
-                Utils::printOdomAngleAxisToCout(odom);
+//                std::cout << "--------------------------------------------------------------------------------" << endl;
+//                std::cout << "[ Time diff ] " << odom.header.stamp.toSec() - old_pose.header.stamp.toSec() << endl;
+//                std::cout << "[ Sent msg " << i << "]:" << std::endl;
+//                Utils::printOdomAngleAxisToCout(odom);
 
                 // aggiorno i valori
                 old_pose = pose;

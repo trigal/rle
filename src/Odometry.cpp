@@ -50,7 +50,7 @@ void Odometry::setMsg(const nav_msgs::Odometry &m)
 
         try
         {
-            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,ros::Duration(0.1));
+            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,ros::Duration(2));
             _listener->lookupTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,fixed_transform);
 //            _listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed); // TODO: wishful thinking
 
@@ -65,7 +65,7 @@ void Odometry::setMsg(const nav_msgs::Odometry &m)
         {
             ROS_ERROR("%s",ex.what());
             _msg_valid = false;
-            return; // TODO: set return to an error, so the kalman filter can know it and skip the update
+            return;
         }
 
         if(_first_run)
@@ -82,10 +82,9 @@ void Odometry::setMsg(const nav_msgs::Odometry &m)
 
         delta_transform.setOrigin(fixed_transform * _old_transform.inverse() * new_transform.getOrigin());
         delta_transform.setBasis(_old_transform.inverse().getBasis() * new_transform.getBasis());
-        tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW());
+        tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); // TODO: CHECK THIS MAGIC OUT
         delta_transform.setRotation(tmp_q);
 
-//        _measure = State6DOF(_msg); // OLD, now the measure is the DELTA between two odometry timesteps
         _measure = State6DOF();
         _measure.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ())));
         _measure.setRotation(Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ())));
