@@ -98,6 +98,9 @@ public:
     // Publishers
     ros::Publisher array_pub;
     ros::Publisher gps_pub;
+    ros::Publisher street_publisher;
+    ros::Publisher particle_publisher;
+    ros::Publisher diff_publisher;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -124,9 +127,14 @@ public:
 
 private:
 
+    ofstream myfile;
+
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                /// The uniform pseudo-random algorithm
-    double street_distribution_sigma;    /// road gaussian distribution sigma
+    double street_distribution_sigma;  /// Street gaussian distribution sigma
+    double angle_distribution_sigma;   /// Angle difference gaussian distribution sigma
+    double street_distribution_weight; /// Tells how does street pdf weight on score calculation
+    double angle_distribution_weight;  /// Tells how does angle pdf weight on score calculation
 
     static bool openstreetmap_enabled; /// check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool first_run;  /// flag used for initiliazing particle-set with gps
@@ -228,6 +236,7 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
+        myfile.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);

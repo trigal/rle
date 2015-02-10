@@ -11,6 +11,9 @@ Panels:
         - /Odometry2
         - /PoseArray1
         - /MarkerArray1
+        - /Pose1
+        - /Pose2
+        - /Pose3
       Splitter Ratio: 0.65368
     Tree Height: 699
   - Class: rviz/Selection
@@ -116,7 +119,7 @@ Visualization Manager:
       Position Tolerance: 0.1
       Topic: /stereo_odometer/odometry
       Value: true
-    - Arrow Length: 100
+    - Arrow Length: 10
       Class: rviz/PoseArray
       Color: 255; 255; 0
       Enabled: true
@@ -132,6 +135,48 @@ Visualization Manager:
         roads_osm: true
         waypoints_osm: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 100
+      Shaft Radius: 1
+      Shape: Arrow
+      Topic: /road_layout_estimation/layout_manager/quaternion_pose
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 85; 0; 255
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 100
+      Shaft Radius: 1
+      Shape: Arrow
+      Topic: /road_layout_estimation/layout_manager/particle_pose
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 85; 255; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 100
+      Shaft Radius: 1
+      Shape: Arrow
+      Topic: /road_layout_estimation/layout_manager/diff_pose
       Value: true
   Enabled: true
   Global Options:
@@ -157,22 +202,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 372.697
+      Distance: 10
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 16.0527
-        Y: 36.2618
-        Z: 2.05958e-05
+        X: 0
+        Y: 0
+        Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.5698
+      Pitch: 0.785398
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 1.3704
+      Yaw: 0.785398
     Saved: ~
 Window Geometry:
   Displays:
@@ -190,5 +235,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1724
-  X: -10
+  X: 49
   Y: 14
