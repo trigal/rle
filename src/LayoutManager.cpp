@@ -286,12 +286,19 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 15;
 //            double cov2 = 15;
 
-            // KITTI 01
-            double alt = 164.78;
-            double lat = 49.006719195871;
-            double lon = 8.4893558806503;
-            double cov1 = 150;
-            double cov2 = 150;
+            // KITTI 00
+            double alt = 0;
+            double lat = 48.98254523586602;
+            double lon = 8.39036610004500;
+            double cov1 = 100;
+            double cov2 = 100;
+
+//            // KITTI 01
+//            double alt = 0;
+//            double lat = 49.006719195871;
+//            double lon = 8.4893558806503;
+//            double cov1 = 150;
+//            double cov2 = 150;
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
