@@ -86,6 +86,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::street_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/quaternion_pose",1);
     LayoutManager::particle_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/particle_pose",1);
     LayoutManager::diff_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/diff_pose",1);
+    LayoutManager::marker_pub = n.advertise<visualization_msgs::Marker>("/road_layout_estimation/layout_manager/circle", 1);
+    LayoutManager::marker_pub2 = n.advertise<visualization_msgs::Marker>("/road_layout_estimation/layout_manager/circle2", 1);
 
     // init ROS service client
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
@@ -187,7 +189,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
 
                    // Transform pose from "local_map" to "map"
-                   tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+                   try{
+                        tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+                   }
+                   catch (tf::TransformException &ex)
+                   {
+                       ROS_ERROR("%s",ex.what());
+                       ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
+                       return;
+                   }
 
                    // Build request
                    osm_cartography::snap_particle_xy srv;
@@ -280,9 +290,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             double alt = 164.78;
             double lat = 49.006719195871;
             double lon = 8.4893558806503;
-            double cov1 = 15;
-            double cov2 = 15;
-            ros::Duration(0.5).sleep(); // sleep for 2 secs
+            double cov1 = 150;
+            double cov2 = 150;
+
+            //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
             // Publish GPS fix on map
@@ -324,8 +335,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double alt = 0;
 //            double lat = xy_2_latlon_srv.response.latitude;
 //            double lon = xy_2_latlon_srv.response.longitude;
-//            double cov1 = 0;
-//            double cov2 = 0;
+//            double cov1 = 150;
+//            double cov2 = 150;
             // ------------------------ END RVIZ INITIAL POSE  ------------------------- //
 
             // Get XY values from GPS coords
@@ -366,6 +377,87 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             cout << "   COV: " << endl;
             cout << covar << endl;
             cout << "------------------------------------------------------------" << endl;
+
+
+            /// ---------------------------------------------------------------------------
+            // Set our shape type to be a sphere
+            uint32_t shape = visualization_msgs::Marker::SPHERE;
+
+            visualization_msgs::Marker marker;
+            // Set the frame ID and timestamp.
+            marker.header.frame_id = "map";
+
+            // Set the namespace and id for this marker.  This serves to create a unique ID
+            // Any marker sent with the same namespace and id will overwrite the old one
+            marker.ns = "gauss_sigma";
+            marker.id = 0;
+            marker.type = shape;
+            // Set the marker action.  Options are ADD and DELETE
+            marker.action = visualization_msgs::Marker::ADD;
+
+            // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+            marker.pose.position.x = point.x;
+            marker.pose.position.y = point.y;
+            marker.pose.position.z = 0;
+            marker.pose.orientation.x = 0.0;
+            marker.pose.orientation.y = 0.0;
+            marker.pose.orientation.z = 0.0;
+            marker.pose.orientation.w = 1.0;
+
+            // Set the scale of the marker -- 1x1x1 here means 1m on a side
+            marker.scale.x = cov1/3;
+            marker.scale.y = cov1/3;
+            marker.scale.z = .1;
+
+            // Set the color -- be sure to set alpha to something non-zero!
+            marker.color.r = 0.0f;
+            marker.color.g = 1.0f;
+            marker.color.b = 0.0f;
+            marker.color.a = 0.3f;
+
+            marker.lifetime = ros::Duration();
+            marker.header.stamp = ros::Time::now();
+
+
+            visualization_msgs::Marker marker2;
+            // Set the frame ID and timestamp.
+            marker2.header.frame_id = "map";
+
+            // Set the namespace and id for this marker.  This serves to create a unique ID
+            // Any marker sent with the same namespace and id will overwrite the old one
+            marker2.ns = "gauss_sigma";
+            marker2.id = 1;
+            marker2.type = shape;
+            // Set the marker action.  Options are ADD and DELETE
+            marker2.action = visualization_msgs::Marker::ADD;
+
+            // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+            marker2.pose.position.x = point.x;
+            marker2.pose.position.y = point.y;
+            marker2.pose.position.z = 0;
+            marker2.pose.orientation.x = 0.0;
+            marker2.pose.orientation.y = 0.0;
+            marker2.pose.orientation.z = 0.0;
+            marker2.pose.orientation.w = 1.0;
+
+            // Set the scale of the marker -- 1x1x1 here means 1m on a side
+            marker2.scale.x = .1;
+            marker2.scale.y = .5;
+            marker2.scale.z = 80;
+
+            // Set the color -- be sure to set alpha to something non-zero!
+            marker2.color.r = 0.0f;
+            marker2.color.g = 0.0f;
+            marker2.color.b = 1.0f;
+            marker2.color.a = 1.0f;
+
+            marker2.lifetime = ros::Duration();
+            marker2.header.stamp = ros::Time::now();
+
+            // Publish the marker
+            marker_pub.publish(marker);
+            marker_pub2.publish(marker2);
+            // -------------------------------------------------------------------------------
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
@@ -413,8 +505,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
 
                     // Transform pose from "map" to "local_map"
-                    tf_listener.transformPose("local_map", ros::Time(0), tf_pose_map_frame, "map", tf_pose_local_map_frame);
 
+                    try
+                    {
+                        tf_listener.waitForTransform("local_map", "map", ros::Time::now(), ros::Duration(0.5));
+                        tf_listener.transformPose("/local_map", ros::Time(0), tf_pose_map_frame, "/map", tf_pose_local_map_frame);
+                    }
+                    catch (tf::TransformException &ex)
+                    {
+                        ROS_ERROR("%s",ex.what());
+                        ROS_INFO_STREAM("pippo exception");
+                        //return;
+                    }
                     // Init particle's pose
                     State6DOF p_pose;
                     p_pose._pose = Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0);
@@ -541,7 +643,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // stampo misura arrivata
     std::cout << " ******* MSG ARRIVED. *******" << std::endl;
-    Utils::printOdomAngleAxisToCout(msg);
+//    Utils::printOdomAngleAxisToCout(msg);
 
     // if it's our first incoming odometry msg, just use it as particle-set poses initializer
     // (filter won't be called)
@@ -554,7 +656,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     LayoutManager::first_msg = false;
 
     // retrieve measurement from odometry
-    State6DOF(measurement_model->getOldMsg()).printState("[old_msg]");
+//    State6DOF(measurement_model->getOldMsg()).printState("[old_msg]");
     measurement_model->setMsg(msg);
 
     // calculate delta_t
@@ -592,7 +694,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
 
             // Transform pose from "local_map" to "map"
-            tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+            try{
+                tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+
+            }
+            catch (tf::TransformException &ex)
+            {
+                ROS_ERROR("%s",ex.what());
+                ROS_INFO_STREAM("particle estimation");
+                return;
+            }
 
             // Build request for getting
             osm_cartography::snap_particle_xy srv;
@@ -617,8 +728,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
                 tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
                 tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
-                tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
-
+                // Transform pose from "local_map" to "map"
+                try{
+                    tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
+                }
+                catch (tf::TransformException &ex)
+                {
+                    ROS_ERROR("%s",ex.what());
+                    ROS_INFO_STREAM(" Transform snapped particle pose from map to local_map");
+                    return;
+                }
 
                 // save street direction
                 street_direction = tf_snapped_local_map_frame.getRotation();
@@ -639,8 +758,18 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 //      get pdf score from first angle score
                 boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
                 double first_angle_difference = first_angle_diff.getAngle();
-                cout << "   first angle diff: " << first_angle_difference << endl;
                 double angle_diff_score_component = pdf(angle_normal_dist, first_angle_difference);
+
+
+                cout << "SCORE:" << endl
+                     << "   DISTANCE:" << endl
+                     << "      sigma: " << street_distribution_sigma << endl
+                     << "      error: " << distance << endl
+                     << "      score: " << pose_diff_score_component << endl
+                     << "   ANGLE:" << endl
+                     << "      sigma: " << angle_distribution_sigma << endl
+                     << "      error: " << first_angle_difference << endl
+                     << "      score: " << angle_diff_score_component << endl;
 
                 //      if street have 2 directions check angle diff with opposite angle
                 if(srv.response.way_dir_opposite_particles)
@@ -656,7 +785,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 }
 
                 // set particle score
-                (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component + angle_distribution_weight * angle_diff_score_component);
+                (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * angle_diff_score_component);
             }
             else
             {
@@ -664,7 +793,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 (*particle_itr).setParticleScore(0);
             }// end snap particle client
 
-            cout << "   Particle score: " << (*particle_itr).getParticleScore() << endl;
+            cout << "   TOTAL: " << (*particle_itr).getParticleScore() << endl << endl;
 
         } // end openstreetmap enabled
     } // end particle cycle
@@ -693,7 +822,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
             if( *weight_itr >= num){
                 myfile << particle_counter<< "\n";
-                new_current_layout.push_back(current_layout.at(particle_counter));
+                Particle diomerda = current_layout.at(particle_counter);
+                new_current_layout.push_back(diomerda);
                 break;
             }
             particle_counter++;

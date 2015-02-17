@@ -1,5 +1,4 @@
 #include "State6DOF.h"
-
 State6DOF::State6DOF()
 {
     _pose = Eigen::Vector3d::Zero();

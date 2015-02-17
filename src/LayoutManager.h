@@ -37,6 +37,7 @@
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
 #include "osm_cartography/get_closest_way_distance_utm.h"
+#include "visualization_msgs/Marker.h"
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <iostream>
@@ -101,6 +102,8 @@ public:
     ros::Publisher street_publisher;
     ros::Publisher particle_publisher;
     ros::Publisher diff_publisher;
+    ros::Publisher marker_pub;
+    ros::Publisher marker_pub2;
 
     // Subscriber
     ros::Subscriber odometry_sub;

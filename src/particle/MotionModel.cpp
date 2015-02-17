@@ -81,7 +81,7 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
     // initialize values
     State6DOF p_state_propagated;
 
-    cout << (p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t)).transpose() << endl;
+//    cout << (p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t)).transpose() << endl;
 
     // propagate _pose
     p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t);

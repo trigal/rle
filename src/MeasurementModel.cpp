@@ -34,6 +34,7 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
+
         _msg = m;
         _msr_cov = Utils::getCovFromOdom(m);
 
@@ -48,10 +49,12 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tf::StampedTransform fixed_transform;
         Eigen::AngleAxisd tmp_rotational_velocity;
 
+
         try
         {
-            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,ros::Duration(0.1));
-            _listener->lookupTransform("visual_odometry_odom_x_forward","odom",_msg.header.stamp,fixed_transform);
+            _listener->waitForTransform("visual_odometry_odom_x_forward","odom",ros::Time(0),ros::Duration(0.1));
+            _listener->lookupTransform("visual_odometry_odom_x_forward","odom",ros::Time(0),fixed_transform);
+//            _listener->lookupTransform("visual_odometry_odom_x_forward","odom",ros::Time::now(),fixed_transform);
 //            _listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed); // TODO: wishful thinking
 
             _listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",_msg.header.stamp,t1);

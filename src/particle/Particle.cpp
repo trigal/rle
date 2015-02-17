@@ -46,6 +46,8 @@ void Particle::propagateLayoutComponents(){
  */
 void Particle::particleEstimation(MeasurementModel* odometry){
 
+//    cout << "[entering particleEstimation]" << endl;
+
     // initialize variables
     State6DOF stato_t = particle_state; /// initial state
     MatrixXd E_t = particle_sigma;		/// initial sigma (state error covariance)
@@ -64,12 +66,12 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     // calcolo belief predetto:
     stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
 
-    // Print
-    cout << "[particle_id] " << particle_id << endl;
-    cout << "[delta t]     " << LayoutManager::delta_t << endl;
-    stato_t.printState("[stato_t]");
-    State6DOF(odometry->getMsg()).printState("[msg]");
-    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
+//    // Print
+//    cout << "[particle_id] " << particle_id << endl;
+//    cout << "[delta t]     " << LayoutManager::delta_t << endl;
+//    stato_t.printState("[stato_t]");
+//    State6DOF(odometry->getMsg()).printState("[msg]");
+//    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
 
     // applicazione proprietà gaussiane:
     G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
@@ -84,9 +86,9 @@ void Particle::particleEstimation(MeasurementModel* odometry){
         particle_sigma = E_t_pred;
 
         //DEBUG:stampa stato_t_predetto
-        particle_state.printState("[stato_t_filtrato_prediction_only]");
+//        particle_state.printState("[stato_t_filtrato_prediction_only]");
 
-        cout << "--------------------------------------------------------------------------------" << endl;
+//        cout << "--------------------------------------------------------------------------------" << endl;
 
         return;
     }
@@ -104,8 +106,8 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
     State6DOF measure_stato = odometry->measurePose(stato_t_predetto);
 
-    predicted_measure.printState("[predicted measure]");
-    stato_t_predetto.printState("[stato_t_predetto]");
+//    predicted_measure.printState("[predicted measure]");
+//    stato_t_predetto.printState("[stato_t_predetto]");
 
     //TODO: stocazzo
 
@@ -145,8 +147,8 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     particle_sigma = E_t;
 
     //DEBUG:stampa stato_t_predetto
-    stato_filtrato.printState("[stato_t_filtrato]");
+//    stato_filtrato.printState("[stato_t_filtrato]");
 
-    cout << "--------------------------------------------------------------------------------" << endl;
+//    cout << "--------------------------------------------------------------------------------" << endl;
 }
 
