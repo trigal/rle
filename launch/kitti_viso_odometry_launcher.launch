@@ -2,7 +2,7 @@
 	<!-- Arguments -->
 	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
-	<arg name="publish_rate" default="0.1" />
+	<arg name="publish_rate" default="0.3" />
 	<param name="/use_sim_time" value="true"/>
 
 	<!-- Static transform fixing Viso moving frame axis -->
@@ -24,13 +24,13 @@
 		output="screen"
 	/> -->
 
-	<!-- Launch ROAD LAYOUT ESTIMATION node  
+	<!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
 		required="true"
 		output="screen"
 		args="stereo_odometer/odometry"
-	/>-->
+	/> 
 
 	<!-- Run the rosbag 
 	<node pkg="rosbag" type="play" name="rosbag" args="-clock $(arg bagfile) -r $(arg publish_rate)"/>-->

@@ -284,7 +284,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 15;
 //            double cov2 = 15;
 
-            // KITTI 00
+//            // KITTI 00
             double alt = 0;
             double lat = 48.98254523586602;
             double lon = 8.39036610004500;
@@ -295,8 +295,64 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double alt = 0;
 //            double lat = 49.006719195871;
 //            double lon = 8.4893558806503;
-//            double cov1 = 150;
-//            double cov2 = 150;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 02
+//            double alt = 0;
+//            double lat = 48.987607723096;
+//            double lon = 8.4697469732634;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 04
+//            double alt = 0;
+//            double lat = 49.033603440345;
+//            double lon = 8.3950031909457;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 05
+//            double alt = 0;
+//            double lat = 49.04951961077;
+//            double lon = 8.3965961639946;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 06
+//            double alt = 0;
+//            double lat = 49.05349304789598;
+//            double lon = 8.39721998765449;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 07
+//            double alt = 0;
+//            double lat = 48.98523696217;
+//            double lon = 8.3936414564418;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 08
+//            double alt = 0;
+//            double lat = 48.98511761552598;
+//            double lon = 8.39399876678870;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 09
+//            double alt = 0;
+//            double lat = 48.972104544468;
+//            double lon = 8.4761469953335;
+//            double cov1 = 100;
+//            double cov2 = 100;
+
+            // KITTI 10
+//            double alt = 0;
+//            double lat = 48.97253396005;
+//            double lon = 8.4785980847297;
+//            double cov1 = 100;
+//            double cov2 = 100;
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
