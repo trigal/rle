@@ -72,7 +72,7 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particleEstimation(MeasurementModel *odometry);
+    void particlePoseEstimation(MeasurementModel *odometry);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
     vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}

@@ -44,7 +44,7 @@ void Particle::propagateLayoutComponents(){
  * @brief Implementation of E.K.F. used for particle Odometry estimation
  * @param particle
  */
-void Particle::particleEstimation(MeasurementModel* odometry){
+void Particle::particlePoseEstimation(MeasurementModel* odometry){
 
 //    cout << "[entering particleEstimation]" << endl;
 

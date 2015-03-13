@@ -23,7 +23,7 @@ public:
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
-    void calculateWeight(){
+    void calculateComponentScore(){
         cout << "Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
     }
 
@@ -33,6 +33,14 @@ public:
     void componentPerturbation(){
         cout << "Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
     }
+
+    /**
+     * Implementation of pure virtual method 'componentPerturbation'
+     */
+    void componentPoseEstimation(){
+        cout << "Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+    }
+
 
     // Getters and setters ----------------------------------------------------------------------
     void setK1(double val){ k1 = val; }
@@ -48,7 +56,7 @@ public:
     LayoutComponent_RoadLane(){
         particle_id = 0;
         component_id = 0;
-        weight = 0;
+        component_weight = 0;
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12,12);
         k1 = 0;
@@ -59,7 +67,7 @@ public:
     LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, double k1, double k3, double y_res, ros::Time timestamp){
         particle_id = p_id;
         component_id = c_id;
-        weight = 0;
+        component_weight = 0;
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12,12);
         this->k1= k1;
@@ -70,7 +78,7 @@ public:
     LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov){
         particle_id = p_id;
         component_id = c_id;
-        weight = 0;
+        component_weight = 0;
         component_state = c_state;
         component_cov = c_cov;
         k1 = 0;
@@ -81,7 +89,7 @@ public:
     ~LayoutComponent_RoadLane(){
         particle_id = 0;
         component_id = 0;
-        weight = 0;
+        component_weight = 0;
         component_state.resize(0);
         component_cov.resize(0,0);
         k1 = 0;

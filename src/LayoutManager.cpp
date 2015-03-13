@@ -56,8 +56,6 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  */
 LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
 
-    myfile.open ("example.txt");
-
     // set this node_handle as the same of 'road_layout_manager'
     node_handle = n;
 
@@ -676,9 +674,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     vector<Particle>::iterator particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
 
+        // SAMPLING ---------------------------------------------------------------------------------------------
         // estimate particle
-        (*particle_itr).particleEstimation(measurement_model);
+        (*particle_itr).particlePoseEstimation(measurement_model);
 
+
+        // SCORE ------------------------------------------------------------------------------------------------
         // update particle score using OpenStreetMap
         if(LayoutManager::openstreetmap_enabled)
         {
@@ -753,7 +754,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 // use it for score calculation with normal distribution PDF
                 double dx = tf_pose_local_map_frame.getOrigin().getX() - tf_snapped_local_map_frame.getOrigin().getX();
                 double dy = tf_pose_local_map_frame.getOrigin().getY() - tf_snapped_local_map_frame.getOrigin().getY();
-                double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0;
+                double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0; // particle Z axis is forced to be next to zero
                 double distance = sqrt(fabs(dx*dx + dy*dy + dz*dz));
                 //      get PDF score
                 boost::math::normal normal_dist(0, street_distribution_sigma);
@@ -809,28 +810,31 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
     vector<Particle> new_current_layout;
-    vector<double> particles_weights;
-    double cum_weight_sum = 0;
+    vector<double> particle_score_vect;
+    double cum_score_sum = 0;
+
+    // Build cumulative sum of the score and roulette vector
     for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-         cum_weight_sum += (*particle_itr).getParticleScore();
-         particles_weights.push_back(cum_weight_sum);
+         cum_score_sum += (*particle_itr).getParticleScore();
+         particle_score_vect.push_back(cum_score_sum);
     }
-    boost::uniform_real<double> uniform_rand(0, cum_weight_sum);
+
+    // Init uniform distribution
+    boost::uniform_real<double> uniform_rand(0, cum_score_sum);
 
     // find weight that is at least num
-    vector<double>::iterator weight_itr;
+    vector<double>::iterator score_itr;
     for(int k = 0; k<current_layout.size(); ++k)
     {
         double num = uniform_rand(rng);
 
         int particle_counter = 0;
-        for(weight_itr = particles_weights.begin(); weight_itr != particles_weights.end(); weight_itr++ )
+        for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
         {
 
-            if( *weight_itr >= num){
-                myfile << particle_counter<< "\n";
-                Particle diomerda = current_layout.at(particle_counter);
-                new_current_layout.push_back(diomerda);
+            if( *score_itr >= num){
+                Particle temp_part = current_layout.at(particle_counter);
+                new_current_layout.push_back(temp_part);
                 break;
             }
             particle_counter++;
@@ -997,7 +1001,7 @@ void LayoutManager::calculateLayoutComponentsWeight(){
         // second, iterate over all layout-components of current 'particle'
         for(int j=0; j<vec.size(); j++){
             LayoutComponent* lc = vec.at(j);
-            lc->calculateWeight();
+            lc->calculateComponentScore();
         }
     }
 }
@@ -1007,15 +1011,15 @@ void LayoutManager::calculateLayoutComponentsWeight(){
 /**
  * FORMULA CALCOLO SCORE
  *
- * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
- *  1- Kalman gain sulla pose della particella
+ * Cardinalità unaria
+ *  NO: 1- Kalman gain sulla pose della particella
  *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
  *
  * Cardinalità >= 2
  *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.) nella stessa particella
  *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.) nella stessa particella
  *
- * Nessuna particella verrà eliminata durante il procedimento di calcolo dello scoState6DOFre,
+ * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
  * essa sarà mantenuta in vita nonostante lo score sia basso.
  * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
  * uno score di valore basso per motivi di natura diversa.
@@ -1056,7 +1060,7 @@ vector<Particle> LayoutManager::layoutEstimation(){
 		// ----------------- predict and update layout poses using E.K.F ----------------- //
 		vector<Particle>::iterator particle_itr;
 		for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-            (*particle_itr).particleEstimation(measurement_model);
+            (*particle_itr).particlePoseEstimation(measurement_model);
 		}
 		// ------------------------------------------------------------------------------- //
 

@@ -11,24 +11,22 @@ class LayoutComponent {
 protected:
     unsigned int particle_id;   /// Tells particle ID of where this component is living
     unsigned int component_id;  /// Component ID
-    double weight;              /// Used for resampling
-    VectorXd component_state;	/// current particle-component pose (12x1: 6DoF + 6 speed derivates)
-    MatrixXd component_cov;
+    double component_weight;    /// Used for resampling
+    VectorXd component_state;	/// Particle-component pose
+    MatrixXd component_cov;     /// Particle-component uncertainty
+
 
 public:
 
     /**
      * This function compute particle-componenet weight, used during P.F. resampling
-     *
-     * Associa uno score ad ogni particella del particle set predetto
-     * Ogni score è memorizzato in score_vector
-     * @param particle set predetto
-     * @param misura al tempo t
-     * @param altri valori dati dai detector
-     * @return vettore pesi associato al particle set predetto
-     *
      */
-    virtual void calculateWeight() = 0;
+    virtual void calculateComponentScore() = 0;
+
+    /**
+     * This function is the implementation of pose propagation of layout component
+     */
+    virtual void componentPoseEstimation() = 0;
 
     /**
      * @brief componentPerturbation
@@ -43,8 +41,8 @@ public:
     unsigned int getParticleId(){return particle_id;}
     void setParticleId(unsigned int id){ particle_id = id; }
 
-    double getComponentWeight(){return weight;}
-    void setComponentWeight(double w){weight=w;}
+    double getComponentWeight(){return component_weight;}
+    void setComponentWeight(double w){component_weight=w;}
 
     VectorXd getComponentState(){return component_state;}
     void setComponentState(VectorXd& pose){ component_state = pose; }
@@ -57,7 +55,7 @@ public:
     ~LayoutComponent(){
         particle_id = 0;
         component_id = 0;
-        weight = 0;
+        component_weight = 0;
         component_state.resize(0);
         component_cov.resize(0,0);
     }
@@ -66,7 +64,7 @@ public:
     LayoutComponent(){
         particle_id = 0;
         component_id = 0;
-        weight = 0;
+        component_weight = 0;
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12,12);
     }

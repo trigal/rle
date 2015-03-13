@@ -129,9 +129,6 @@ public:
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
 private:
-
-    ofstream myfile;
-
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                /// The uniform pseudo-random algorithm
     double street_distribution_sigma;  /// Street gaussian distribution sigma
@@ -239,7 +236,6 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
-        myfile.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);
