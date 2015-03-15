@@ -17,6 +17,9 @@ bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-
 bool LayoutManager::first_msg = true;   /// first odometry msg flag
 int LayoutManager::step = 0;            /// filter step counter
 
+visualization_msgs::Marker marker1;
+visualization_msgs::Marker marker2;
+
 
 /**
  * @brief buildPoseArrayMsg
@@ -518,6 +521,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // Publish the marker
             marker_pub.publish(marker);
             marker_pub2.publish(marker2);
+
+            marker1 = marker;
+            marker2 = marker2;
             // -------------------------------------------------------------------------------
 
             // Create a bivariate gaussian distribution of doubles.
@@ -699,6 +705,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
  ***************************************************************************************************/
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
+
+    marker_pub.publish(marker1);
+    marker_pub2.publish(marker2);
+
     cout << "--------------------------------------------------------------------------------" << endl;
     cout << "[step: " << step << "]" << endl; step++;
 
