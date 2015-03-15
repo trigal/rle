@@ -22,6 +22,8 @@
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 
+using namespace std;
+
 // Conversion between geographic and UTM coordinates
 // Adapted from:
 // http://www.uwgb.edu/dutchs/UsefulData/ConvertUTMNoOZ.HTM
@@ -321,7 +323,7 @@ geometry_msgs::Twist Utils::getSpeedFrom2PoseStamped(const geometry_msgs::PoseSt
     m.getRPY(roll_prec, pitch_prec, yaw_prec);
 
     // Quaternion to RPY (step_t)
-    tf::quaternionMsgToTF(pose_t.pose.orientation,q2);
+    tf::quaternionMsgToTF(pose_t.pose.orientation, q2);
     tf::Matrix3x3 m_t(q2);
     double roll_t; double pitch_t; double yaw_t;
     m_t.getRPY(roll_t, pitch_t, yaw_t);

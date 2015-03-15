@@ -672,37 +672,40 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 
     // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-    vector<Particle> new_current_layout;
-    vector<double> particles_weights;
-    double cum_weight_sum = 0;
-    for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-         cum_weight_sum += (*particle_itr).getParticleScore();
-         particles_weights.push_back(cum_weight_sum);
-    }
-    boost::uniform_real<double> uniform_rand(0, cum_weight_sum);
-
-    // find weight that is at least num
-    vector<double>::iterator weight_itr;
-    for(int k = 0; k<current_layout.size(); ++k)
+    if(LayoutManager::openstreetmap_enabled) // for now, score comes just from OSM, don't resample if it's not enabled
     {
-        double num = uniform_rand(rng);
-
-        int particle_counter = 0;
-        for(weight_itr = particles_weights.begin(); weight_itr != particles_weights.end(); weight_itr++ )
-        {
-
-            if( *weight_itr >= num){
-                myfile << particle_counter<< "\n";
-                new_current_layout.push_back(current_layout.at(particle_counter));
-                break;
-            }
-            particle_counter++;
+        vector<Particle> new_current_layout;
+        vector<double> particles_weights;
+        double cum_weight_sum = 0;
+        for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+             cum_weight_sum += (*particle_itr).getParticleScore();
+             particles_weights.push_back(cum_weight_sum);
         }
-    }
+        boost::uniform_real<double> uniform_rand(0, cum_weight_sum);
 
-    // copy resampled particle-set
-    current_layout.clear();
-    current_layout = new_current_layout;
+        // find weight that is at least num
+        vector<double>::iterator weight_itr;
+        for(int k = 0; k<current_layout.size(); ++k)
+        {
+            double num = uniform_rand(rng);
+
+            int particle_counter = 0;
+            for(weight_itr = particles_weights.begin(); weight_itr != particles_weights.end(); weight_itr++ )
+            {
+
+                if( *weight_itr >= num){
+                    myfile << particle_counter<< "\n";
+                    new_current_layout.push_back(current_layout.at(particle_counter));
+                    break;
+                }
+                particle_counter++;
+            }
+        }
+
+        // copy resampled particle-set
+        current_layout.clear();
+        current_layout = new_current_layout;
+    }
     // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
     // -------------------------------------------------------------------------------------------------------------------------------------

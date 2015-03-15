@@ -111,6 +111,9 @@ int main(int argc, char **argv)
     f = boost::bind(&reconfigureCallback, _1, _2);
     server.setCallback(f);
 
+    // sleep for two seconds, system startup
+    //ros::Duration(2).sleep();
+
     // move on X, Y or Z axis with movement_rate transform
     tf::Transform move_x(tf::createIdentityQuaternion(), tf::Vector3(movement_rate,0,0));
     tf::Transform move_y(tf::createIdentityQuaternion(), tf::Vector3(0,movement_rate,0));
@@ -132,8 +135,17 @@ int main(int argc, char **argv)
     tf::Transform t(tf::createIdentityQuaternion(),tf::Vector3(0,0,0)); //WORLD
 //    tf::Transform t(tf::createQuaternionFromYaw(45.0f*3.14f/180.0f), tf::Vector3(0,0,0)); //WORLD
 
-    // sleep for two seconds, system startup
-    ros::Duration(2).sleep();
+    // init old pose
+    geometry_msgs::PoseStamped temp_pose;
+    temp_pose.header.stamp = ros::Time::now();
+    temp_pose.pose.position.x = t.getOrigin().getX();
+    temp_pose.pose.position.y = t.getOrigin().getY();
+    temp_pose.pose.position.z = t.getOrigin().getZ();
+    temp_pose.pose.orientation.x = t.getRotation().getX();
+    temp_pose.pose.orientation.y = t.getRotation().getY();
+    temp_pose.pose.orientation.z = t.getRotation().getZ();
+    temp_pose.pose.orientation.w = t.getRotation().getW();
+    old_pose = temp_pose;
 
     bool first_msg = true;
     while(ros::ok()){
@@ -144,9 +156,6 @@ int main(int argc, char **argv)
             current_speed = movement_rate / 10;
             current_speed_angular = angle_rate / 10;
             current_time = ros::Time::now();
-
-            // send transform_msg
-            tfb_->sendTransform(tf::StampedTransform(t, current_time, "odom", "visual_odometry_camera_frame"));
 
             msg = createOdomMsgFromTF(t);
 
@@ -165,9 +174,37 @@ int main(int argc, char **argv)
             pose.pose.orientation.w = t.getRotation().getW();
             old_pose = pose;
 
+
+            // send transform_msg
+            tfb_->sendTransform(tf::StampedTransform(t, current_time, "odom", "visual_odometry_camera_frame"));
+
+            std::cout << "--------------------------------------------------------------------------------" << endl;
+            std::cout << "[ Time diff ] " << time_diff << endl;
+            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
+            std::cout << " Position:" << std::endl;
+            std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+            std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+            std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+            std::cout << " Orientation quaternion: " << std::endl;
+            std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+            std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+            std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+            std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+            std::cout << " Linear speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+            std::cout << " Angular speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+            std::cout << std::endl;
+
+
             // publish and spin
             pub.publish(msg);
             ros::spinOnce();
+            msg_num++;
             rate->sleep();
             first_msg = false;
             // ----------------------------------------------------------
@@ -227,27 +264,27 @@ int main(int argc, char **argv)
             // create msg from transform
             msg = createOdomMsgFromTF(t);
 
-//            std::cout << "--------------------------------------------------------------------------------" << endl;
-//            std::cout << "[ Time diff ] " << time_diff << endl;
-//            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
-//            std::cout << " Position:" << std::endl;
-//            std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
-//            std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
-//            std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
-//            std::cout << " Orientation quaternion: " << std::endl;
-//            std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
-//            std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
-//            std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
-//            std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
-//            std::cout << " Linear speed: " << std::endl;
-//            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
-//            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
-//            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
-//            std::cout << " Angular speed: " << std::endl;
-//            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
-//            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
-//            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
-//            std::cout << std::endl;
+            std::cout << "--------------------------------------------------------------------------------" << endl;
+            std::cout << "[ Time diff ] " << time_diff << endl;
+            std::cout << "[ Sent msg " << msg_num << "]:" << std::endl;
+            std::cout << " Position:" << std::endl;
+            std::cout << "  x: " << msg.pose.pose.position.x << std::endl;
+            std::cout << "  y: " << msg.pose.pose.position.y << std::endl;
+            std::cout << "  z: " << msg.pose.pose.position.z << std::endl;
+            std::cout << " Orientation quaternion: " << std::endl;
+            std::cout << "  w: " << msg.pose.pose.orientation.w << std::endl;
+            std::cout << "  x: " << msg.pose.pose.orientation.x << std::endl;
+            std::cout << "  y: " << msg.pose.pose.orientation.y << std::endl;
+            std::cout << "  z: " << msg.pose.pose.orientation.z << std::endl;
+            std::cout << " Linear speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+            std::cout << " Angular speed: " << std::endl;
+            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+            std::cout << std::endl;
 
             // publish robot odom
             pub.publish(msg);
@@ -275,39 +312,39 @@ int main(int argc, char **argv)
         }
 
         // lookupTwist
-        try{
+//        try{
 
-            geometry_msgs::Twist frame_speed;
-//            tf_->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
-            tf_->lookupTwist("visual_odometry_camera_frame", "odom", "visual_odometry_camera_frame", tf::Point(0,0,0), "visual_odometry_camera_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
-            cout << "LOOKUP TWIST: " << endl;
-            std::cout << " Linear speed: " << std::endl;
-            std::cout << "  x: " << frame_speed.linear.x << std::endl;
-            std::cout << "  y: " << frame_speed.linear.y << std::endl;
-            std::cout << "  z: " << frame_speed.linear.z << std::endl;
-            std::cout << " Angular speed: " << std::endl;
-            std::cout << "  x: " << frame_speed.angular.x << std::endl;
-            std::cout << "  y: " << frame_speed.angular.y << std::endl;
-            std::cout << "  z: " << frame_speed.angular.z << std::endl << endl << endl;
+//            geometry_msgs::Twist frame_speed;
+////            tf_->lookupTwist("odom_frame", "robot_frame", "odom_frame", tf::Point(0,0,0), "odom_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
+//            tf_->lookupTwist("visual_odometry_camera_frame", "odom", "visual_odometry_camera_frame", tf::Point(0,0,0), "visual_odometry_camera_frame", ros::Time(0), ros::Duration(0.5), frame_speed);
+//            cout << "LOOKUP TWIST: " << endl;
+//            std::cout << " Linear speed: " << std::endl;
+//            std::cout << "  x: " << frame_speed.linear.x << std::endl;
+//            std::cout << "  y: " << frame_speed.linear.y << std::endl;
+//            std::cout << "  z: " << frame_speed.linear.z << std::endl;
+//            std::cout << " Angular speed: " << std::endl;
+//            std::cout << "  x: " << frame_speed.angular.x << std::endl;
+//            std::cout << "  y: " << frame_speed.angular.y << std::endl;
+//            std::cout << "  z: " << frame_speed.angular.z << std::endl << endl << endl;
 
-            cout << "MSG TWIST: " << endl;
-            std::cout << " Linear speed: " << std::endl;
-            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
-            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
-            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
-            std::cout << " Angular speed: " << std::endl;
-            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
-            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
-            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
-        }
-        catch (tf::TransformException &ex) {
-            ROS_ERROR("%s",ex.what());
-        }
+//            cout << "MSG TWIST: " << endl;
+//            std::cout << " Linear speed: " << std::endl;
+//            std::cout << "  x: " << msg.twist.twist.linear.x << std::endl;
+//            std::cout << "  y: " << msg.twist.twist.linear.y << std::endl;
+//            std::cout << "  z: " << msg.twist.twist.linear.z << std::endl;
+//            std::cout << " Angular speed: " << std::endl;
+//            std::cout << "  x: " << msg.twist.twist.angular.x << std::endl;
+//            std::cout << "  y: " << msg.twist.twist.angular.y << std::endl;
+//            std::cout << "  z: " << msg.twist.twist.angular.z << std::endl;
+//        }
+//        catch (tf::TransformException &ex) {
+//            ROS_ERROR("%s",ex.what());
+//        }
     }
 
     // delete arg
-    if(rate != NULL)
-        delete rate;
+//    if(rate != NULL)
+//        delete rate;
 }
 
 
@@ -330,7 +367,7 @@ nav_msgs::Odometry createOdomMsgFromTF(tf::Transform& t)
 
     // set orientation
     t.setRotation(t.getRotation().normalized());
-    tf::quaternionTFToMsg(t.getRotation(), msg.pose.pose.orientation);
+    tf::quaternionTFToMsg(t.getRotation().normalize(), msg.pose.pose.orientation);
 
     // set speed
     geometry_msgs::PoseStamped pose;
