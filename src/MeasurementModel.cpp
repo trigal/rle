@@ -34,13 +34,16 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
+        // set msg variables
         _msg = m;
         _msr_cov = Utils::getCovFromOdom(m);
 
+        // get new TF transform from msg
         tf::StampedTransform new_transform;
         new_transform.setOrigin(tf::Vector3(_msg.pose.pose.position.x, _msg.pose.pose.position.y, _msg.pose.pose.position.z));
         new_transform.setRotation(tf::Quaternion( _msg.pose.pose.orientation.x, _msg.pose.pose.orientation.y, _msg.pose.pose.orientation.z, _msg.pose.pose.orientation.w));
 
+        // init temp vars
         tf::StampedTransform t1,t2;
         tf::Transform t3;
         tf::Vector3 tmp_translational_velocity;
@@ -76,21 +79,23 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
             _msg_valid = false;
             return;
         }
-        _msg_valid = true;
 
+        // get delta from old tf and new tf
         tf::Transform delta_transform;
-
         delta_transform.setOrigin(fixed_transform * _old_transform.inverse() * new_transform.getOrigin());
         delta_transform.setBasis(_old_transform.inverse().getBasis() * new_transform.getBasis());
         tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); // TODO: CHECK THIS MAGIC OUT
         delta_transform.setRotation(tmp_q);
 
+        // update measure from delta
         _measure = State6DOF();
         _measure.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ())));
         _measure.setRotation(Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ())));
         _measure.setTranslationalVelocity(Eigen::Vector3d(tmp_translational_velocity.getX(),tmp_translational_velocity.getY(),tmp_translational_velocity.getZ()));
         _measure.setRotationalVelocity(tmp_rotational_velocity);
 
+        // update variables
+        _msg_valid = true;
         _old_transform = new_transform;
         _old_msg = _msg;
 }

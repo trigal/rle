@@ -1,6 +1,6 @@
 <launch>
 	<!-- Arguments -->
-	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
+	<arg name="bagfile" default="/home/dario/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
 
 	<!-- Static transform from Viso fixed frame to our fixed frame
@@ -20,7 +20,7 @@
 		args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 100" />
 
 	<!-- Publishing rate of cameras -->
-	<arg name="publish_rate" default="0.2" />
+	<arg name="publish_rate" default="0.3" />
 
 	<param name="/use_sim_time" value="true"/>
 	
@@ -62,7 +62,7 @@
 
 	<!-- Launch RViz-->
 	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
-		args="-d /home/limongi/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
+		args="-d /home/dario/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
 		output="screen"
 	/>
 

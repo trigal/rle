@@ -11,9 +11,6 @@ Panels:
         - /Odometry2
         - /PoseArray1
         - /MarkerArray1
-        - /Pose1
-        - /Pose2
-        - /Pose3
       Splitter Ratio: 0.65368
     Tree Height: 699
   - Class: rviz/Selection
@@ -141,7 +138,7 @@ Visualization Manager:
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -149,13 +146,13 @@ Visualization Manager:
       Shaft Radius: 1
       Shape: Arrow
       Topic: /road_layout_estimation/layout_manager/quaternion_pose
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 85; 0; 255
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -163,13 +160,13 @@ Visualization Manager:
       Shaft Radius: 1
       Shape: Arrow
       Topic: /road_layout_estimation/layout_manager/particle_pose
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 85; 255; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -177,7 +174,7 @@ Visualization Manager:
       Shaft Radius: 1
       Shape: Arrow
       Topic: /road_layout_estimation/layout_manager/diff_pose
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -202,7 +199,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 10
+      Distance: 158.475
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -214,10 +211,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.785398
+      Pitch: 0.900398
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 0.785398
+      Yaw: 1.4954
     Saved: ~
 Window Geometry:
   Displays:
@@ -235,5 +232,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1724
-  X: 49
+  X: 55
   Y: 14
