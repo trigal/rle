@@ -97,6 +97,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // ------- UPDATE STEP -------
 
     State6DOF delta_measure = odometry->getMeasureState();                  // differenza tra odometria arrivata
+//    delta_measure.setRotation(AngleAxisd::Identity());
+//    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
     State6DOF predicted_measure;
 
     predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
@@ -151,4 +153,3 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
 
 //    cout << "--------------------------------------------------------------------------------" << endl;
 }
-

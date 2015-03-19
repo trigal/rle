@@ -38,6 +38,8 @@
 #include "osm_cartography/xy_2_latlon.h"
 #include "osm_cartography/get_closest_way_distance_utm.h"
 #include "visualization_msgs/Marker.h"
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <iostream>
@@ -104,6 +106,8 @@ public:
     ros::Publisher diff_publisher;
     ros::Publisher marker_pub;
     ros::Publisher marker_pub2;
+    ros::Publisher publisher_marker_array;
+    ros::Publisher publisher_marker_array_distances;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -143,6 +147,13 @@ private:
 
     bool new_detections;				/// indicates detectors found new detections (not used)
     vector<Particle> current_layout;	/// stores the current layout
+    long resampling_count;
+
+    MatrixXd particle_poses_statistics; /// To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+    ofstream stat_out_file;
+
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::MarkerArray marker_array_distances;
 
 
     /**
@@ -236,10 +247,15 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
+        stat_out_file.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);
+
+    void normalizeParticleSet();
+    void publishMarkerArray();
+    void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
 };
 
 #endif /* LAYOUTMANAGER_H_ */
