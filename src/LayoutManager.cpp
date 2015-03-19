@@ -209,7 +209,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    osm_cartography::snap_particle_xy srv;
                    srv.request.x = tf_pose_map_frame.getOrigin().getX();
                    srv.request.y = tf_pose_map_frame.getOrigin().getY();
-                   srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+                   srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
                    // Get distance from closest street and set it as particle score
                    // init normal distribution
@@ -292,7 +292,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 15;
 //            double cov2 = 15;
 
-//            // KITTI 00
+//            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
 //            double alt = 0;
 //            double lat = 48.98254523586602;
 //            double lon = 8.39036610004500;
@@ -301,8 +301,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
 //            double alt = 0;
-//            double lat = 49.006719195871;
-//            double lon = 8.4893558806503;
+//            double lat = 49.006719195871;//49.006558;// 49.006616;//
+//            double lon = 8.4893558806503;//8.489195;//8.489291;//
 //            double cov1 = 50;
 //            double cov2 = 50;
 
@@ -321,20 +321,20 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-            double alt = 0;
 //            double lat = 49.050384;//49.04999;//49.04951961077; //49.049695;//
 //            double lon = 8.396351;// 8.39645;//8.3965961639946; //8.397790;////
-            double lat = 49.04951961077;
-            double lon = 8.3965961639946;
-            double cov1 = 50;
-            double cov2 = 50;
-
-            // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
-//            double lat = 49.05349304789598;
-//            double lon = 8.39721998765449;
+//            double lat = 49.04951961077;
+//            double lon = 8.3965961639946;
 //            double cov1 = 50;
 //            double cov2 = 50;
+
+            // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
+            double alt = 0;
+            double lat = 49.05349304789598;
+            double lon = 8.39721998765449;
+            double cov1 = 70;
+            double cov2 = 70;
 
             // KITTI 07 [OK, video in cui sta fermo allo stop alcuni secondi]
 //            double alt = 0;
@@ -611,11 +611,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
 
                     // Create rotation object
-                    cout << "DIOMERDA 3: " <<
-                                tf_pose_local_map_frame.getRotation().getW() << " " <<
-                                tf_pose_local_map_frame.getRotation().getX()<< " " <<
-                                tf_pose_local_map_frame.getRotation().getY()<< " " <<
-                                tf_pose_local_map_frame.getRotation().getZ()<< endl;
+//                    cout << "DIOMERDA 3: " <<
+//                                tf_pose_local_map_frame.getRotation().getW() << " " <<
+//                                tf_pose_local_map_frame.getRotation().getX()<< " " <<
+//                                tf_pose_local_map_frame.getRotation().getY()<< " " <<
+//                                tf_pose_local_map_frame.getRotation().getZ()<< endl;
 
 
                     AngleAxisd rotation = AngleAxisd(
@@ -835,9 +835,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
     printf("\a");
 
-    visualization_msgs::Marker marker_line;
-
-
     marker_pub.publish(marker1);
     marker_pub2.publish(marker2);
 
@@ -919,7 +916,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             osm_cartography::snap_particle_xy srv;
             srv.request.x = tf_pose_map_frame.getOrigin().getX();
             srv.request.y = tf_pose_map_frame.getOrigin().getY();
-            srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+            srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
 
             // Get distance from snapped particle pose and set it as particle score
@@ -983,7 +980,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
                 double second_angle_diff_score = 0;
                 double second_angle_difference = 0;
-                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << first_angle_difference << endl;
+//                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << first_angle_difference << endl;
 
                 double angle_diff_score_component = pdf(angle_normal_dist, first_angle_difference);
 
@@ -1010,7 +1007,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                         angle_diff_score_component = second_angle_diff_score;
 //                        cout << "stamaiala\t" << angle_diff_score_component << endl;
                     }
-                    cout << "quaternione snapped local map: " << snapped_inverted_angle.getAxis().z() << " @ " << snapped_inverted_angle.getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << second_angle_difference << endl << endl;
+//                    cout << "quaternione snapped local map: " << snapped_inverted_angle.getAxis().z() << " @ " << snapped_inverted_angle.getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << second_angle_difference << endl << endl;
                 }
 
 
@@ -1064,73 +1061,71 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         double cum_score_sum = 0;
 
         // Build cumulative sum of the score and roulette vector
-        for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
              cum_score_sum += (*particle_itr).getParticleScore();
              particle_score_vect.push_back(cum_score_sum);
         }
 
-        // Init uniform distribution
-        boost::uniform_real<double> uniform_rand(0, cum_score_sum);
-        boost::uniform_real<double> uniform_rand2(0, 100);
-        boost::uniform_real<double> uniform_rand3(0, current_layout.size());
-
-//        cout << "MAX: " << cum_score_sum << endl;
-
-        // find weight that is at least num
-        vector<double>::iterator score_itr;
-        long stica = 0;
-
-        for(int k = 0; k<current_layout.size(); ++k)
+        if(cum_score_sum != 0)
         {
-            double num = uniform_rand(rng);
+            // Init uniform distribution
+            boost::uniform_real<double> uniform_rand(0, cum_score_sum);
+            boost::uniform_real<double> uniform_rand2(0, 100);
+            boost::uniform_real<double> uniform_rand3(0, current_layout.size());
 
-            if(uniform_rand2(rng) <= 80) //This percentage of weighted samples
-            {   // WEIGHTED RESAMPLER
-                int particle_counter = 0;
-                for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
-                {
-                    if( *score_itr >= num)
+            // find weight that is at least num
+            vector<double>::iterator score_itr;
+
+            for(int k = 0; k<current_layout.size(); ++k)
+            {
+                double num = uniform_rand(rng);
+
+                if(uniform_rand2(rng) <= 80) //This percentage of weighted samples
+                {   // WEIGHTED RESAMPLER
+                    int particle_counter = 0;
+                    for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
                     {
-                        Particle temp_part = current_layout.at(particle_counter);
-                        stat_out_file << temp_part.getId() << "\t";
-                        temp_part.setId(k);
-                        particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
-                        particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
-                        new_current_layout.push_back(temp_part);
-//                        cout << "ASDF: " << *score_itr << "\t" << num << "\t" << particle_counter << "\t" << temp_part.getParticleScore() << endl;
-                        break;
+                        if( *score_itr >= num)
+                        {
+                            Particle temp_part = current_layout.at(particle_counter);
+                            stat_out_file << temp_part.getId() << "\t";
+                            temp_part.setId(k);
+                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
+                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+                            new_current_layout.push_back(temp_part);
+                            break;
+                        }
+                        particle_counter++;
                     }
-                    particle_counter++;
                 }
-                stica++;
-            }
-            else
-            {   // UNIFORM RESAMPLER
-                int cane = floor(uniform_rand3(rng));
-                Particle temp_part = current_layout.at(cane);
-                temp_part.setId(k);
-                new_current_layout.push_back(temp_part);
-            }
+                else
+                {   // UNIFORM RESAMPLER
+                    int temp_rand = floor(uniform_rand3(rng));
+                    Particle temp_part = current_layout.at(temp_rand);
+                    temp_part.setId(k);
+                    new_current_layout.push_back(temp_part);
+                }
 
+            }
+            stat_out_file << endl;
+
+            MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
+            MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
+
+    //        cout << endl << endl;
+
+    //        cout << particle_poses_statistics.colwise().mean() << endl;
+    //        cout << cov << endl;
+    //        double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
+    //        cout << var_mean << endl;
+    //        stat_out_file << var_mean << endl;
+
+
+            // copy resampled particle-set
+            current_layout.clear();
+            current_layout = new_current_layout;
         }
-        cout << "STICA: " << stica << endl;
-        stat_out_file << endl;
-
-        MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
-        MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
-
-//        cout << endl << endl;
-
-//        cout << particle_poses_statistics.colwise().mean() << endl;
-//        cout << cov << endl;
-//        double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
-//        cout << var_mean << endl;
-//        stat_out_file << var_mean << endl;
-
-
-        // copy resampled particle-set
-        current_layout.clear();
-        current_layout = new_current_layout;
     }
     // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 

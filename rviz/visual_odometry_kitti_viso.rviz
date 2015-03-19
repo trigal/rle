@@ -185,13 +185,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle2
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: false
       Image Topic: /kitti_stereo/left/image_rect
@@ -243,16 +243,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 31.2416
+      Distance: 55.4292
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 16.4992
-        Y: -8.49701
-        Z: 49.3236
+        X: 10.0271
+        Y: -32.2586
+        Z: 49.3186
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5698
