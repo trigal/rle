@@ -94,6 +94,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::marker_pub2 = n.advertise<visualization_msgs::Marker>("/road_layout_estimation/layout_manager/circle2", 1);
     LayoutManager::publisher_marker_array = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array", 1);
     LayoutManager::publisher_marker_array_distances = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array_distances", 1);
+    LayoutManager::publisher_marker_array_angles = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
 
 
     // init ROS service client
@@ -306,7 +307,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 50;
 //            double cov2 = 50;
 
-            // KITTI 02
+            // KITTI 02 [NI, si perde dopo un paio di curve]
 //            double alt = 0;
 //            double lat = 48.987607723096;
 //            double lon = 8.4697469732634;
@@ -323,32 +324,32 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
 //            double lat = 49.050384;//49.04999;//49.04951961077; //49.049695;//
 //            double lon = 8.396351;// 8.39645;//8.3965961639946; //8.397790;////
+            double alt = 0;
+            double lat = 49.04951961077;
+            double lon = 8.3965961639946;
+            double cov1 = 60;
+            double cov2 = 60;
+
+            // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
-//            double lat = 49.04951961077;
-//            double lon = 8.3965961639946;
+//            double lat = 49.05349304789598;
+//            double lon = 8.39721998765449;
 //            double cov1 = 50;
 //            double cov2 = 50;
 
-            // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-            double alt = 0;
-            double lat = 49.05349304789598;
-            double lon = 8.39721998765449;
-            double cov1 = 70;
-            double cov2 = 70;
-
-            // KITTI 07 [OK, video in cui sta fermo allo stop alcuni secondi]
+            // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
 //            double alt = 0;
 //            double lat = 48.985319;//48.98523696217;
 //            double lon = 8.393801;//8.3936414564418;
 //            double cov1 = 50;
 //            double cov2 = 50;
 
-            // KITTI 08
+            // KITTI 08 [bag inizia dopo]
 //            double alt = 0;
-//            double lat = 48.98511761552598;
-//            double lon = 8.39399876678870;
-//            double cov1 = 100;
-//            double cov2 = 100;
+//            double lat = 48.984311;
+//            double lon = 8.397817;
+//            double cov1 = 60;
+//            double cov2 = 60;
 
             // KITTI 09 [OK, video serie curve tondeggianti]
 //            double alt = 0;
@@ -361,8 +362,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double alt = 0;
 //            double lat = 48.972406;//48.972455;//48.97253396005;
 //            double lon = 8.478662;//8.478660;//8.4785980847297;
-//            double cov1 = 25;
-//            double cov2 = 25;
+//            double cov1 = 50;
+//            double cov2 = 50;
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
@@ -1089,7 +1090,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                         if( *score_itr >= num)
                         {
                             Particle temp_part = current_layout.at(particle_counter);
-                            stat_out_file << temp_part.getId() << "\t";
+//                            stat_out_file << temp_part.getId() << "\t";
                             temp_part.setId(k);
                             particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
                             particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
@@ -1108,7 +1109,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 }
 
             }
-            stat_out_file << endl;
+//            stat_out_file << endl;
 
             MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
             MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
@@ -1117,9 +1118,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     //        cout << particle_poses_statistics.colwise().mean() << endl;
     //        cout << cov << endl;
-    //        double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
+            double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
     //        cout << var_mean << endl;
-    //        stat_out_file << var_mean << endl;
+            stat_out_file << var_mean << endl;
 
 
             // copy resampled particle-set

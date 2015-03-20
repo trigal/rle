@@ -108,6 +108,7 @@ public:
     ros::Publisher marker_pub2;
     ros::Publisher publisher_marker_array;
     ros::Publisher publisher_marker_array_distances;
+    ros::Publisher publisher_marker_array_angles;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -154,6 +155,7 @@ private:
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
+    visualization_msgs::MarkerArray marker_array_angles;
 
 
     /**
