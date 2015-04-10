@@ -9,9 +9,9 @@ Panels:
         - /Axes1
         - /TF1/Frames1
         - /Image1
+        - /MarkerArray1
+        - /MarkerArray1/Namespaces1
         - /MarkerArray2
-        - /MarkerArray2/Namespaces1
-        - /MarkerArray3
       Splitter Ratio: 0.690972
     Tree Height: 775
   - Class: rviz/Selection
@@ -72,15 +72,7 @@ Visualization Manager:
           Value: true
         map:
           Value: true
-        odom:
-          Value: true
         start:
-          Value: true
-        visual_odometry_camera_frame:
-          Value: true
-        visual_odometry_car_frame:
-          Value: true
-        visual_odometry_odom_x_forward:
           Value: true
       Marker Scale: 1
       Name: TF
@@ -90,11 +82,7 @@ Visualization Manager:
       Tree:
         map:
           local_map:
-            visual_odometry_odom_x_forward:
-              odom:
-                visual_odometry_camera_frame:
-                  visual_odometry_car_frame:
-                    {}
+            {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.1
@@ -124,16 +112,6 @@ Visualization Manager:
       Name: PoseArray
       Topic: /road_layout_estimation/layout_manager/particle_pose_array
       Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        bounds_osm: true
-        roads_osm: true
-        waypoints_osm: true
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
@@ -181,7 +159,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: Marker
       Namespaces:
-        gauss_sigma: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -208,7 +186,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/marker_array
       Name: MarkerArray
       Namespaces:
-        cicciobello: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -216,7 +194,17 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
       Name: MarkerArray
       Namespaces:
-        lines: true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /ways
+      Name: MarkerArray
+      Namespaces:
+        direction: true
+        node: true
+        way: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -243,16 +231,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 55.4292
+      Distance: 99.9725
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 10.0271
-        Y: -32.2586
-        Z: 49.3186
+        X: -6.15174
+        Y: -0.0701316
+        Z: 49.3004
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5698

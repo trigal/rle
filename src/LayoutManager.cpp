@@ -297,8 +297,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double alt = 0;
 //            double lat = 48.98254523586602;
 //            double lon = 8.39036610004500;
-//            double cov1 = 60;
-//            double cov2 = 60;
+//            double cov1 = 100;
+//            double cov2 = 100;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
 //            double alt = 0;
@@ -315,20 +315,20 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 60;
 
             // KITTI 04 [OK, video road, rettilineo corto]
-//            double alt = 0;
-//            double lat = 49.033603440345;
-//            double lon = 8.3950031909457;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            double alt = 0;
+            double lat = 49.033603440345;
+            double lon = 8.3950031909457;
+            double cov1 = 50;
+            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
 //            double lat = 49.050384;//49.04999;//49.04951961077; //49.049695;//
 //            double lon = 8.396351;// 8.39645;//8.3965961639946; //8.397790;////
-            double alt = 0;
-            double lat = 49.04951961077;
-            double lon = 8.3965961639946;
-            double cov1 = 60;
-            double cov2 = 60;
+//            double lat = 49.04951961077;
+//            double lon = 8.3965961639946;
+//            double alt = 0;
+//            double cov1 = 60;
+//            double cov2 = 60;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -835,7 +835,6 @@ void LayoutManager::publishMarkerArrayDistances(int id, double x1, double y1, do
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
     printf("\a");
-
     marker_pub.publish(marker1);
     marker_pub2.publish(marker2);
 
@@ -1028,7 +1027,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 //                }
 
                 // set particle score
-                double tot_weight = street_distribution_weight + angle_distribution_weight;
 //                (*particle_itr).setParticleScore(street_distribution_weight/tot_weight * pose_diff_score_component + angle_distribution_weight/tot_weight * angle_diff_score_component);
                 (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * angle_diff_score_component);
             }

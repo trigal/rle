@@ -29,7 +29,7 @@
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
 		required="true"
 		output="screen"
-		args="stereo_odometer/odometry"
+		args="/stereo_odometer/odometry"
 	/> 
 
 	<!-- Run the rosbag 
