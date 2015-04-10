@@ -95,7 +95,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::publisher_marker_array = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array", 1);
     LayoutManager::publisher_marker_array_distances = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array_distances", 1);
     LayoutManager::publisher_marker_array_angles = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
-
+    LayoutManager::publisher_z_particle = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_particle", 1);
+    LayoutManager::publisher_z_snapped = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_snapped", 1);
 
     // init ROS service client
     latlon_2_xy_client = n.serviceClient<osm_cartography::latlon_2_xy>("/osm_cartography/latlon_2_xy");
@@ -832,6 +833,84 @@ void LayoutManager::publishMarkerArrayDistances(int id, double x1, double y1, do
     marker_array_distances.markers.push_back(line_list);
 }
 
+/**
+ * @brief LayoutManager::publishMarkerArrayDistances
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ */
+void LayoutManager::publishZSnapped(int id, double x1, double y1, double x2, double y2, double z)
+{
+    visualization_msgs::Marker line_list;
+    line_list.header.frame_id = "local_map";
+    line_list.header.stamp = ros::Time();
+    line_list.ns = "lines";
+    line_list.id = id;
+    line_list.type = visualization_msgs::Marker::LINE_LIST;
+    line_list.action = visualization_msgs::Marker::ADD;
+    line_list.pose.orientation.w = 1;
+    line_list.scale.x = 0.2; //width
+    line_list.color.a = 1.0;
+    line_list.color.r = 1.0;
+    line_list.color.g = 0;
+    line_list.color.b = 1.0;
+
+    // Create the points
+    geometry_msgs::Point point;
+    point.x = x1;
+    point.y = y1;
+    point.z = z;
+    line_list.points.push_back(point);
+
+    point.x = x2;
+    point.y = y2;
+    point.z = 0;
+    line_list.points.push_back(point);
+
+    // Push back line_list
+    marker_z_snapped.markers.push_back(line_list);
+}
+
+/**
+ * @brief LayoutManager::publishMarkerArrayDistances
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ */
+void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, double y2, double z)
+{
+    visualization_msgs::Marker line_list;
+    line_list.header.frame_id = "local_map";
+    line_list.header.stamp = ros::Time();
+    line_list.ns = "lines";
+    line_list.id = id;
+    line_list.type = visualization_msgs::Marker::LINE_LIST;
+    line_list.action = visualization_msgs::Marker::ADD;
+    line_list.pose.orientation.w = 1;
+    line_list.scale.x = 0.2; //width
+    line_list.color.a = 1.0;
+    line_list.color.r = 0;
+    line_list.color.g = 1.0;
+    line_list.color.b = 1.0;
+
+    // Create the points
+    geometry_msgs::Point point;
+    point.x = x1;
+    point.y = y1;
+    point.z = z;
+    line_list.points.push_back(point);
+
+    point.x = x2;
+    point.y = y2;
+    point.z = 0;
+    line_list.points.push_back(point);
+
+    // Push back line_list
+    marker_z_particle.markers.push_back(line_list);
+}
+
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
     printf("\a");
@@ -946,6 +1025,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     return;
                 }
 
+                // STAMPO ASSE Z QUATERNIONE
+                ROS_INFO_STREAM("       map: " << tf_snapped_map_frame.getRotation().getAxis().getZ());
+                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ());
+
                 // save street direction
                 street_direction = tf_snapped_local_map_frame.getRotation();
 
@@ -980,7 +1063,22 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
                 double second_angle_diff_score = 0;
                 double second_angle_difference = 0;
-//                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << first_angle_difference << endl;
+
+                // DEBUG ASSI Z --------------------------------------------------------------------------------
+                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << first_angle_difference << " " << endl;
+                publishZSnapped((*particle_itr).getId(),
+                                tf_snapped_local_map_frame.getOrigin().getX(),
+                                tf_snapped_local_map_frame.getOrigin().getY(),
+                                tf_snapped_local_map_frame.getOrigin().getX(),
+                                tf_snapped_local_map_frame.getOrigin().getY(),
+                                tf_snapped_local_map_frame.getRotation().getAxis().z()*100);
+
+                publishZParticle((*particle_itr).getId(),
+                                tf_pose_local_map_frame.getOrigin().getX(),
+                                tf_pose_local_map_frame.getOrigin().getY(),
+                                tf_pose_local_map_frame.getOrigin().getX(),
+                                tf_pose_local_map_frame.getOrigin().getY(),
+                                tf_pose_local_map_frame.getRotation().getAxis().z()*100);
 
                 double angle_diff_score_component = pdf(angle_normal_dist, first_angle_difference);
 
@@ -1048,6 +1146,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // % LINES
     publisher_marker_array_distances.publish(marker_array_distances);
+
+    // % Z
+    publisher_z_snapped.publish(marker_z_snapped);
+    publisher_z_particle.publish(marker_z_particle);
     // -------------------------------------------------------------------------------------------------------------------------------------
 
 

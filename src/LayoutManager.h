@@ -109,6 +109,8 @@ public:
     ros::Publisher publisher_marker_array;
     ros::Publisher publisher_marker_array_distances;
     ros::Publisher publisher_marker_array_angles;
+    ros::Publisher publisher_z_snapped;
+    ros::Publisher publisher_z_particle;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -156,6 +158,8 @@ private:
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
     visualization_msgs::MarkerArray marker_array_angles;
+    visualization_msgs::MarkerArray marker_z_snapped;
+    visualization_msgs::MarkerArray marker_z_particle;
 
 
     /**
@@ -258,6 +262,8 @@ public:
     void normalizeParticleSet();
     void publishMarkerArray();
     void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
+    void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
+    void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
 };
 
 #endif /* LAYOUTMANAGER_H_ */
