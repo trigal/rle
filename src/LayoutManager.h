@@ -45,6 +45,8 @@
 #include <iostream>
 #include <math.h>
 
+#include <tfaaa/tfMessage.h>
+
 using boost::math::normal;
 using namespace Eigen;
 using Eigen::MatrixXd;

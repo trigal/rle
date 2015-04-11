@@ -24,13 +24,13 @@
 		output="screen"
 	/> -->
 
-	<!-- Launch ROAD LAYOUT ESTIMATION node -->
+	<!-- Launch ROAD LAYOUT ESTIMATION node 
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
 		required="true"
 		output="screen"
 		args="/stereo_odometer/odometry"
-	/> 
+	/>  -->
 
 	<!-- Run the rosbag 
 	<node pkg="rosbag" type="play" name="rosbag" args="-clock $(arg bagfile) -r $(arg publish_rate)"/>-->
@@ -59,6 +59,6 @@
 		output="screen"
 	/>-->
 
-	<!-- Launch RQT reconfigure -->
-	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/>
+	<!-- Launch RQT reconfigure 
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 </launch>

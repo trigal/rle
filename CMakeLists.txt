@@ -4,7 +4,7 @@ project(road_layout_estimation)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules)
+find_package(catkin REQUIRED COMPONENTS roscpp tfaaa nav_msgs geometry_msgs dynamic_reconfigure cmake_modules)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -25,10 +25,10 @@ generate_dynamic_reconfigure_options(
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-#SET (CMAKE_BUILD_TYPE Debug)
-#SET (ROS_BUILD_TYPE Debug)
-SET (CMAKE_BUILD_TYPE Release)
-SET (ROS_BUILD_TYPE Release)
+SET (CMAKE_BUILD_TYPE Debug)
+SET (ROS_BUILD_TYPE Debug)
+#SET (CMAKE_BUILD_TYPE Release)
+#SET (ROS_BUILD_TYPE Release)
 
 
 catkin_package(

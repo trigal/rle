@@ -24,6 +24,9 @@
 	<build_depend>tf</build_depend>
 	<run_depend>tf</run_depend>	
 
+        <build_depend>tfaaa</build_depend>
+        <run_depend>tfaaa</run_depend>
+
 	<build_depend>boost</build_depend>
 	<run_depend>boost</run_depend>	
 	

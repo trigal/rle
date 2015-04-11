@@ -315,21 +315,21 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 60;
 //            double cov2 = 60;
 
-            // KITTI 04 [OK, video road, rettilineo corto]
-            double alt = 0;
-            double lat = 49.033603440345;
-            double lon = 8.3950031909457;
-            double cov1 = 50;
-            double cov2 = 50;
+//            // KITTI 04 [OK, video road, rettilineo corto]
+//            double alt = 0;
+//            double lat = 49.033603440345;
+//            double lon = 8.3950031909457;
+//            double cov1 = 50;
+//            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
 //            double lat = 49.050384;//49.04999;//49.04951961077; //49.049695;//
 //            double lon = 8.396351;// 8.39645;//8.3965961639946; //8.397790;////
-//            double lat = 49.04951961077;
-//            double lon = 8.3965961639946;
-//            double alt = 0;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            double lat = 49.04951961077;
+            double lon = 8.3965961639946;
+            double alt = 0;
+            double cov1 = 60;
+            double cov2 = 60;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -854,7 +854,7 @@ void LayoutManager::publishZSnapped(int id, double x1, double y1, double x2, dou
     line_list.color.a = 1.0;
     line_list.color.r = 1.0;
     line_list.color.g = 0;
-    line_list.color.b = 1.0;
+    line_list.color.b = 0.0;
 
     // Create the points
     geometry_msgs::Point point;
@@ -893,7 +893,7 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
     line_list.color.a = 1.0;
     line_list.color.r = 0;
     line_list.color.g = 1.0;
-    line_list.color.b = 1.0;
+    line_list.color.b = 0.0;
 
     // Create the points
     geometry_msgs::Point point;
@@ -978,7 +978,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
             tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
             tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
-
             // Transform pose from "local_map" to "map"
             try{
                 tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
@@ -987,7 +986,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             catch (tf::TransformException &ex)
             {
                 ROS_ERROR("%s",ex.what());
-                ROS_INFO_STREAM("particle estimation");
+                ROS_ERROR("     Transform snapped particle pose from local_map to map");
                 return;
             }
 
@@ -996,7 +995,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             srv.request.x = tf_pose_map_frame.getOrigin().getX();
             srv.request.y = tf_pose_map_frame.getOrigin().getY();
             srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
-
 
             // Get distance from snapped particle pose and set it as particle score
             if (LayoutManager::snap_particle_xy_client.call(srv))
@@ -1012,8 +1010,41 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.y = srv.response.way_dir_quat_y;
                 snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
-                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
-                tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
+
+                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame, MAZZA;
+
+                tf::poseStampedMsgToTF(snapped_map_frame, MAZZA);
+                //tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame); // INVERTS ROTATION? get different result with rotation w.r.t.  tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
+
+
+                //tf::Quaternion debug = tf_snapped_map_frame.getRotation(); //ENABLE THIS TO DEBUG AND INSPECT DIFFERENCES BETWEEN q AND TF_SNAPPED_MAP_FRAME.ROTATION
+                tf::Quaternion q,qn;
+//                tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
+
+                tf::Vector3 v;
+                v.setX(snapped_map_frame.pose.position.x);
+                v.setY(snapped_map_frame.pose.position.y);
+                v.setZ(0);
+
+                q.setX(snapped_map_frame.pose.orientation.x);
+                q.setY(snapped_map_frame.pose.orientation.y);
+                q.setZ(snapped_map_frame.pose.orientation.z);
+                q.setW(snapped_map_frame.pose.orientation.w);
+
+                qn=q.normalize();
+
+                tf_snapped_map_frame.setRotation(qn);
+                tf_snapped_map_frame.setOrigin(v);
+
+                tf_snapped_map_frame.frame_id_=MAZZA.frame_id_;
+                tf_snapped_map_frame.stamp_=MAZZA.stamp_;
+
+                tf::Vector3 vqn = qn.getAxis();
+                tf::Vector3 vtf = tf_snapped_map_frame.getRotation().getAxis();
+
+                ROS_INFO_STREAM("\n" << snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() << "  |||  " <<  qn.getZ() << "\n");
+                ROS_INFO_STREAM("\n" << tf_snapped_map_frame.getRotation().getAngle() << " =?= "<<  qn.getAngle() << "\n");
+
                 // Transform pose from "local_map" to "map"
                 try{
                     tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
@@ -1025,9 +1056,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     return;
                 }
 
+//                tf::Quaternion q;
+//                tf::Matrix3x3 m; m.setRotation(q);
+
+
                 // STAMPO ASSE Z QUATERNIONE
-                ROS_INFO_STREAM("       map: " << tf_snapped_map_frame.getRotation().getAxis().getZ());
-                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ());
+                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_local_map_frame.getRotation().getAngle() << "\n");
+                ROS_INFO_STREAM("       map: "   << tf_snapped_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_map_frame.getRotation().getAngle() );
 
                 // save street direction
                 street_direction = tf_snapped_local_map_frame.getRotation();
@@ -1065,14 +1100,18 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 double second_angle_difference = 0;
 
                 // DEBUG ASSI Z --------------------------------------------------------------------------------
-                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    " << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  " << first_angle_difference << " " << endl;
+                cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    "
+                                                          << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  "
+                                                          << first_angle_difference << " == " << first_angle_diff.getAngle() << endl;
+                // RED
                 publishZSnapped((*particle_itr).getId(),
                                 tf_snapped_local_map_frame.getOrigin().getX(),
                                 tf_snapped_local_map_frame.getOrigin().getY(),
                                 tf_snapped_local_map_frame.getOrigin().getX(),
                                 tf_snapped_local_map_frame.getOrigin().getY(),
-                                tf_snapped_local_map_frame.getRotation().getAxis().z()*100);
+                                tf_snapped_map_frame.getRotation().getAxis().z()*100);
 
+                // GREEN
                 publishZParticle((*particle_itr).getId(),
                                 tf_pose_local_map_frame.getOrigin().getX(),
                                 tf_pose_local_map_frame.getOrigin().getY(),
