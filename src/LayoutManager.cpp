@@ -1031,10 +1031,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 q.setZ(snapped_map_frame.pose.orientation.z);
                 q.setW(snapped_map_frame.pose.orientation.w);
 
-                qn=q.normalize();
+                qn=q; //q.normalize();
 
                 tf_snapped_map_frame.setRotation(qn);
                 tf_snapped_map_frame.setOrigin(v);
+
+                tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
 
                 tf_snapped_map_frame.frame_id_=MAZZA.frame_id_;
                 tf_snapped_map_frame.stamp_=MAZZA.stamp_;
@@ -1088,8 +1090,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
                 // calculate angle difference ---------------------------------------------------------------------------------------
                 first_angle_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
-
-
+                //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out
 
                 //      get pdf score from first angle score
                 boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
