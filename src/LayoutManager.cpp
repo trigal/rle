@@ -1010,42 +1010,38 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.y = srv.response.way_dir_quat_y;
                 snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
+                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
 
-                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame, MAZZA;
-
-                tf::poseStampedMsgToTF(snapped_map_frame, MAZZA);
-                //tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame); // INVERTS ROTATION? get different result with rotation w.r.t.  tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
-
-
-                //tf::Quaternion debug = tf_snapped_map_frame.getRotation(); //ENABLE THIS TO DEBUG AND INSPECT DIFFERENCES BETWEEN q AND TF_SNAPPED_MAP_FRAME.ROTATION
-                tf::Quaternion q,qn;
-//                tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
-
-                tf::Vector3 v;
-                v.setX(snapped_map_frame.pose.position.x);
-                v.setY(snapped_map_frame.pose.position.y);
-                v.setZ(0);
-
+                static tf::TransformBroadcaster br;
+                tf::Transform transform;
+                tf::Quaternion q;
+                transform.setOrigin( tf::Vector3(srv.response.snapped_x, srv.response.snapped_y, 0.0) );
                 q.setX(snapped_map_frame.pose.orientation.x);
                 q.setY(snapped_map_frame.pose.orientation.y);
                 q.setZ(snapped_map_frame.pose.orientation.z);
                 q.setW(snapped_map_frame.pose.orientation.w);
+                transform.setRotation(q);
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "turtle_name"));
 
-                qn=q; //q.normalize();
+                transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x , pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z ) );
+                q.setX(pose_local_map_frame.pose.orientation.x);
+                q.setY(pose_local_map_frame.pose.orientation.y);
+                q.setZ(pose_local_map_frame.pose.orientation.z);
+                q.setW(pose_local_map_frame.pose.orientation.w);
+                transform.setRotation(q);
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
 
-                tf_snapped_map_frame.setRotation(qn);
-                tf_snapped_map_frame.setOrigin(v);
+                transform.setOrigin( tf_pose_map_frame.getOrigin());
+                transform.setRotation(tf_pose_map_frame.getRotation());
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "pose_map_frame"));
 
-                tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
 
-                tf_snapped_map_frame.frame_id_=MAZZA.frame_id_;
-                tf_snapped_map_frame.stamp_=MAZZA.stamp_;
 
-                tf::Vector3 vqn = qn.getAxis();
-                tf::Vector3 vtf = tf_snapped_map_frame.getRotation().getAxis();
-
-                ROS_INFO_STREAM("\n" << snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() << "  |||  " <<  qn.getZ() << "\n");
-                ROS_INFO_STREAM("\n" << tf_snapped_map_frame.getRotation().getAngle() << " =?= "<<  qn.getAngle() << "\n");
+                ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
+                tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame); // INVERTS ROTATION? get different result with rotation w.r.t.  tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
+                ROS_INFO_STREAM("\t1\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
+                //tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
+                ROS_INFO_STREAM("\t2\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
 
                 // Transform pose from "local_map" to "map"
                 try{
@@ -1058,12 +1054,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     return;
                 }
 
-//                tf::Quaternion q;
-//                tf::Matrix3x3 m; m.setRotation(q);
-
+                ROS_INFO_STREAM("\t3\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
+                //tf_snapped_local_map_frame.setBasis(tf_snapped_local_map_frame.getBasis().transpose());
+                ROS_INFO_STREAM("\t4\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
 
                 // STAMPO ASSE Z QUATERNIONE
-                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_local_map_frame.getRotation().getAngle() << "\n");
+                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_local_map_frame.getRotation().getAngle());
                 ROS_INFO_STREAM("       map: "   << tf_snapped_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_map_frame.getRotation().getAngle() );
 
                 // save street direction
@@ -1103,14 +1099,14 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 // DEBUG ASSI Z --------------------------------------------------------------------------------
                 cout << "quaternione snapped local map: " << tf_snapped_local_map_frame.getRotation().getAxis().z() << " @ " << tf_snapped_local_map_frame.getRotation().getAngle() << "    "
                                                           << tf_pose_local_map_frame.getRotation().getAxis().z() << " @ " << tf_pose_local_map_frame.getRotation().getAngle() << "  ->  "
-                                                          << first_angle_difference << " == " << first_angle_diff.getAngle() << endl;
+                                                          << first_angle_difference << endl<< endl;
                 // RED
                 publishZSnapped((*particle_itr).getId(),
                                 tf_snapped_local_map_frame.getOrigin().getX(),
                                 tf_snapped_local_map_frame.getOrigin().getY(),
                                 tf_snapped_local_map_frame.getOrigin().getX(),
                                 tf_snapped_local_map_frame.getOrigin().getY(),
-                                tf_snapped_map_frame.getRotation().getAxis().z()*100);
+                                tf_snapped_local_map_frame.getRotation().getAxis().z()*100);
 
                 // GREEN
                 publishZParticle((*particle_itr).getId(),
