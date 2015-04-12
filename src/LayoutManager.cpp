@@ -1001,16 +1001,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 
 //            //TEST 0
-//            transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
-//            q.setX(pose_local_map_frame.pose.orientation.x);
-//            q.setY(pose_local_map_frame.pose.orientation.y);
-//            q.setZ(pose_local_map_frame.pose.orientation.z);
-//            q.setW(pose_local_map_frame.pose.orientation.w);
-//            transform.setRotation(q);
-//            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
-//            transform.setOrigin( tf_pose_local_map_frame.getOrigin());
-//            transform.setRotation(tf_pose_local_map_frame.getRotation());
-//            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame"));
+            transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
+            q.setX(pose_local_map_frame.pose.orientation.x);
+            q.setY(pose_local_map_frame.pose.orientation.y);
+            q.setZ(pose_local_map_frame.pose.orientation.z);
+            q.setW(pose_local_map_frame.pose.orientation.w);
+            transform.setRotation(q);
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
+            transform.setOrigin( tf_pose_local_map_frame.getOrigin());
+            transform.setRotation(tf_pose_local_map_frame.getRotation());
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame"));
 
 
             // Build request for getting snapped XY values + orientation of the road
@@ -1079,7 +1079,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_snapped_local_map_frame"));
 
                 // save street direction   --- WHY?! WHERE THIS VARIABLE IS USED ?
-                street_direction = tf_snapped_local_map_frame.getRotation(); // STREET_DIRECTION MODIFIED ONLY HERE?
+                // OLD_BEHAVIOR street_direction = tf_snapped_local_map_frame.getRotation(); // STREET_DIRECTION MODIFIED ONLY HERE?
+
 
                 // calculate distance from original particle positin and snapped particle position ---------------------------------
                 // use it for score calculation with normal distribution PDF
@@ -1103,6 +1104,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 // calculate angle difference ---------------------------------------------------------------------------------------
                 first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
                 //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out
+                street_direction=first_quaternion_diff;
 
                 //      get PDF score from first angle
                 boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
@@ -1128,7 +1130,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference);
 
                     if(second_angle_diff_score > first_angle_diff_score){
-                        street_direction = tf_snapped_local_map_frame_opposite_direction.getRotation(); // COPYING FROM ABOVE
+                        //street_direction = tf_snapped_local_map_frame_opposite_direction.getRotation(); // COPYING FROM ABOVE
+                        street_direction=second_quaternion_diff;
                         final_angle_diff_score = second_angle_diff_score;
                     }
                 }
@@ -1138,7 +1141,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 else
                     ROS_INFO_STREAM("ONEWAY-Y\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference);
 
-                // TEST 3. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
+                // TEST FINAL. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
                 transform.setOrigin( tf_pose_local_map_frame.getOrigin());
                 transform.setRotation(tf_pose_local_map_frame.getRotation()*street_direction.inverse());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame_ROTATED"));

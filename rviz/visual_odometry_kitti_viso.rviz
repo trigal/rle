@@ -91,15 +91,15 @@ Visualization Manager:
       Length: 30
       Name: Axes
       Radius: 0.1
-      Reference Frame: tf_pose_local_map_frame_ROTATED
+      Reference Frame: tf_pose_local_map_frame
       Value: true
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 15
       Name: Axes
       Radius: 0.5
       Reference Frame: tf_pose_local_map_frame_ROTATED
-      Value: true
+      Value: false
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
@@ -113,9 +113,13 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
+        pose_local_map_frame:
+          Value: true
         snapped_map_frame:
           Value: true
         start:
+          Value: true
+        tf_pose_local_map_frame:
           Value: true
         tf_pose_local_map_frame_ROTATED:
           Value: true
@@ -137,6 +141,10 @@ Visualization Manager:
       Tree:
         map:
           local_map:
+            pose_local_map_frame:
+              {}
+            tf_pose_local_map_frame:
+              {}
             tf_pose_local_map_frame_ROTATED:
               {}
             tf_snapped_local_map_frame:
@@ -306,22 +314,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 83.2339
+      Distance: 164.289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 68.8698
-        Y: -2.69828
-        Z: -9.52689
+        X: 39.8398
+        Y: -13.3438
+        Z: -17.8541
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.564801
+      Pitch: 0.614801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.40404
+      Yaw: 2.90404
     Saved: ~
 Window Geometry:
   Displays:
@@ -341,5 +349,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1918
-  X: -7
+  X: -8
   Y: 17
