@@ -8,7 +8,7 @@ Panels:
         - /Status1
         - /Axes3
         - /Axes4
-        - /Image1
+        - /Axes5
       Splitter Ratio: 0.690972
     Tree Height: 697
   - Class: rviz/Selection
@@ -73,11 +73,18 @@ Visualization Manager:
       Reference Frame: snapped_map_frame
       Value: true
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 15
       Name: Axes
       Radius: 1
       Reference Frame: tf_snapped_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 15
+      Name: Axes
+      Radius: 1
+      Reference Frame: tf_snapped_map_frame_INVERTED_DIRECTION
       Value: true
     - Class: rviz/TF
       Enabled: true
@@ -97,6 +104,8 @@ Visualization Manager:
         start:
           Value: true
         tf_snapped_map_frame:
+          Value: true
+        tf_snapped_map_frame_INVERTED_DIRECTION:
           Value: true
         visual_odometry_camera_frame:
           Value: true
@@ -120,6 +129,8 @@ Visualization Manager:
           snapped_map_frame:
             {}
           tf_snapped_map_frame:
+            {}
+          tf_snapped_map_frame_INVERTED_DIRECTION:
             {}
       Update Interval: 0
       Value: true
@@ -155,7 +166,7 @@ Visualization Manager:
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -163,7 +174,7 @@ Visualization Manager:
       Shaft Radius: 1
       Shape: Arrow
       Topic: /road_layout_estimation/layout_manager/quaternion_pose
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
@@ -220,13 +231,15 @@ Visualization Manager:
       Transport Hint: raw
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /ways
       Name: MarkerArray
       Namespaces:
-        {}
+        direction: true
+        node: true
+        way: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
@@ -275,22 +288,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 140.37
+      Distance: 157.72
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 38.0569
-        Y: -18.1786
-        Z: -18.703
+        X: 79.4873
+        Y: -15.0207
+        Z: 16.9702
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.809801
+      Pitch: 0.719801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.49403
+      Yaw: 2.49903
     Saved: ~
 Window Geometry:
   Displays:

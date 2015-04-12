@@ -1046,10 +1046,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 transform.setRotation(tf_snapped_map_frame.getRotation());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame"));
 
+                //TEST 2. CHECKED LATER IN THE CODE, BUT KNOW BY ME.
+                if (srv.response.way_dir_opposite_particles)
+                {
+                    tf_snapped_map_frame.setRotation(tf_snapped_map_frame*tf::createQuaternionFromYaw(M_PI));
 
+                    transform.setOrigin( tf_snapped_map_frame.getOrigin());
+                    transform.setRotation(tf_snapped_map_frame.getRotation());
+                    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame_INVERTED_DIRECTION"));
 
-
-                // srv.response.way_dir_opposite_particles; CHECKED LATER IN THE CODE.
+                }
 
 
 //                ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
