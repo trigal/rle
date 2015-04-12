@@ -69,7 +69,10 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     // init road_lane_detection subscriber
     road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
 
-    stat_out_file.open("/home/limongi/Desktop/culo/output.txt");
+    // init output files
+//    stat_out_file.open("/home/limongi/Desktop/culo/output.txt");
+    vo_distance_out_file.open("/home/dario/Desktop/vo_distance.txt"); //ros::package::getPath("road_layout_estimation")
+    vo_mm_distance_out_file.open("/home/dario/Desktop/vo_mm_distance.txt");
 
     // init values
     step = 0;
@@ -241,7 +244,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                // Update counter
                counter = counter+1;
-           } // end cycle for creating particle (FOR)
+           }// end cycle for creating particle (FOR)
         }
         else if(config.particles_number < num_particles)
         {
@@ -405,6 +408,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            xy_2_latlon_srv.request.y = tf_pose_map_frame.getOrigin().getY();
 //            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
 //                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
+//                ros::shutdown(); //augusto debug
 //                return;
 //            }
 
@@ -583,47 +587,27 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     pose_map_frame.pose.position.y = srv.response.snapped_y;
                     pose_map_frame.pose.position.z = 0.0;
 
-
                     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(srv.response.way_dir_rad), pose_map_frame.pose.orientation);
-//                    cout << "snapped orientation: " << srv.response.way_dir_rad << endl;
-//                    cout << "snapped pose quaternion: " << pose_map_frame.pose.orientation << endl;
-
-                    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame ;
+                    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
                     tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
 
                     // Transform pose from "map" to "local_map"
                     try
                     {
-                        tf_listener.waitForTransform("local_map", "map", ros::Time::now(), ros::Duration(0.05));
+                        tf_listener.waitForTransform("local_map", "map", ros::Time(0), ros::Duration(0.5));
                         tf_listener.transformPose("/local_map", ros::Time(0), tf_pose_map_frame, "/map", tf_pose_local_map_frame);
                     }
                     catch (tf::TransformException &ex)
                     {
                         ROS_ERROR("%s",ex.what());
                         ROS_INFO_STREAM("map to local map exception");
-                        continue;
+                        continue; //Skip this iteration
                     }
-
-
-//                    cout << "AAA 1: " << tf_pose_map_frame.getOrigin().getX() << " " << tf_pose_map_frame.getOrigin().getY() << " " << tf_pose_map_frame.getOrigin().getZ() << endl;
-//                    cout << "AAA 1: " << tf_pose_map_frame.getRotation().getAngle() << endl;
-//                    cout << "AAA 2: " << tf_pose_local_map_frame.getOrigin().getX() << " " << tf_pose_local_map_frame.getOrigin().getY() << " " << tf_pose_local_map_frame.getOrigin().getZ() << endl;
-//                    cout << "AAA 2: " << tf_pose_local_map_frame.getRotation().getAngle() << endl;
-
-
 
                     // Init particle's pose
                     State6DOF p_pose;
                     p_pose._pose = Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0);
-                    tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized()); // useless ...
-
-                    // Create rotation object
-//                    cout << "AAA 3: " <<
-//                                tf_pose_local_map_frame.getRotation().getW() << " " <<
-//                                tf_pose_local_map_frame.getRotation().getX()<< " " <<
-//                                tf_pose_local_map_frame.getRotation().getY()<< " " <<
-//                                tf_pose_local_map_frame.getRotation().getZ()<< endl;
-
+                    tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
 
                     AngleAxisd rotation = AngleAxisd(
                                 Quaterniond(
@@ -632,8 +616,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                     tf_pose_local_map_frame.getRotation().getY(),
                                     tf_pose_local_map_frame.getRotation().getZ()
                                     ));
-
-                    cout << "rotation: "<< rotation.angle() << endl;
                     p_pose.setRotation(rotation);
 
                     // Init particle's sigma
@@ -650,7 +632,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     particle_id += 1;
 
                     // Check if we should create 2 particles with opposite direction
-                    //TODO: CHECK THIS!
                     if(srv.response.way_dir_opposite_particles){
 
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
@@ -666,10 +647,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                         tf_pose_local_map_frame_opposite_direction.getRotation().getZ()
                                         ));
 
-//                        // Invert Yaw direction
-//                        double angle_temp = M_PI + part.getParticleState().getRotation().angle();
-//                        cout << "inverse angle: " << angle_temp << endl;
-//                        cout << "        angle: " << part.getParticleState().getRotation().angle() << endl;
+                        //                        // Invert Yaw direction
+                        //                        double angle_temp = M_PI + part.getParticleState().getRotation().angle();
+                        //                        cout << "inverse angle: " << angle_temp << endl;
+                        //                        cout << "        angle: " << part.getParticleState().getRotation().angle() << endl;
 
                         p_pose.setRotation(rotation_opposite);
 
@@ -725,26 +706,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             tmp_convert << "Particle ID: " << p.getId();
             p.getParticleState().printState(tmp_convert.str());
         }
-
-//            geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
-
-//            // normalize quaternion
-//            tf::Quaternion q;
-//            tf::quaternionMsgToTF(pose.orientation,q);
-//            q = q.normalize();
-//            tf::quaternionTFToMsg(q, pose.orientation);
-
-//            // build posestamped
-//            geometry_msgs::PoseStamped pose_stamp;
-//            pose_stamp.header.stamp = ros::Time::now();
-//            pose_stamp.header.frame_id = "local_map";
-//            pose_stamp.pose = pose;
-
-//            // print it!
-//            cout << "Particle ID: " << p.getId() << endl;
-//            Utils::printPoseMsgToCout(pose_stamp);
-//            cout << endl;
-//        }// end print random particles
 
         // BUILD POSEARRAY MSG
         // Get particle-set
@@ -933,7 +894,10 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
+    // Beep
     printf("\a");
+
+    // Publish GPS init markers
     marker_pub.publish(marker1);
     marker_pub2.publish(marker2);
 
@@ -944,10 +908,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     std::cout << " ******* MSG ARRIVED. *******" << std::endl;
 //    Utils::printOdomAngleAxisToCout(msg);
 
-    // if it's our first incoming odometry msg, just use it as particle-set poses initializer
-    // (filter won't be called)
+    // if it's our first incoming odometry msg:
+    // (OLD)    just use it as particle-set poses initializer
+    // (NEW)    filter won't be called
     if(LayoutManager::first_msg && current_layout.size() == 0){
-        cout << "   First Odometry message arrived, generating particles set" << endl;
+        cout << "   First Odometry message arrived, no particles" << endl;
         return;
     }
 
@@ -961,12 +926,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // calculate delta_t
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
 
+    // Diff quaternions used for angle score
     tf::Quaternion first_quaternion_diff;
     tf::Quaternion second_quaternion_diff;
     tf::Quaternion street_direction;
 
-
-    // % LINES
+    // % Blue distance lines marker array
     marker_array_distances.markers.clear();
 
     // call particle_estimation -------------------------------------------------------------------------------------------------------
@@ -1113,8 +1078,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 //      get PDF score FOR DISTANCE
                 boost::math::normal normal_dist(0, street_distribution_sigma);
                 double pose_diff_score_component = pdf(normal_dist, distance);
-
                 //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out, maybe works .. this line isn't tested yet
+
                 // calculate angle difference ---------------------------------------------------------------------------------------
                 first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
                 street_direction=first_quaternion_diff;
@@ -1128,8 +1093,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 double second_angle_diff_score = 0.0f;
                 double second_angle_difference = 0.0f;
 
-                final_angle_diff_score = first_angle_diff_score;
-
                 //      if street have 2 directions check angle diff with opposite angle
                 if(srv.response.way_dir_opposite_particles)
                 {
@@ -1141,17 +1104,19 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
                     second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference);
 
-                    if(second_angle_diff_score > first_angle_diff_score){
-                        //street_direction = tf_snapped_local_map_frame_opposite_direction.getRotation(); // COPYING FROM ABOVE
-                        street_direction=second_quaternion_diff;
+                    //      set score
+                    if(second_angle_diff_score > first_angle_diff_score)
                         final_angle_diff_score = second_angle_diff_score;
-                    }
-                }
+                    else
+                        final_angle_diff_score = first_angle_diff_score;
 
-                if(srv.response.way_dir_opposite_particles)
                     ROS_INFO_STREAM("ONEWAY-N\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference << "\tANGLE_2: " << second_angle_difference);
+                }
                 else
+                {
                     ROS_INFO_STREAM("ONEWAY-Y\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference);
+                    final_angle_diff_score = first_angle_diff_score;
+                }
 
                 // TEST FINAL. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
                 transform.setOrigin( tf_pose_local_map_frame.getOrigin());
@@ -1162,50 +1127,28 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 //                (*particle_itr).setParticleScore(street_distribution_weight/tot_weight * pose_diff_score_component + angle_distribution_weight/tot_weight * angle_diff_score_component);
                 (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score);
 
-
-//                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
-//                {
-                    cout << std::setprecision(5) << "PARTICLE ID: " << (*particle_itr).getId() << endl
-                         << "  SCORE:" << endl
-                         << "   DISTANCE:" << endl
-                         << "      sigma: " << street_distribution_sigma << endl
-                         << "      error: " << distance << endl
-                         << "      score: " << pose_diff_score_component << endl
-                         << "   ANGLE:" << endl
-                         << "      sigma: " << angle_distribution_sigma << endl
-                         << "     error1: " << first_angle_difference << " \tscore: " << first_angle_diff_score << endl
-                         << "     error2: " << second_angle_difference <<" \tscore: " << second_angle_diff_score <<  endl
-                         << "  sel error: " << street_direction.inverse().getAngle()<< endl
-                         << "      score: " << final_angle_diff_score << endl
-                         << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
-
-                    //COUT LIMONGI
-//                    cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
-//                         << " SCORE:" << endl
-//                         << " DISTANCE:" << endl
-//                         << " sigma: " << street_distribution_sigma << endl
-//                         << " error: " << distance << endl
-//                         << " score: " << pose_diff_score_component << endl
-//                         << " ANGLE:" << endl
-//                         << " sigma: " << angle_distribution_sigma << endl
-//                         << " error1: " << first_angle_difference << endl
-//                         << " score1: " << first_angle_diff_score << endl
-//                         << " error2: " << second_angle_difference << endl
-//                         << " score2: " << second_angle_diff_score << endl
-//                         << " score: " << final_angle_diff_score << endl
-//                         << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
-
-//                }
+                cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
+                     << "  SCORE:" << endl
+                     << "   DISTANCE:" << endl
+                     << "      sigma: " << street_distribution_sigma << endl
+                     << "     weight: " << street_distribution_weight << endl
+                     << "      error: " << distance << endl
+                     << "      score: " << pose_diff_score_component << endl
+                     << "   ANGLE:" << endl
+                     << "      sigma: " << angle_distribution_sigma << endl
+                     << "     weight: " << angle_distribution_weight << endl
+                     << "     error1: " << first_angle_difference << endl
+                     << "     score1: " << first_angle_diff_score << endl
+                     << "     error2: " << second_angle_difference << endl
+                     << "     score2: " << second_angle_diff_score << endl
+                     << "      score: " << final_angle_diff_score << endl
+                     << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
             }
             else
             {
                 // Either service is down or particle is too far from a street
                 (*particle_itr).setParticleScore(0);
             }// end snap particle client
-
-//            if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
-//                cout << "   TOTAL: " << (*particle_itr).getParticleScore() << endl << endl;
-
         } // end openstreetmap enabled
     } // end particle cycle
 
@@ -1216,7 +1159,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     publisher_z_snapped.publish(marker_z_snapped);
     publisher_z_particle.publish(marker_z_particle);
     // -------------------------------------------------------------------------------------------------------------------------------------
-
 
     // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
     if(true) //resampling_count++ == 2)
@@ -1245,20 +1187,21 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
             for(int k = 0; k<current_layout.size(); ++k)
             {
-                double num = uniform_rand(rng);
-
                 if(uniform_rand2(rng) <= 80) //This percentage of weighted samples
-                {   // WEIGHTED RESAMPLER
+                {
+                    // WEIGHTED RESAMPLER
                     int particle_counter = 0;
+                    double num = uniform_rand(rng);
+
                     for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
                     {
                         if( *score_itr >= num)
                         {
                             Particle temp_part = current_layout.at(particle_counter);
-//                            stat_out_file << temp_part.getId() << "\t";
                             temp_part.setId(k);
-                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
-                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+//                            stat_out_file << temp_part.getId() << "\t";
+//                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
+//                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
                             new_current_layout.push_back(temp_part);
                             break;
                         }
@@ -1266,7 +1209,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     }
                 }
                 else
-                {   // UNIFORM RESAMPLER
+                {
+                    // UNIFORM RESAMPLER
                     int temp_rand = floor(uniform_rand3(rng));
                     Particle temp_part = current_layout.at(temp_rand);
                     temp_part.setId(k);
@@ -1274,19 +1218,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 }
 
             }
-//            stat_out_file << endl;
 
-            MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
-            MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
-
-    //        cout << endl << endl;
-
-    //        cout << particle_poses_statistics.colwise().mean() << endl;
-    //        cout << cov << endl;
-            double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
-    //        cout << var_mean << endl;
-            stat_out_file << var_mean << endl;
-
+            // Save stats to file
+//            MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
+//            MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
+//            double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
+//            stat_out_file << var_mean << endl;
 
             // copy resampled particle-set
             current_layout.clear();
@@ -1304,43 +1241,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // Publish it!
     array_pub.publish(array_msg);
-
-
     LayoutManager::publishMarkerArray();
-
-
+    // -------------------------------------------------------------------------------------------------------------------------------------
 
     // Update old_msg with current one for next step delta_t calculation
     old_msg = msg;
-    // -------------------------------------------------------------------------------------------------------------------------------------
-
 
     // -------------------------------------------------------------------------------------------------------------------------------------
-    // ANGLE DIFF CHECK:
-    //      closest street quaternion:
-//    geometry_msgs::PoseStamped street_pose;
-//    street_pose.header.stamp = ros::Time::now();
-//    street_pose.header.frame_id = "local_map";
-//    tf::quaternionTFToMsg(street_direction, street_pose.pose.orientation);
-//    street_publisher.publish(street_pose);
-
-    //      first particle pose
-    geometry_msgs::PoseStamped particle_pose;
-    particle_pose.header.stamp = ros::Time::now();
-    particle_pose.header.frame_id = "local_map";
-    particle_pose.pose.orientation = ((geometry_msgs::Pose)array_msg.poses.at(array_msg.poses.size()-1)).orientation;
-    particle_publisher.publish(particle_pose);
-
-
-    //      (last) angle diff
-    geometry_msgs::PoseStamped diff_pose;
-    diff_pose.header.stamp = ros::Time::now();
-    diff_pose.header.frame_id = "local_map";
-    tf::Quaternion temp;
-    tf::quaternionMsgToTF(particle_pose.pose.orientation, temp);
-    tf::Quaternion temp2 = first_quaternion_diff.inverse() * temp;
-    tf::quaternionTFToMsg(temp2, diff_pose.pose.orientation);
-    diff_publisher.publish(diff_pose);
+    // SAVE RESULTS TO OUTPUT FILE:
+    vo_distance_out_file << "ciao" << "\n";
+    vo_mm_distance_out_file << "ciao" << "\n";
     // -------------------------------------------------------------------------------------------------------------------------------------
 }
 
@@ -1350,7 +1260,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
  * @return true if car has moved beyond the the threshold matrix
  */
 bool LayoutManager::checkHasMoved(){
-	//MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
+    //MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
 //	MatrixXd diff_matrix = MatrixXd::Ones(12,12);
 //	return diff_matrix.count() > 0; //every position over the threshold will count as 1
 
@@ -1414,11 +1324,11 @@ void LayoutManager::componentsEstimation(){
  * cicle through all the particles, and call their function "propagate-components"
  */
 void LayoutManager::sampling(){
-	vector<Particle>::iterator itr;
-	for( itr = current_layout.begin(); itr != current_layout.end(); itr++ ){
-		cout << "--- Propagating components of particle, ID: " << itr->getId() << " ---"<< endl;
+    vector<Particle>::iterator itr;
+    for( itr = current_layout.begin(); itr != current_layout.end(); itr++ ){
+        cout << "--- Propagating components of particle, ID: " << itr->getId() << " ---"<< endl;
         itr->propagateLayoutComponents();
-	}
+    }
 }
 
 /**
@@ -1508,42 +1418,42 @@ void LayoutManager::calculateScore(){
 /** **************************************************************************************************************/
 
 vector<Particle> LayoutManager::layoutEstimation(){
-	// Check if car has moved, if it has moved then estimate new layout
-	if( checkHasMoved() )
-	{
-		// ----------------- predict and update layout poses using E.K.F ----------------- //
-		vector<Particle>::iterator particle_itr;
-		for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+    // Check if car has moved, if it has moved then estimate new layout
+    if( checkHasMoved() )
+    {
+        // ----------------- predict and update layout poses using E.K.F ----------------- //
+        vector<Particle>::iterator particle_itr;
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
             (*particle_itr).particlePoseEstimation(measurement_model);
-		}
-		// ------------------------------------------------------------------------------- //
+        }
+        // ------------------------------------------------------------------------------- //
 
-		// -------------- sampling + perturbation + weight layout-components ------------- //
+        // -------------- sampling + perturbation + weight layout-components ------------- //
         //this->componentsEstimation();
-		// ------------------------------------------------------------------------------- //
+        // ------------------------------------------------------------------------------- //
 
-		// ------------------------------ calculate score -------------------------------- //
+        // ------------------------------ calculate score -------------------------------- //
         //this->calculateScore();
-		// ------------------------------------------------------------------------------- //
+        // ------------------------------------------------------------------------------- //
 
         // ------------------------------ resampling ------------------------------------- //
         if(new_detections)
-		{
+        {
 //			Add new candidate-components ----------------------------------------------------- //
 //			(1) given N new candidate-layout-components duplicate 2^N particles and those particles to them
 //			(2) calculate score
 //			(3) resample all combination
-		}
-	}
-	else
-	{
-		cout << endl <<  "Not moved!" << endl;
+        }
+    }
+    else
+    {
+        cout << endl <<  "Not moved!" << endl;
         //TODO: calculate score again, with new detections (if available)
 
-	}
+    }
 
 
-	return current_layout;
+    return current_layout;
 }
 
 void LayoutManager::normalizeParticleSet(){

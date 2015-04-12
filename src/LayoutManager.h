@@ -37,6 +37,7 @@
 #include "osm_cartography/latlon_2_xy.h"
 #include "osm_cartography/xy_2_latlon.h"
 #include "osm_cartography/get_closest_way_distance_utm.h"
+#include <ros/package.h>
 #include "visualization_msgs/Marker.h"
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
@@ -154,7 +155,11 @@ private:
     long resampling_count;
 
     MatrixXd particle_poses_statistics; /// To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+
+    // output files
     ofstream stat_out_file;
+    ofstream vo_distance_out_file;
+    ofstream vo_mm_distance_out_file;
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
@@ -254,7 +259,9 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
-        stat_out_file.close();
+//        stat_out_file.close();
+        vo_distance_out_file.close();
+        vo_mm_distance_out_file.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);
