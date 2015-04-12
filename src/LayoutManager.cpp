@@ -598,7 +598,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     {
                         ROS_ERROR("%s",ex.what());
                         ROS_INFO_STREAM("map to local map exception");
-                        //return;
+                        continue;
                     }
 
 
@@ -648,7 +648,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Check if we should create 2 particles with opposite direction
                     //TODO: CHECK THIS!
-                    if(true){//srv.response.way_dir_opposite_particles){
+                    if(srv.response.way_dir_opposite_particles){
 
                         // Invert Yaw direction
                         double angle_temp = M_PI + part.getParticleState().getRotation().angle();
@@ -1111,6 +1111,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 double second_angle_diff_score = 0.0f;
                 double second_angle_difference = 0.0f;
 
+                final_angle_diff_score = first_angle_diff_score;
+
                 //      if street have 2 directions check angle diff with opposite angle
                 if(srv.response.way_dir_opposite_particles)
                 {
@@ -1148,7 +1150,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 //                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
 //                {
-                    cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
+                    cout << std::setprecision(5) << "PARTICLE ID: " << (*particle_itr).getId() << endl
                          << "  SCORE:" << endl
                          << "   DISTANCE:" << endl
                          << "      sigma: " << street_distribution_sigma << endl
@@ -1156,11 +1158,27 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                          << "      score: " << pose_diff_score_component << endl
                          << "   ANGLE:" << endl
                          << "      sigma: " << angle_distribution_sigma << endl
-                         << "     error1: " << first_angle_difference << endl
-                         << "     error2: " << second_angle_difference << endl
+                         << "     error1: " << first_angle_difference << " \tscore: " << first_angle_diff_score << endl
+                         << "     error2: " << second_angle_difference <<" \tscore: " << second_angle_diff_score <<  endl
                          << "  sel error: " << street_direction.inverse().getAngle()<< endl
                          << "      score: " << final_angle_diff_score << endl
                          << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
+
+                    //COUT LIMONGI
+//                    cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
+//                         << " SCORE:" << endl
+//                         << " DISTANCE:" << endl
+//                         << " sigma: " << street_distribution_sigma << endl
+//                         << " error: " << distance << endl
+//                         << " score: " << pose_diff_score_component << endl
+//                         << " ANGLE:" << endl
+//                         << " sigma: " << angle_distribution_sigma << endl
+//                         << " error1: " << first_angle_difference << endl
+//                         << " score1: " << first_angle_diff_score << endl
+//                         << " error2: " << second_angle_difference << endl
+//                         << " score2: " << second_angle_diff_score << endl
+//                         << " score: " << final_angle_diff_score << endl
+//                         << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
 
 //                }
             }

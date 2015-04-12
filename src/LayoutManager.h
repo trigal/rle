@@ -43,6 +43,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <math.h>
 
 using boost::math::normal;

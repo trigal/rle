@@ -37,7 +37,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: false
+      Enabled: true
       Line Style:
         Line Width: 0.03
         Value: Lines
@@ -50,7 +50,7 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
-      Value: false
+      Value: true
     - Class: rviz/Axes
       Enabled: false
       Length: 30
@@ -230,13 +230,13 @@ Visualization Manager:
       Topic: /road_layout_estimation/layout_manager/diff_pose
       Value: false
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: Marker
       Namespaces:
-        {}
+        gauss_sigma: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle2
@@ -314,7 +314,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 164.289
+      Distance: 154.675
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -326,7 +326,7 @@ Visualization Manager:
         Z: -17.8541
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.614801
+      Pitch: 0.849801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 2.90404
