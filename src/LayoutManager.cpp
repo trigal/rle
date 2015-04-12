@@ -995,17 +995,18 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 return;
             }
 
-            transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
-            q.setX(pose_local_map_frame.pose.orientation.x);
-            q.setY(pose_local_map_frame.pose.orientation.y);
-            q.setZ(pose_local_map_frame.pose.orientation.z);
-            q.setW(pose_local_map_frame.pose.orientation.w);
-            transform.setRotation(q);
-            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
 
-            transform.setOrigin( tf_pose_local_map_frame.getOrigin());
-            transform.setRotation(tf_pose_local_map_frame.getRotation());
-            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame"));
+//            //TEST 0
+//            transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
+//            q.setX(pose_local_map_frame.pose.orientation.x);
+//            q.setY(pose_local_map_frame.pose.orientation.y);
+//            q.setZ(pose_local_map_frame.pose.orientation.z);
+//            q.setW(pose_local_map_frame.pose.orientation.w);
+//            transform.setRotation(q);
+//            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
+//            transform.setOrigin( tf_pose_local_map_frame.getOrigin());
+//            transform.setRotation(tf_pose_local_map_frame.getRotation());
+//            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame"));
 
 
             // Build request for getting snapped XY values + orientation of the road
@@ -1018,7 +1019,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             // Get distance from snapped particle pose and set it as particle score
             if (LayoutManager::snap_particle_xy_client.call(srv))
             {
-                // Transform snapped particle pose from "map" to "local_map"
+                // Snapped pose is is map frame, convert from MSG to TF first.
                 geometry_msgs::PoseStamped snapped_map_frame;
                 snapped_map_frame.header.frame_id = "map";
                 snapped_map_frame.header.stamp = ros::Time::now();
@@ -1032,6 +1033,21 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
                 tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
                 tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
+
+                //TEST 1 ---- BE CAREFUL, THIS MAY NOT BE THE RIGHT DIRECTION!
+                transform.setOrigin( tf::Vector3(snapped_map_frame.pose.position.x, snapped_map_frame.pose.position.y, snapped_map_frame.pose.position.z) );
+                q.setX(snapped_map_frame.pose.orientation.x);
+                q.setY(snapped_map_frame.pose.orientation.y);
+                q.setZ(snapped_map_frame.pose.orientation.z);
+                q.setW(snapped_map_frame.pose.orientation.w);
+                transform.setRotation(q);
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "snapped_map_frame"));
+                transform.setOrigin( tf_snapped_map_frame.getOrigin());
+                transform.setRotation(tf_snapped_map_frame.getRotation());
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame"));
+
+
+
 
                 // srv.response.way_dir_opposite_particles; CHECKED LATER IN THE CODE.
 
