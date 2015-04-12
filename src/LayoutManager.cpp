@@ -1055,15 +1055,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     transform.setRotation(tf_snapped_map_frame.getRotation());
                     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame_INVERTED_DIRECTION"));
 
+                    // ** THIS ROUTING LEAVES THE ROTATION INVERTED **
                 }
 
-
-//                ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
-//                ROS_INFO_STREAM("\t1\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
-//                //tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
-//                ROS_INFO_STREAM("\t2\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
-
-                // Transform pose from "local_map" to "map"
+                // Transform pose from "map" to "local_map"
                 try{
                     tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
                 }
@@ -1073,6 +1068,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     ROS_ERROR("     Transform snapped particle pose from map to local_map");
                     return;
                 }
+
+                // TEST 3. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION SINCE THE CODE IS WRITTEN LIKE THIS. WTF. =)
+                transform.setOrigin( tf_snapped_local_map_frame.getOrigin());
+                transform.setRotation(tf_snapped_local_map_frame.getRotation());
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_snapped_local_map_frame"));
 
 //                ROS_INFO_STREAM("\t3\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
 //                //tf_snapped_local_map_frame.setBasis(tf_snapped_local_map_frame.getBasis().transpose());
