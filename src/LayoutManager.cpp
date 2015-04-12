@@ -990,7 +990,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 return;
             }
 
-            // Build request for getting
+            // Build request for getting snapped XY values + orientation of the road
             osm_cartography::snap_particle_xy srv;
             srv.request.x = tf_pose_map_frame.getOrigin().getX();
             srv.request.y = tf_pose_map_frame.getOrigin().getY();
@@ -1011,6 +1011,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
                 tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
+
+                srv.response.way_dir_opposite_particles;
 
                 static tf::TransformBroadcaster br;
                 tf::Transform transform;
@@ -1034,8 +1036,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 transform.setOrigin( tf_pose_map_frame.getOrigin());
                 transform.setRotation(tf_pose_map_frame.getRotation());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "pose_map_frame"));
-
-
 
                 ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
                 tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame); // INVERTS ROTATION? get different result with rotation w.r.t.  tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
