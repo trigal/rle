@@ -104,6 +104,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     snap_particle_xy_client = n.serviceClient<osm_cartography::snap_particle_xy>("/osm_cartography/snap_particle_xy");
     get_closest_way_distance_utm_client = n.serviceClient<osm_cartography::get_closest_way_distance_utm>("/osm_cartography/get_closest_way_distance_utm");
 
+    latlon_2_xy_client.waitForExistence(); // WAIT FOR SERVICE -- the function prints some pretty comments
+
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
@@ -1033,7 +1035,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
 
-                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
+                tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame, tf_snapped_local_map_frame_opposite_direction ;
                 tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
 
                 //TEST 1 ---- BE CAREFUL, THIS MAY NOT BE THE RIGHT DIRECTION!
@@ -1048,17 +1050,17 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 transform.setRotation(tf_snapped_map_frame.getRotation());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame"));
 
-                //TEST 2. CHECKED LATER IN THE CODE, BUT KNOW BY ME.
-                if (srv.response.way_dir_opposite_particles)
-                {
-                    tf_snapped_map_frame.setRotation(tf_snapped_map_frame*tf::createQuaternionFromYaw(M_PI));
+//                //TEST 2. CHECKED LATER IN THE CODE, BUT KNOW BY ME.
+//                if (srv.response.way_dir_opposite_particles)
+//                {
+//                    tf_snapped_map_frame.setRotation(tf_snapped_map_frame*tf::createQuaternionFromYaw(M_PI));
 
-                    transform.setOrigin( tf_snapped_map_frame.getOrigin());
-                    transform.setRotation(tf_snapped_map_frame.getRotation());
-                    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame_INVERTED_DIRECTION"));
+//                    transform.setOrigin( tf_snapped_map_frame.getOrigin());
+//                    transform.setRotation(tf_snapped_map_frame.getRotation());
+//                    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame_INVERTED_DIRECTION"));
 
-                    // ** THIS ROUTING LEAVES THE ROTATION INVERTED **
-                }
+//                    // ** THIS ROUTING LEAVES THE ROTATION INVERTED **
+//                }
 
                 // Transform pose from "map" to "local_map"
                 try{
@@ -1071,12 +1073,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     return;
                 }
 
-                // TEST 3. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION SINCE THE CODE IS WRITTEN LIKE THIS. WTF. =)
+                // TEST 3. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
                 transform.setOrigin( tf_snapped_local_map_frame.getOrigin());
                 transform.setRotation(tf_snapped_local_map_frame.getRotation());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_snapped_local_map_frame"));
 
-                // save street direction
+                // save street direction   --- WHY?! WHERE THIS VARIABLE IS USED ?
                 street_direction = tf_snapped_local_map_frame.getRotation(); // STREET_DIRECTION MODIFIED ONLY HERE?
 
                 // calculate distance from original particle positin and snapped particle position ---------------------------------
@@ -1094,7 +1096,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                                             tf_snapped_local_map_frame.getOrigin().getY(),
                                             tf_pose_local_map_frame.getOrigin().getZ());
 
-                //      get PDF score
+                //      get PDF score FOR DISTANCE
                 boost::math::normal normal_dist(0, street_distribution_sigma);
                 double pose_diff_score_component = pdf(normal_dist, distance);
 
@@ -1102,46 +1104,32 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
                 //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out
 
-                //      get PDF score from first angle score
+                //      get PDF score from first angle
                 boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
                 double first_angle_difference = Utils::normalize_angle(first_quaternion_diff.getAngle());
-                double angle_diff_score_component = pdf(angle_normal_dist, first_angle_difference);
+                double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference);
 
-                double second_angle_diff_score = 0;
-                double second_angle_difference = 0;
-
-//                // RED
-//                publishZSnapped((*particle_itr).getId(),
-//                                tf_snapped_local_map_frame.getOrigin().getX(),
-//                                tf_snapped_local_map_frame.getOrigin().getY(),
-//                                tf_snapped_local_map_frame.getOrigin().getX(),
-//                                tf_snapped_local_map_frame.getOrigin().getY(),
-//                                tf_snapped_local_map_frame.getRotation().getAxis().z()*100);
-
-//                // GREEN
-//                publishZParticle((*particle_itr).getId(),
-//                                tf_pose_local_map_frame.getOrigin().getX(),
-//                                tf_pose_local_map_frame.getOrigin().getY(),
-//                                tf_pose_local_map_frame.getOrigin().getX(),
-//                                tf_pose_local_map_frame.getOrigin().getY(),
-//                                tf_pose_local_map_frame.getRotation().getAxis().z()*100);
-
+                double final_angle_diff_score  = 0.0f;
+                double second_angle_diff_score = 0.0f;
+                double second_angle_difference = 0.0f;
 
                 //      if street have 2 directions check angle diff with opposite angle
                 if(srv.response.way_dir_opposite_particles)
                 {
-                    tf_snapped_local_map_frame.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI));
+                    tf_snapped_local_map_frame_opposite_direction=tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
 
-                    street_direction = tf_snapped_local_map_frame.getRotation(); // COPYING FROM ABOVE
+                    tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
 
-                    second_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
+
+                    second_quaternion_diff = tf_snapped_local_map_frame_opposite_direction.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
                     //      get PDF score
                     second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
                     second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference);
 
-                    if(second_angle_diff_score > angle_diff_score_component){
-                        angle_diff_score_component = second_angle_diff_score;
+                    if(second_angle_diff_score > first_angle_diff_score){
+                        street_direction = tf_snapped_local_map_frame_opposite_direction.getRotation(); // COPYING FROM ABOVE
+                        final_angle_diff_score = second_angle_diff_score;
                     }
                 }
 
@@ -1150,7 +1138,17 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 else
                     ROS_INFO_STREAM("ONEWAY-Y\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference);
 
-//                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
+                // TEST 3. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
+                transform.setOrigin( tf_pose_local_map_frame.getOrigin());
+                transform.setRotation(tf_pose_local_map_frame.getRotation()*street_direction.inverse());
+                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame_ROTATED"));
+
+                // set particle score
+//                (*particle_itr).setParticleScore(street_distribution_weight/tot_weight * pose_diff_score_component + angle_distribution_weight/tot_weight * angle_diff_score_component);
+                (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score);
+
+
+                //                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
 //                {
                     cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
                          << "  SCORE:" << endl
@@ -1162,12 +1160,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                          << "      sigma: " << angle_distribution_sigma << endl
                          << "     error1: " << first_angle_difference << endl
                          << "     error2: " << second_angle_difference << endl
-                         << "      score: " << angle_diff_score_component << endl;
-//                }
+                         << "      score: " << final_angle_diff_score << endl
+                         << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
 
-                // set particle score
-//                (*particle_itr).setParticleScore(street_distribution_weight/tot_weight * pose_diff_score_component + angle_distribution_weight/tot_weight * angle_diff_score_component);
-                (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * angle_diff_score_component);
+//                }
             }
             else
             {

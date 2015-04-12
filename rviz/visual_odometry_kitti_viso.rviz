@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /Axes4
         - /Axes6
+        - /Axes7
       Splitter Ratio: 0.425791
     Tree Height: 697
   - Class: rviz/Selection
@@ -72,12 +73,12 @@ Visualization Manager:
       Reference Frame: snapped_map_frame
       Value: false
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 15
       Name: Axes
       Radius: 1
       Reference Frame: tf_snapped_map_frame
-      Value: true
+      Value: false
     - Class: rviz/Axes
       Enabled: false
       Length: 15
@@ -90,7 +91,14 @@ Visualization Manager:
       Length: 30
       Name: Axes
       Radius: 0.1
-      Reference Frame: tf_snapped_local_map_frame
+      Reference Frame: tf_pose_local_map_frame_ROTATED
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 15
+      Name: Axes
+      Radius: 0.5
+      Reference Frame: tf_pose_local_map_frame_ROTATED
       Value: true
     - Class: rviz/TF
       Enabled: true
@@ -109,11 +117,11 @@ Visualization Manager:
           Value: true
         start:
           Value: true
+        tf_pose_local_map_frame_ROTATED:
+          Value: true
         tf_snapped_local_map_frame:
           Value: true
         tf_snapped_map_frame:
-          Value: true
-        tf_snapped_map_frame_INVERTED_DIRECTION:
           Value: true
         visual_odometry_camera_frame:
           Value: true
@@ -129,6 +137,8 @@ Visualization Manager:
       Tree:
         map:
           local_map:
+            tf_pose_local_map_frame_ROTATED:
+              {}
             tf_snapped_local_map_frame:
               {}
             visual_odometry_odom_x_forward:
@@ -139,8 +149,6 @@ Visualization Manager:
           snapped_map_frame:
             {}
           tf_snapped_map_frame:
-            {}
-          tf_snapped_map_frame_INVERTED_DIRECTION:
             {}
       Update Interval: 0
       Value: true
@@ -245,7 +253,9 @@ Visualization Manager:
       Marker Topic: /ways
       Name: MarkerArray
       Namespaces:
-        {}
+        direction: true
+        node: true
+        way: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -296,22 +306,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 157.72
+      Distance: 83.2339
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 40.4891
-        Y: -27.763
-        Z: -9.93097
+        X: 68.8698
+        Y: -2.69828
+        Z: -9.52689
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.719801
+      Pitch: 0.564801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.49903
+      Yaw: 2.40404
     Saved: ~
 Window Geometry:
   Displays:
@@ -331,5 +341,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1918
-  X: -8
+  X: -7
   Y: 17
