@@ -129,14 +129,14 @@ Visualization Manager:
       Tree:
         map:
           local_map:
+            tf_snapped_local_map_frame:
+              {}
             visual_odometry_odom_x_forward:
               odom:
                 visual_odometry_camera_frame:
                   visual_odometry_car_frame:
                     {}
           snapped_map_frame:
-            {}
-          tf_snapped_local_map_frame:
             {}
           tf_snapped_map_frame:
             {}
@@ -241,13 +241,13 @@ Visualization Manager:
       Transport Hint: raw
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /ways
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
@@ -269,7 +269,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/z_snapped
       Name: MarkerArray
       Namespaces:
-        lines: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -331,5 +331,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1918
-  X: -7
+  X: -8
   Y: 17
