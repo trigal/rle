@@ -1078,10 +1078,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 transform.setRotation(tf_snapped_local_map_frame.getRotation());
                 br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_snapped_local_map_frame"));
 
-                // save street direction   --- WHY?! WHERE THIS VARIABLE IS USED ?
-                // OLD_BEHAVIOR street_direction = tf_snapped_local_map_frame.getRotation(); // STREET_DIRECTION MODIFIED ONLY HERE?
-
-
                 // calculate distance from original particle positin and snapped particle position ---------------------------------
                 // use it for score calculation with normal distribution PDF
                 double dx = tf_pose_local_map_frame.getOrigin().getX() - tf_snapped_local_map_frame.getOrigin().getX();
@@ -1101,9 +1097,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 boost::math::normal normal_dist(0, street_distribution_sigma);
                 double pose_diff_score_component = pdf(normal_dist, distance);
 
+                //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out, maybe works .. this line isn't tested yet
                 // calculate angle difference ---------------------------------------------------------------------------------------
                 first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
-                //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out
                 street_direction=first_quaternion_diff;
 
                 //      get PDF score from first angle
@@ -1121,7 +1117,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     tf_snapped_local_map_frame_opposite_direction=tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
 
                     tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
-
 
                     second_quaternion_diff = tf_snapped_local_map_frame_opposite_direction.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
@@ -1151,7 +1146,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 (*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score);
 
 
-                //                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
+//                if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
 //                {
                     cout << "PARTICLE ID: " << (*particle_itr).getId() << endl
                          << "  SCORE:" << endl
@@ -1163,6 +1158,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                          << "      sigma: " << angle_distribution_sigma << endl
                          << "     error1: " << first_angle_difference << endl
                          << "     error2: " << second_angle_difference << endl
+                         << "  sel error: " << street_direction.inverse().getAngle()<< endl
                          << "      score: " << final_angle_diff_score << endl
                          << "FINAL SCORE: " << (*particle_itr).getParticleScore() << endl;
 
@@ -1173,7 +1169,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 // Either service is down or particle is too far from a street
                 (*particle_itr).setParticleScore(0);
             }// end snap particle client
-
 
 //            if ((*particle_itr).getId() == 3 || (*particle_itr).getId() == 4)
 //                cout << "   TOTAL: " << (*particle_itr).getParticleScore() << endl << endl;
@@ -1290,11 +1285,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
     // ANGLE DIFF CHECK:
     //      closest street quaternion:
-    geometry_msgs::PoseStamped street_pose;
-    street_pose.header.stamp = ros::Time::now();
-    street_pose.header.frame_id = "local_map";
-    tf::quaternionTFToMsg(street_direction, street_pose.pose.orientation);
-    street_publisher.publish(street_pose);
+//    geometry_msgs::PoseStamped street_pose;
+//    street_pose.header.stamp = ros::Time::now();
+//    street_pose.header.frame_id = "local_map";
+//    tf::quaternionTFToMsg(street_direction, street_pose.pose.orientation);
+//    street_publisher.publish(street_pose);
 
     //      first particle pose
     geometry_msgs::PoseStamped particle_pose;

@@ -94,12 +94,12 @@ Visualization Manager:
       Reference Frame: tf_pose_local_map_frame
       Value: true
     - Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 15
       Name: Axes
       Radius: 0.5
       Reference Frame: tf_pose_local_map_frame_ROTATED
-      Value: false
+      Value: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
@@ -349,5 +349,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1918
-  X: -8
+  X: -7
   Y: 17
