@@ -9,6 +9,7 @@ Panels:
         - /Axes4
         - /Axes6
         - /Axes7
+        - /MarkerArray4
       Splitter Ratio: 0.425791
     Tree Height: 697
   - Class: rviz/Selection
@@ -173,13 +174,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 170; 0
-      Enabled: false
+      Enabled: true
       Keep: 1000000
       Length: 10
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /stereo_odometer/odometry
-      Value: false
+      Value: true
     - Arrow Length: 10
       Class: rviz/PoseArray
       Color: 0; 255; 0
@@ -267,16 +268,8 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
-      Name: MarkerArray
-      Namespaces:
-        lines: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /road_layout_estimation/layout_manager/z_particle
+      Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
       Name: MarkerArray
       Namespaces:
         {}
@@ -284,10 +277,18 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /road_layout_estimation/layout_manager/z_snapped
+      Marker Topic: /road_layout_estimation/layout_manager/z_particle
       Name: MarkerArray
       Namespaces:
         {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/marker_array
+      Name: MarkerArray
+      Namespaces:
+        cicciobello: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -314,22 +315,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 154.675
+      Distance: 205.058
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 39.8398
-        Y: -13.3438
-        Z: -17.8541
+        X: 36.5145
+        Y: 6.99631
+        Z: -26.5802
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.849801
+      Pitch: 0.684801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.90404
+      Yaw: 2.50404
     Saved: ~
 Window Geometry:
   Displays:

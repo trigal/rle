@@ -206,6 +206,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    {
                        ROS_ERROR("%s",ex.what());
                        ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
+                       ros::shutdown();
                        return;
                    }
 
@@ -225,7 +226,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                        double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
                        double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
                        double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
-                       double distance = sqrt(fabs(dx*dx + dy*dy + dz*dz));
+                       double distance = sqrt(dx*dx + dy*dy + dz*dz);
                        part.setParticleScore(pdf(normal_dist, distance));
                    }
                    else
@@ -240,7 +241,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                // Update counter
                counter = counter+1;
-           }
+           } // end cycle for creating particle (FOR)
         }
         else if(config.particles_number < num_particles)
         {
@@ -428,6 +429,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             else
             {
               ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+              ros::shutdown(); //augusto debug
               return;
             }
 
@@ -553,6 +555,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             {
                 if(while_ctr == 999){
                     cout << "   Random particle set init: while ctr reached max limit" << endl;
+                    ros::shutdown(); // augusto debug
                     /**
                      * TODO: max_radius_size * 2 and find again
                      */
@@ -585,7 +588,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //                    cout << "snapped orientation: " << srv.response.way_dir_rad << endl;
 //                    cout << "snapped pose quaternion: " << pose_map_frame.pose.orientation << endl;
 
-                    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+                    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame ;
                     tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
 
                     // Transform pose from "map" to "local_map"
@@ -612,7 +615,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's pose
                     State6DOF p_pose;
                     p_pose._pose = Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0);
-                    tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
+                    tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized()); // useless ...
 
                     // Create rotation object
 //                    cout << "AAA 3: " <<
@@ -650,16 +653,29 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     //TODO: CHECK THIS!
                     if(srv.response.way_dir_opposite_particles){
 
-                        // Invert Yaw direction
-                        double angle_temp = M_PI + part.getParticleState().getRotation().angle();
-                        cout << "inverse angle: " << angle_temp << endl;
-                        cout << "        angle: " << part.getParticleState().getRotation().angle() << endl;
+                        tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
 
-                        p_pose.setRotation(Eigen::AngleAxisd(angle_temp, part.getParticleState().getRotation().axis()));
+                        tf_pose_local_map_frame_opposite_direction = tf_pose_local_map_frame;
+                        tf_pose_local_map_frame_opposite_direction.setRotation(tf_pose_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
+
+                        AngleAxisd rotation_opposite = AngleAxisd(
+                                    Quaterniond(
+                                        tf_pose_local_map_frame_opposite_direction.getRotation().getW(),
+                                        tf_pose_local_map_frame_opposite_direction.getRotation().getX(),
+                                        tf_pose_local_map_frame_opposite_direction.getRotation().getY(),
+                                        tf_pose_local_map_frame_opposite_direction.getRotation().getZ()
+                                        ));
+
+//                        // Invert Yaw direction
+//                        double angle_temp = M_PI + part.getParticleState().getRotation().angle();
+//                        cout << "inverse angle: " << angle_temp << endl;
+//                        cout << "        angle: " << part.getParticleState().getRotation().angle() << endl;
+
+                        p_pose.setRotation(rotation_opposite);
 
                         // Create particle and set its score
                         Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
-                        opposite_part.setParticleScore(pdf(street_normal_dist,0) + pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
+                        opposite_part.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -671,6 +687,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 else
                 {
                     ROS_ERROR("     Failed to call 'snap_particle_xy' service");
+                    ros::shutdown(); //augusto debug
                     return;
                 }
 
@@ -1117,9 +1134,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 if(srv.response.way_dir_opposite_particles)
                 {
                     tf_snapped_local_map_frame_opposite_direction=tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
-
                     tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
-
                     second_quaternion_diff = tf_snapped_local_map_frame_opposite_direction.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
                     //      get PDF score
