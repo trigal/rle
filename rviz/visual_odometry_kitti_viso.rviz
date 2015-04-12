@@ -8,12 +8,10 @@ Panels:
         - /Status1
         - /Axes1
         - /Axes2
-        - /TF1/Frames1
         - /Image1
         - /MarkerArray1
         - /MarkerArray2
         - /MarkerArray3
-        - /MarkerArray4
       Splitter Ratio: 0.690972
     Tree Height: 697
   - Class: rviz/Selection
@@ -60,21 +58,21 @@ Visualization Manager:
       Enabled: true
       Length: 30
       Name: Axes
-      Radius: 0.5
-      Reference Frame: turtle_name
+      Radius: 1
+      Reference Frame: pose_local_map_frame
       Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 50
       Name: Axes
       Radius: 0.5
-      Reference Frame: particle
+      Reference Frame: tf_pose_local_map_frame
       Value: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: false
+        All Enabled: true
         kitti_stereo:
           Value: true
         local_map:
@@ -83,11 +81,11 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
-        particle:
+        pose_local_map_frame:
           Value: true
         start:
           Value: true
-        turtle_name:
+        tf_pose_local_map_frame:
           Value: true
         visual_odometry_camera_frame:
           Value: true
@@ -103,15 +101,15 @@ Visualization Manager:
       Tree:
         map:
           local_map:
-            particle:
+            pose_local_map_frame:
+              {}
+            tf_pose_local_map_frame:
               {}
             visual_odometry_odom_x_forward:
               odom:
                 visual_odometry_camera_frame:
                   visual_odometry_car_frame:
                     {}
-          turtle_name:
-            {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.1
@@ -146,7 +144,7 @@ Visualization Manager:
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.3
       Head Radius: 0.1
       Name: Pose
@@ -154,7 +152,7 @@ Visualization Manager:
       Shaft Radius: 1
       Shape: Arrow
       Topic: /road_layout_estimation/layout_manager/quaternion_pose
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
@@ -184,13 +182,13 @@ Visualization Manager:
       Topic: /road_layout_estimation/layout_manager/diff_pose
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: Marker
       Namespaces:
-        gauss_sigma: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle2
@@ -268,22 +266,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 135.225
+      Distance: 177.312
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 118.277
-        Y: 24.858
-        Z: 36.0037
+        X: 74.346
+        Y: -14.8537
+        Z: 9.18129
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.629801
+      Pitch: 0.524801
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.47903
+      Yaw: 1.76903
     Saved: ~
 Window Geometry:
   Displays:

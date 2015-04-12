@@ -962,6 +962,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         if(LayoutManager::openstreetmap_enabled)
         {
 
+            //AUGUSTO FOR DEBUGGING
+            static tf::TransformBroadcaster br;
+            tf::Transform transform;
+            tf::Quaternion q;
+
             // Get particle state
             Vector3d p_state = (*particle_itr).getParticleState().getPose();
             geometry_msgs::PoseStamped pose_local_map_frame;
@@ -990,11 +995,25 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 return;
             }
 
+            transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
+            q.setX(pose_local_map_frame.pose.orientation.x);
+            q.setY(pose_local_map_frame.pose.orientation.y);
+            q.setZ(pose_local_map_frame.pose.orientation.z);
+            q.setW(pose_local_map_frame.pose.orientation.w);
+            transform.setRotation(q);
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
+
+            transform.setOrigin( tf_pose_local_map_frame.getOrigin());
+            transform.setRotation(tf_pose_local_map_frame.getRotation());
+            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame"));
+
+
             // Build request for getting snapped XY values + orientation of the road
             osm_cartography::snap_particle_xy srv;
             srv.request.x = tf_pose_map_frame.getOrigin().getX();
             srv.request.y = tf_pose_map_frame.getOrigin().getY();
             srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
+
 
             // Get distance from snapped particle pose and set it as particle score
             if (LayoutManager::snap_particle_xy_client.call(srv))
@@ -1010,38 +1029,17 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 snapped_map_frame.pose.orientation.y = srv.response.way_dir_quat_y;
                 snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
                 snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
+
                 tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame;
+                tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
 
-                srv.response.way_dir_opposite_particles;
+                // srv.response.way_dir_opposite_particles; CHECKED LATER IN THE CODE.
 
-                static tf::TransformBroadcaster br;
-                tf::Transform transform;
-                tf::Quaternion q;
-                transform.setOrigin( tf::Vector3(srv.response.snapped_x, srv.response.snapped_y, 0.0) );
-                q.setX(snapped_map_frame.pose.orientation.x);
-                q.setY(snapped_map_frame.pose.orientation.y);
-                q.setZ(snapped_map_frame.pose.orientation.z);
-                q.setW(snapped_map_frame.pose.orientation.w);
-                transform.setRotation(q);
-                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "turtle_name"));
 
-                transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x , pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z ) );
-                q.setX(pose_local_map_frame.pose.orientation.x);
-                q.setY(pose_local_map_frame.pose.orientation.y);
-                q.setZ(pose_local_map_frame.pose.orientation.z);
-                q.setW(pose_local_map_frame.pose.orientation.w);
-                transform.setRotation(q);
-                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "pose_local_map_frame"));
-
-                transform.setOrigin( tf_pose_map_frame.getOrigin());
-                transform.setRotation(tf_pose_map_frame.getRotation());
-                br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "pose_map_frame"));
-
-                ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
-                tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame); // INVERTS ROTATION? get different result with rotation w.r.t.  tf::quaternionMsgToTF(snapped_map_frame.pose.orientation,q);
-                ROS_INFO_STREAM("\t1\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
-                //tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
-                ROS_INFO_STREAM("\t2\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
+//                ROS_INFO_STREAM("\t0\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
+//                ROS_INFO_STREAM("\t1\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
+//                //tf_snapped_map_frame.setBasis(tf_snapped_map_frame.getBasis().transpose());
+//                ROS_INFO_STREAM("\t2\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_map_frame.getRotation().getZ() );
 
                 // Transform pose from "local_map" to "map"
                 try{
@@ -1054,13 +1052,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                     return;
                 }
 
-                ROS_INFO_STREAM("\t3\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
-                //tf_snapped_local_map_frame.setBasis(tf_snapped_local_map_frame.getBasis().transpose());
-                ROS_INFO_STREAM("\t4\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
+//                ROS_INFO_STREAM("\t3\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
+//                //tf_snapped_local_map_frame.setBasis(tf_snapped_local_map_frame.getBasis().transpose());
+//                ROS_INFO_STREAM("\t4\t"<<snapped_map_frame.pose.orientation.z << " =?= " << tf_snapped_local_map_frame.getRotation().getZ() );
 
                 // STAMPO ASSE Z QUATERNIONE
-                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_local_map_frame.getRotation().getAngle());
-                ROS_INFO_STREAM("       map: "   << tf_snapped_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_map_frame.getRotation().getAngle() );
+//                ROS_INFO_STREAM(" local_map: " << tf_snapped_local_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_local_map_frame.getRotation().getAngle());
+//                ROS_INFO_STREAM("       map: "   << tf_snapped_map_frame.getRotation().getAxis().getZ() << "\t "<< tf_snapped_map_frame.getRotation().getAngle() );
 
                 // save street direction
                 street_direction = tf_snapped_local_map_frame.getRotation();
