@@ -36,6 +36,10 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
 
         _msg = m;
+
+//        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
+
+//        _msr_cov = Eigen::MatrixXd::Identity(12,12) * 1.2; //   Utils::getCovFromOdom(m);
         _msr_cov = Utils::getCovFromOdom(m);
 
         tf::StampedTransform new_transform;

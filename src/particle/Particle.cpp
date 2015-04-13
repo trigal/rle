@@ -66,6 +66,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // calcolo belief predetto:
     stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
 
+
 //    // Print
 //    cout << "[particle_id] " << particle_id << endl;
 //    cout << "[delta t]     " << LayoutManager::delta_t << endl;
@@ -76,6 +77,16 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // applicazione proprietà gaussiane:
     G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
     E_t_pred = G_t * E_t * G_t.transpose() + R_t;
+
+    if (this->getId()==1){
+        cout << "\nE_t\n" << E_t << endl << endl;
+        cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
+
+        cout << "\nR_t\n" << R_t << endl << endl;
+
+        cout << "\nG_t\n" << G_t << endl << endl;
+
+    }
 
     // Check if the measure is valid
     if(!odometry->isMeasureValid())
@@ -108,6 +119,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
     State6DOF measure_stato = odometry->measurePose(stato_t_predetto);
 
+    //cout << "DIOMAIALO: " << stato_t_predetto.toVectorXd().norm() << " ===== " <<  measure_stato.toVectorXd().norm() << " +++++ " << delta_measure.toVectorXd().norm();
+
 //    predicted_measure.printState("[predicted measure]");
 //    stato_t_predetto.printState("[stato_t_predetto]");
 
@@ -134,8 +147,16 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     H_t = odometry->measurementJacobian(stato_t_predetto);
 
     MatrixXd temp = H_t * E_t_pred * H_t.transpose() + Q_t;
+//    cout << endl << endl << temp << endl <<endl ;
     K_t = E_t_pred * H_t.transpose() * temp.inverse();
     kalman_gain = K_t; //this value will be used later on score calculation
+
+//    if (this->getId()==1)
+//    {
+//        cout << endl  << endl << endl << temp << endl << endl << temp.inverse() << endl;
+//    }
+
+//    cout << " qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm() << endl;
 
     // kalman gain
 //    VectorXd kalman_per_msr_diff = K_t * delta_measure.subtract_vect(measure_delta_stato);

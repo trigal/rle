@@ -33,10 +33,10 @@
 #include "eigenmultivariatenormal.hpp"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent.h"
-#include "osm_cartography/snap_particle_xy.h"
-#include "osm_cartography/latlon_2_xy.h"
-#include "osm_cartography/xy_2_latlon.h"
-#include "osm_cartography/get_closest_way_distance_utm.h"
+#include "ira_open_street_map/snap_particle_xy.h"
+#include "ira_open_street_map/latlon_2_xy.h"
+#include "ira_open_street_map/xy_2_latlon.h"
+#include "ira_open_street_map/get_closest_way_distance_utm.h"
 #include <ros/package.h>
 #include "visualization_msgs/Marker.h"
 #include <visualization_msgs/MarkerArray.h>
@@ -46,6 +46,9 @@
 #include <iostream>
 #include <iomanip>
 #include <math.h>
+
+#include <numeric>
+#include <functional>
 
 using boost::math::normal;
 using namespace Eigen;
@@ -113,6 +116,8 @@ public:
     ros::Publisher publisher_marker_array_angles;
     ros::Publisher publisher_z_snapped;
     ros::Publisher publisher_z_particle;
+
+    ros::Publisher average_pose;
 
     // Subscriber
     ros::Subscriber odometry_sub;

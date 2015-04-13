@@ -1,4 +1,6 @@
 <launch>
+	<include file="$(find ira_open_street_map)/launch/kitti_05.launch" />
+
 	<!-- Arguments -->
 	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
@@ -46,12 +48,12 @@
 		<remap from="image" to="image_rect"/>
 	</node>	 -->
 
-	<!-- Run the viso2_ros package -->
+	<!-- Run the viso2_ros package 
 	<node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen">
 		<rosparam param="base_link_frame_id">visual_odometry_camera_frame</rosparam>
 		<remap from="stereo" to="$(arg camera)"/>
 		<remap from="image" to="image_rect"/>
-	</node>
+	</node>-->
 
 	<!-- Launch RViz
 	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
