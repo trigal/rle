@@ -91,7 +91,6 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // Check if the measure is valid
     if(!odometry->isMeasureValid())
     {
-        // ROS_WARN("Particle.cpp -- Invalid measure detected"); moved to LayoutManager.cpp to prevent multiple warnings with one measure
         // TODO: smorzare il moto
         particle_state = stato_t_predetto;
         particle_sigma = E_t_pred;

@@ -20,7 +20,6 @@ int LayoutManager::step = 0;            /// filter step counter
 visualization_msgs::Marker marker1;
 visualization_msgs::Marker marker2;
 
-
 /**
  * @brief buildPoseArrayMsg
  * @param particles
@@ -81,7 +80,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::first_msg = true;
 
     // init motion model
-//    mtn_model = new MotionModel();
+//    mtn_model = new MotionModel(); TODO: perché qui è stato rimosso? ora dove è?
     measurement_model = new MeasurementModel();
 
     // init header timestamp
@@ -153,7 +152,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     }
 
 
-    // WARNING in teoria questi due non sono più necessari.
+    // WARNING in teoria questi due non sono più necessari. CHECK!
     mtn_model.setErrorCovariance(
                 config.mtn_model_position_uncertainty,
                 config.mtn_model_orientation_uncertainty,
@@ -440,9 +439,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
               return;
             }
 
-
             // Set mean
             Eigen::Vector2d mean;
+            mean.setZero();
             mean << point.x, point.y;
 
             // Set covariance
@@ -900,7 +899,7 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
-    // Beep
+    // Beep #ENABLE: sudo modprobe pcspkr  #DISABLE sudo modprobe -r pcspkr
     printf("\a");
 
     // Publish GPS init markers
