@@ -116,6 +116,7 @@ public:
     ros::Publisher publisher_marker_array_angles;
     ros::Publisher publisher_z_snapped;
     ros::Publisher publisher_z_particle;
+    ros::Publisher publisher_GT_RTK;
 
     ros::Publisher average_pose;
 
@@ -126,6 +127,7 @@ public:
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
+    ros::ServiceClient latlon_2_xy_client_2;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
@@ -163,14 +165,17 @@ private:
 
     // output files
     ofstream stat_out_file;
-    ofstream vo_distance_out_file;
-    ofstream vo_mm_distance_out_file;
+    ofstream LIBVISO_out_file;
+    ofstream RLE_out_file;
+    ofstream RTK_GPS_out_file;
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
     visualization_msgs::MarkerArray marker_array_angles;
     visualization_msgs::MarkerArray marker_z_snapped;
     visualization_msgs::MarkerArray marker_z_particle;
+    visualization_msgs::MarkerArray marker_array_GT_RTK;
+
 
 
     /**
@@ -265,8 +270,8 @@ public:
     ~LayoutManager(){
         current_layout.clear();
 //        stat_out_file.close();
-        vo_distance_out_file.close();
-        vo_mm_distance_out_file.close();
+        LIBVISO_out_file.close();
+        RLE_out_file.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);

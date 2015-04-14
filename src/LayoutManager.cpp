@@ -70,9 +70,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
 
     // init output files
-//    stat_out_file.open("/home/limongi/Desktop/culo/output.txt");
-    vo_distance_out_file.open("/home/limongi/Desktop/vo_distance.txt"); //ros::package::getPath("road_layout_estimation")
-    vo_mm_distance_out_file.open("/home/limongi/Desktop/vo_mm_distance.txt");
+    LIBVISO_out_file.open("/home/limongi/Desktop/LIBVISO_distance.txt");
+    RLE_out_file.open("/home/limongi/Desktop/RLE_distance.txt");
+    RTK_GPS_out_file.open("/home/limongi/Desktop/RTK_distance.txt");
 
     // init values
     step = 0;
@@ -100,6 +100,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::publisher_marker_array_angles = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
     LayoutManager::publisher_z_particle = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_snapped", 1);
+    LayoutManager::publisher_GT_RTK = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/GT_RTK", 1);
 
     LayoutManager::average_pose = n.advertise<nav_msgs::Odometry>("/road_layout_estimation/layout_manager/average_pose",1);
 
@@ -438,6 +439,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
               ros::shutdown(); //augusto debug
               return;
             }
+
 
             // Set mean
             Eigen::Vector2d mean;
@@ -947,7 +949,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     if (!measurement_model->isMeasureValid())
     {
-        ROS_WARN("LayoutManager says: Invalid measure detected");
+        ROS_WARN_STREAM("LayoutManager says: Invalid measure detected. Odometry message n#" << msg.header.seq );
     }
 
 
@@ -1286,8 +1288,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     old_msg = msg;
 
 
-    // RESULTS
-    std::vector<double> scores;
+    // COLLECTING RESULTS && STATISTICS
     State6DOF state ;
     Vector3d pose;
     //Eigen::Quaterniond average_quaternion = Eigen::Quaterniond::Identity();
@@ -1329,17 +1330,108 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     odometry.pose.pose.position.y=pose(1);
     odometry.pose.pose.position.z=pose(2);
     tf::quaternionTFToMsg(average_quaternion,odometry.pose.pose.orientation);
+    double roll=0.0f, pitch=0.0f, yaw=0.0f;
 
-    average_pose.publish(odometry);
+    average_pose.publish(odometry); // Odometry message
 
-    ROS_INFO_STREAM("AVERAGE SCORE: " << pose.transpose() << "\t" << average_quaternion.getAngle() << "\taverage score: " << tot_score / current_layout.size() << endl);;
-    //double sum = std::accumulate(scores.begin(), scores.end(), 0.0);
+    ifstream RTK;
+    double lat,lon;
+    RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    RTK >> lat >> lon;
+    cout << lat << "\t" << lon << endl;
+    RTK.close();
+
+
+    // Get XY values from GPS coords
+    ira_open_street_map::latlon_2_xyRequest conversion;
+    conversion.latitude = lat;
+    conversion.longitude = lon;
+    ira_open_street_map::latlon_2_xyResponse response;
+    if (LayoutManager::latlon_2_xy_client.call(conversion,response))
+    {
+
+
+
+        tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
+        RTK_map_frame.setOrigin(tf::Vector3(response.x,response.y,0));
+        RTK_map_frame.setRotation(tf::createIdentityQuaternion());
+        RTK_map_frame.frame_id_="/map";
+
+        // Transform pose from "map" to "local_map"
+        try{
+            tf_listener.transformPose("local_map", ros::Time(0), RTK_map_frame, "map", RTK_local_map_frame);
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_ERROR("%s",ex.what());
+            ROS_ERROR("     Transform RTK pose from map to local_map");
+            ros::shutdown();
+        }
+
+        visualization_msgs::Marker RTK_MARKER;
+        RTK_MARKER.header.frame_id = "local_map";
+        RTK_MARKER.header.stamp = ros::Time();
+        RTK_MARKER.ns = "RTK_MARKER";
+        RTK_MARKER.id = msg.header.seq; // same as image from kitti dataset
+        RTK_MARKER.type = visualization_msgs::Marker::CYLINDER;
+        RTK_MARKER.action = visualization_msgs::Marker::ADD;
+        RTK_MARKER.pose.orientation.w = 1;
+        RTK_MARKER.scale.x = 0.5;
+        RTK_MARKER.scale.y = 0.5;
+        RTK_MARKER.scale.z = 0.5;
+        RTK_MARKER.color.a = 1.0;
+        RTK_MARKER.color.r = 0;
+        RTK_MARKER.color.g = 1.0;
+        RTK_MARKER.color.b = 0.0;
+        RTK_MARKER.pose.position.x = RTK_local_map_frame.getOrigin().getX();//response.x;
+        RTK_MARKER.pose.position.y = RTK_local_map_frame.getOrigin().getY();//response.y;
+        RTK_MARKER.pose.position.z = RTK_local_map_frame.getOrigin().getZ();//;
+
+        marker_array_GT_RTK.markers.push_back(RTK_MARKER);
+
+        // Push back line_list
+        publisher_GT_RTK.publish(marker_array_GT_RTK);
+
+        RTK_GPS_out_file << msg.header.seq << ";" <<
+                            RTK_local_map_frame.getOrigin().getX() << ";" << RTK_local_map_frame.getOrigin().getY() << ";" << RTK_local_map_frame.getOrigin().getZ() << ";" <<
+                            0 << ";"<< 0 << ";"<< 0 << ";" <<
+                            0 << ";" << 0 << ";" << 0 << ";" << 0 << ";" <<
+                            tot_score / current_layout.size() << "\n" ;
+    }
+    else
+    {
+      ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+      ros::shutdown(); //augusto debug
+      return;
+    }
 
 
     // -------------------------------------------------------------------------------------------------------------------------------------
     // SAVE RESULTS TO OUTPUT FILE:
-    vo_distance_out_file << "ciao" << "\n";
-    vo_mm_distance_out_file << "ciao" << "\n";
+    tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
+    RLE_out_file << msg.header.seq << ";" <<
+                               pose(0) << ";" << pose(1) << ";" << pose(2) << ";" <<
+                               roll << ";"<< pitch << ";"<< yaw << ";" <<
+                               average_quaternion.getX() << ";" << average_quaternion.getY() << ";" << average_quaternion.getZ() << ";" << average_quaternion.getW() << ";" <<
+                               tot_score / current_layout.size() << "\n" ;
+
+
+    tf::StampedTransform VO;
+    try{
+        tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
+
+        tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
+
+        LIBVISO_out_file << msg.header.seq << ";" <<
+                                VO.getOrigin().getX()  << ";" << VO.getOrigin().getY()  << ";" << VO.getOrigin().getZ()  << ";" <<
+                                roll << ";"<< pitch << ";"<< yaw << ";" <<
+                                VO.getRotation().getX() << ";" << VO.getRotation().getY() << ";" << VO.getRotation().getZ() << ";" << VO.getRotation().getW() << ";" <<
+                                tot_score / current_layout.size() << "\n" ;
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_WARN("VO");
+    }
     // -------------------------------------------------------------------------------------------------------------------------------------
 }
 

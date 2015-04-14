@@ -9,8 +9,10 @@ Panels:
         - /Axes4
         - /Axes6
         - /Axes7
+        - /MarkerArray2
         - /MarkerArray4
         - /Odometry3
+        - /MarkerArray5
       Splitter Ratio: 0.425791
     Tree Height: 722
   - Class: rviz/Selection
@@ -236,7 +238,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: Marker
       Namespaces:
-        {}
+        gauss_sigma: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -297,10 +299,26 @@ Visualization Manager:
       Color: 188; 0; 188
       Enabled: true
       Keep: 1000000
-      Length: 10
+      Length: 4
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /road_layout_estimation/layout_manager/average_pose
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
+      Name: MarkerArray
+      Namespaces:
+        RTK_MARKER: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
+      Name: MarkerArray
+      Namespaces:
+        RTK_MARKER: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -326,22 +344,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 130.826
+      Distance: 212.198
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.19738
-        Y: 5.68859
-        Z: 13.3424
+        X: 32.2764
+        Y: -36.6866
+        Z: -19.6192
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.934796
+      Pitch: 0.649796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.56223
+      Yaw: 2.30723
     Saved: ~
 Window Geometry:
   Displays:
