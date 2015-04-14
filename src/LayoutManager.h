@@ -118,7 +118,7 @@ public:
     ros::Publisher publisher_z_particle;
     ros::Publisher publisher_GT_RTK;
 
-    ros::Publisher average_pose;
+    ros::Publisher publisher_average_pose;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -272,6 +272,7 @@ public:
 //        stat_out_file.close();
         LIBVISO_out_file.close();
         RLE_out_file.close();
+        RTK_GPS_out_file.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);

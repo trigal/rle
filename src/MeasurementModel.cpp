@@ -70,7 +70,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         }
         catch (tf::TransformException &ex)
         {
-            ROS_ERROR("%s",ex.what());
+            ROS_ERROR("MeasurementModel.cpp setMsg says: %s",ex.what());
             _msg_valid = false;
             return;
         }

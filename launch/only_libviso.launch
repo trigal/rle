@@ -18,9 +18,9 @@
 	<!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
 	<node pkg="tf" type="static_transform_publisher" name="local_map_to_odom" 
 		args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
-			
+			<!-- required="true" -->
 	<!-- Run the rosbag -->
-	<node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile) -r $(arg publish_rate)" required="true"/>
+	<node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile) -r $(arg publish_rate) --delay=3" />
 
 	<!-- Run the ROS package stereo_image_proc -->
 	<group ns="$(arg camera)" >

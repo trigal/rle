@@ -95,14 +95,14 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
     LayoutManager::diff_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/diff_pose",1);
     LayoutManager::marker_pub = n.advertise<visualization_msgs::Marker>("/road_layout_estimation/layout_manager/circle", 1);
     LayoutManager::marker_pub2 = n.advertise<visualization_msgs::Marker>("/road_layout_estimation/layout_manager/circle2", 1);
-    LayoutManager::publisher_marker_array = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array", 1);
+    LayoutManager::publisher_marker_array = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/particle_set", 1);
     LayoutManager::publisher_marker_array_distances = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/marker_array_distances", 1);
     LayoutManager::publisher_marker_array_angles = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
     LayoutManager::publisher_z_particle = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_snapped", 1);
     LayoutManager::publisher_GT_RTK = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/GT_RTK", 1);
 
-    LayoutManager::average_pose = n.advertise<nav_msgs::Odometry>("/road_layout_estimation/layout_manager/average_pose",1);
+    LayoutManager::publisher_average_pose = n.advertise<nav_msgs::Odometry>("/road_layout_estimation/layout_manager/average_pose",1);
 
     // init ROS service client
     latlon_2_xy_client = n.serviceClient<ira_open_street_map::latlon_2_xy>("/ira_open_street_map/latlon_2_xy");
@@ -337,8 +337,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             double lat = 49.04951961077;
             double lon = 8.3965961639946;
             double alt = 0;
-            double cov1 = 10;
-            double cov2 = 10;
+            double cov1 = 4;
+            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -754,7 +754,7 @@ void LayoutManager::publishMarkerArray()
         visualization_msgs::Marker marker;
         marker.header.frame_id = "local_map";
         marker.header.stamp = ros::Time();
-        marker.ns = "cicciobello";
+        marker.ns = "particle_set";
         marker.id = p.getId();
         marker.type = visualization_msgs::Marker::ARROW;
         marker.action = visualization_msgs::Marker::ADD;
@@ -1199,7 +1199,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
 
     // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-    if(resampling_count++ == 7)
+    if(resampling_count++ == 3)
 //    if(0)
     {
         resampling_count = 0;
@@ -1289,8 +1289,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 
     // COLLECTING RESULTS && STATISTICS
-    State6DOF state ;
-    Vector3d pose;
+    State6DOF state;
+    Vector3d average_pose;
+    average_pose.setZero();
     //Eigen::Quaterniond average_quaternion = Eigen::Quaterniond::Identity();
     tf::Quaternion average_quaternion = tf::createIdentityQuaternion();
     average_quaternion.setX(0);
@@ -1298,17 +1299,20 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     average_quaternion.setZ(0);
     average_quaternion.setW(0);
 
-    double tot_score = 0.0f;
+    double tot_score = 0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
 //        ROS_INFO_STREAM("PARTICLE "<< std::setprecision(5) << (*particle_itr).getId() << "\t" << (*particle_itr).getParticleScore() << "\t" << tot_score);
         tot_score += (*particle_itr).getParticleScore();
     }
-
+    double sum=0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
         state = (*particle_itr).getParticleState();
 
-        pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
 
+//        RTK_GPS_out_file << state.getPose()(0) << ";" << state.getPose()(1) << ";" << state.getPose()(2) << ";" << (*particle_itr).getParticleScore() << ";" << (*particle_itr).getParticleScore()/tot_score<< endl;
+//        cout << state.getPose()(2) << endl;
+        average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
+        sum += (*particle_itr).getParticleScore() / tot_score;
         Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
         tf::Quaternion t;
         t.setX(q.x());
@@ -1319,28 +1323,28 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
         average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
     }
-
+//    cout << sum << "------------------------   END\n";
     average_quaternion.normalize();
+//    RTK_GPS_out_file << average_pose(0) <<";"<< average_pose(1) <<";"<< average_pose(2) << ";" << tot_score << endl << endl;
+//    average_pose/=current_layout.size();
 
     nav_msgs::Odometry odometry;
     odometry.header.frame_id="/local_map";
     odometry.header.stamp=ros::Time::now();
 
-    odometry.pose.pose.position.x=pose(0);
-    odometry.pose.pose.position.y=pose(1);
-    odometry.pose.pose.position.z=pose(2);
+    odometry.pose.pose.position.x=average_pose(0);
+    odometry.pose.pose.position.y=average_pose(1);
+    odometry.pose.pose.position.z=average_pose(2);
     tf::quaternionTFToMsg(average_quaternion,odometry.pose.pose.orientation);
     double roll=0.0f, pitch=0.0f, yaw=0.0f;
 
-    average_pose.publish(odometry); // Odometry message
+    publisher_average_pose.publish(odometry); // Odometry message
 
     ifstream RTK;
     double lat,lon;
     RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
     RTK >> lat >> lon;
-    cout << lat << "\t" << lon << endl;
     RTK.close();
-
 
     // Get XY values from GPS coords
     ira_open_street_map::latlon_2_xyRequest conversion;
@@ -1349,8 +1353,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     ira_open_street_map::latlon_2_xyResponse response;
     if (LayoutManager::latlon_2_xy_client.call(conversion,response))
     {
-
-
 
         tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
         RTK_map_frame.setOrigin(tf::Vector3(response.x,response.y,0));
@@ -1363,7 +1365,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         }
         catch (tf::TransformException &ex)
         {
-            ROS_ERROR("%s",ex.what());
+            ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
             ROS_ERROR("     Transform RTK pose from map to local_map");
             ros::shutdown();
         }
@@ -1410,7 +1412,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // SAVE RESULTS TO OUTPUT FILE:
     tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
     RLE_out_file << msg.header.seq << ";" <<
-                               pose(0) << ";" << pose(1) << ";" << pose(2) << ";" <<
+                               average_pose(0) << ";" << average_pose(1) << ";" << average_pose(2) << ";" <<
                                roll << ";"<< pitch << ";"<< yaw << ";" <<
                                average_quaternion.getX() << ";" << average_quaternion.getY() << ";" << average_quaternion.getZ() << ";" << average_quaternion.getW() << ";" <<
                                tot_score / current_layout.size() << "\n" ;
