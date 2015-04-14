@@ -33,14 +33,22 @@
 #include "eigenmultivariatenormal.hpp"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent.h"
-#include "osm_cartography/snap_particle_xy.h"
-#include "osm_cartography/latlon_2_xy.h"
-#include "osm_cartography/xy_2_latlon.h"
-#include "osm_cartography/get_closest_way_distance_utm.h"
+#include "ira_open_street_map/snap_particle_xy.h"
+#include "ira_open_street_map/latlon_2_xy.h"
+#include "ira_open_street_map/xy_2_latlon.h"
+#include "ira_open_street_map/get_closest_way_distance_utm.h"
+#include <ros/package.h>
+#include "visualization_msgs/Marker.h"
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <math.h>
+
+#include <numeric>
+#include <functional>
 
 using boost::math::normal;
 using namespace Eigen;
@@ -101,6 +109,16 @@ public:
     ros::Publisher street_publisher;
     ros::Publisher particle_publisher;
     ros::Publisher diff_publisher;
+    ros::Publisher marker_pub;
+    ros::Publisher marker_pub2;
+    ros::Publisher publisher_marker_array;
+    ros::Publisher publisher_marker_array_distances;
+    ros::Publisher publisher_marker_array_angles;
+    ros::Publisher publisher_z_snapped;
+    ros::Publisher publisher_z_particle;
+    ros::Publisher publisher_GT_RTK;
+
+    ros::Publisher publisher_average_pose;
 
     // Subscriber
     ros::Subscriber odometry_sub;
@@ -109,6 +127,7 @@ public:
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
+    ros::ServiceClient latlon_2_xy_client_2;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
@@ -126,9 +145,6 @@ public:
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
 private:
-
-    ofstream myfile;
-
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                /// The uniform pseudo-random algorithm
     double street_distribution_sigma;  /// Street gaussian distribution sigma
@@ -143,6 +159,23 @@ private:
 
     bool new_detections;				/// indicates detectors found new detections (not used)
     vector<Particle> current_layout;	/// stores the current layout
+    long resampling_count;
+
+    MatrixXd particle_poses_statistics; /// To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+
+    // output files
+    ofstream stat_out_file;
+    ofstream LIBVISO_out_file;
+    ofstream RLE_out_file;
+    ofstream RTK_GPS_out_file;
+
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::MarkerArray marker_array_distances;
+    visualization_msgs::MarkerArray marker_array_angles;
+    visualization_msgs::MarkerArray marker_z_snapped;
+    visualization_msgs::MarkerArray marker_z_particle;
+    visualization_msgs::MarkerArray marker_array_GT_RTK;
+
 
 
     /**
@@ -236,11 +269,20 @@ public:
 
     ~LayoutManager(){
         current_layout.clear();
-        myfile.close();
+//        stat_out_file.close();
+        LIBVISO_out_file.close();
+        RLE_out_file.close();
+        RTK_GPS_out_file.close();
         delete measurement_model;
     }
 	LayoutManager(const LayoutManager &other);
 	LayoutManager& operator=(const LayoutManager&);
+
+    void normalizeParticleSet();
+    void publishMarkerArray();
+    void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
+    void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
+    void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
 };
 
 #endif /* LAYOUTMANAGER_H_ */

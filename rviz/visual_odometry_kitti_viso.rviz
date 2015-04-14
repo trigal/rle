@@ -6,13 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Axes1
-        - /TF1/Frames1
-        - /Odometry2
-        - /PoseArray1
-        - /MarkerArray1
-      Splitter Ratio: 0.65368
-    Tree Height: 699
+        - /OSM Elements1/Namespaces1
+        - /Particle Set1/Namespaces1
+        - /Ave-Pose1
+      Splitter Ratio: 0.425791
+    Tree Height: 722
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -55,56 +53,66 @@ Visualization Manager:
       Value: true
     - Class: rviz/Axes
       Enabled: false
-      Length: 1
+      Length: 30
       Name: Axes
-      Radius: 0.05
-      Reference Frame: <Fixed Frame>
+      Radius: 1
+      Reference Frame: pose_local_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 50
+      Name: Axes
+      Radius: 0.5
+      Reference Frame: tf_pose_local_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 30
+      Name: Axes
+      Radius: 0.5
+      Reference Frame: snapped_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 15
+      Name: Axes
+      Radius: 1
+      Reference Frame: tf_snapped_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 15
+      Name: Axes
+      Radius: 1
+      Reference Frame: tf_snapped_map_frame_INVERTED_DIRECTION
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 30
+      Name: Axes
+      Radius: 0.1
+      Reference Frame: tf_pose_local_map_frame
+      Value: false
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 15
+      Name: Axes
+      Radius: 0.5
+      Reference Frame: tf_pose_local_map_frame_ROTATED
       Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
-        All Enabled: false
-        kitti_stereo:
-          Value: true
-        local_map:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        start:
-          Value: true
-        visual_odometry_camera_frame:
-          Value: true
-        visual_odometry_car_frame:
-          Value: true
-        visual_odometry_odom_x_forward:
-          Value: true
+        All Enabled: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          local_map:
-            visual_odometry_odom_x_forward:
-              odom:
-                visual_odometry_camera_frame:
-                  visual_odometry_car_frame:
-                    {}
+        {}
       Update Interval: 0
-      Value: true
-    - Angle Tolerance: 0.1
-      Class: rviz/Odometry
-      Color: 255; 25; 0
-      Enabled: false
-      Keep: 1000000
-      Length: 10
-      Name: Odometry
-      Position Tolerance: 0.1
-      Topic: /visual_odometry/odometry
       Value: false
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
@@ -112,69 +120,88 @@ Visualization Manager:
       Enabled: true
       Keep: 1000000
       Length: 10
-      Name: Odometry
+      Name: LIBVISO
       Position Tolerance: 0.1
       Topic: /stereo_odometer/odometry
       Value: true
     - Arrow Length: 10
       Class: rviz/PoseArray
-      Color: 255; 255; 0
-      Enabled: true
-      Name: PoseArray
+      Color: 0; 255; 0
+      Enabled: false
+      Name: Particle Set [OLD]
       Topic: /road_layout_estimation/layout_manager/particle_pose_array
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/circle
+      Name: GPS Uncertainty
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/circle2
+      Name: GPS Mean Init
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Image
+      Enabled: false
+      Image Topic: /kitti_stereo/left/image_rect
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Left Camera
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /ways
+      Name: OSM Elements
+      Namespaces:
+        direction: true
+        node: true
+        way: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
+      Name: Part-to-Path distance
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/particle_set
+      Name: Particle Set
+      Namespaces:
+        particle_set: true
+      Queue Size: 100
+      Value: true
+    - Angle Tolerance: 0.1
+      Class: rviz/Odometry
+      Color: 188; 0; 188
+      Enabled: true
+      Keep: 1000000
+      Length: 2
+      Name: Ave-Pose
+      Position Tolerance: 0.1
+      Topic: /road_layout_estimation/layout_manager/average_pose
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /visualization_marker_array
-      Name: MarkerArray
+      Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
+      Name: GT_RTK
       Namespaces:
-        bounds_osm: true
-        roads_osm: true
-        waypoints_osm: true
+        RTK_MARKER: true
       Queue Size: 100
       Value: true
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.1
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: false
-      Head Length: 0.3
-      Head Radius: 0.1
-      Name: Pose
-      Shaft Length: 100
-      Shaft Radius: 1
-      Shape: Arrow
-      Topic: /road_layout_estimation/layout_manager/quaternion_pose
-      Value: false
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.1
-      Class: rviz/Pose
-      Color: 85; 0; 255
-      Enabled: false
-      Head Length: 0.3
-      Head Radius: 0.1
-      Name: Pose
-      Shaft Length: 100
-      Shaft Radius: 1
-      Shape: Arrow
-      Topic: /road_layout_estimation/layout_manager/particle_pose
-      Value: false
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.1
-      Class: rviz/Pose
-      Color: 85; 255; 0
-      Enabled: false
-      Head Length: 0.3
-      Head Radius: 0.1
-      Name: Pose
-      Shaft Length: 100
-      Shaft Radius: 1
-      Shape: Arrow
-      Topic: /road_layout_estimation/layout_manager/diff_pose
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -198,31 +225,33 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/XYOrbit
-      Distance: 158.475
+      Class: rviz/Orbit
+      Distance: 192.64
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 57.3053
+        Y: -49.8146
+        Z: -65.1263
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.900398
+      Pitch: 0.870398
       Target Frame: <Fixed Frame>
-      Value: XYOrbit (rviz)
-      Yaw: 1.4954
+      Value: Orbit (rviz)
+      Yaw: 2.4054
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 980
+  Height: 1003
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001590000034afc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000280000034a000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000034afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007301000000280000034a000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000006bc0000003efc0100000002fb0000000800540069006d00650100000000000006bc000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000004480000034a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Left Camera:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000018200000361fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000002800000361000000dd00fffffffa000000010100000002fb00000016004c006500660074002000430061006d0065007200610200000a150000025c0000031f0000012cfb000000100044006900730070006c0061007900730100000000000001820000010f00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000361fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000002800000361000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000780000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007450000003efc0100000002fb0000000800540069006d0065010000000000000745000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000004a80000036100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -231,6 +260,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1724
-  X: 55
+  Width: 1861
+  X: 1910
   Y: 14

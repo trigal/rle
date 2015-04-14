@@ -1,0 +1,62 @@
+<launch>
+
+	<!-- Arguments -->
+	<arg name="bagfile" default="/home/limongi/Desktop/kitti_01_odometry.bag"/> <!-- Your bagfile here -->
+	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
+	<arg name="publish_rate" default="0.8" />
+	<param name="/use_sim_time" value="true"/>
+
+	<!-- KITTI_01 PARAMETERS -->
+	<arg name="url" default="package://osm_cartography/maps/kitti_01.osm" />
+	<arg name="lat" default="49.006719195871" />
+	<arg name="lon" default="8.4893558806503" />
+
+	<!-- start lat/lon converter -->
+	<node pkg="osm_cartography" type="osm_latlon_converter" name="osm_latlon_converter" output="screen">
+		<param name="map_lat" value="$(arg lat)" />
+		<param name="map_lon" value="$(arg lon)" />
+	</node>
+
+	<!-- start map server -->
+	<node pkg="osm_cartography" type="osm_server" name="osm_server" output="screen" />
+
+	<!-- start map visualization -->
+	<node pkg="osm_cartography" type="viz_osm" name="viz_osm" output="screen" >
+		<param name="map_url" value="$(arg url)" />
+	</node>
+
+	<!-- start osm query node -->
+	<node
+		pkg="osm_cartography"
+		type="osm_query_node"
+		name="osm_query_node"
+		output="screen"
+		args="/home/limongi/workspace_ros/src/open_street_map/osm_cartography/maps/kitti_01.osm"
+	/>
+
+	<!-- Local map transform
+	<node pkg="tf" type="static_transform_publisher" name="local_map_tf"
+		args="462655.3 5428328.3 0 -1.5707 0 0 map local_map 200" /> -->
+
+	<!-- Run the rosbag -->
+	<node pkg="rosbag" type="play" name="rosbag" args="$(arg bagfile) -r $(arg publish_rate) -d 9"/>
+
+	<!-- Launch ROAD LAYOUT ESTIMATION node
+	<node
+		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
+		required="true"
+		output="screen"
+		args="stereo_odometer/odometry"
+	/> -->
+
+	<!-- Launch RViz-->
+	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
+		args="-d /home/limongi/workspace_ros/src/road_layout_estimation/rviz/visual_odometry_kitti_viso.rviz"
+		output="screen"
+	/>
+
+	<!-- Launch RQT reconfigure -->
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/>
+
+</launch>
+

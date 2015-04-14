@@ -44,7 +44,9 @@ void Particle::propagateLayoutComponents(){
  * @brief Implementation of E.K.F. used for particle Odometry estimation
  * @param particle
  */
-void Particle::particleEstimation(MeasurementModel* odometry){
+void Particle::particlePoseEstimation(MeasurementModel* odometry){
+
+//    cout << "[entering particleEstimation]" << endl;
 
     // initialize variables
     State6DOF stato_t = particle_state; /// initial state
@@ -64,29 +66,40 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     // calcolo belief predetto:
     stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
 
-    // Print
-    cout << "[particle_id] " << particle_id << endl;
-    cout << "[delta t]     " << LayoutManager::delta_t << endl;
-    stato_t.printState("[stato_t]");
-    State6DOF(odometry->getMsg()).printState("[msg]");
-    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
+
+//    // Print
+//    cout << "[particle_id] " << particle_id << endl;
+//    cout << "[delta t]     " << LayoutManager::delta_t << endl;
+//    stato_t.printState("[stato_t]");
+//    State6DOF(odometry->getMsg()).printState("[msg]");
+//    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
 
     // applicazione proprietà gaussiane:
     G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
     E_t_pred = G_t * E_t * G_t.transpose() + R_t;
 
+//    if (this->getId()==1){
+//        cout << "\nE_t\n" << E_t << endl << endl;
+//        cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
+
+//        cout << "\nR_t\n" << R_t << endl << endl;
+
+//        cout << "\nG_t\n" << G_t << endl << endl;
+
+//    }
+
     // Check if the measure is valid
     if(!odometry->isMeasureValid())
     {
-        ROS_WARN("Invalid measure detected");
+        // ROS_WARN("Particle.cpp -- Invalid measure detected"); moved to LayoutManager.cpp to prevent multiple warnings with one measure
         // TODO: smorzare il moto
         particle_state = stato_t_predetto;
         particle_sigma = E_t_pred;
 
         //DEBUG:stampa stato_t_predetto
-        particle_state.printState("[stato_t_filtrato_prediction_only]");
+//        particle_state.printState("[stato_t_filtrato_prediction_only]");
 
-        cout << "--------------------------------------------------------------------------------" << endl;
+//        cout << "--------------------------------------------------------------------------------" << endl;
 
         return;
     }
@@ -95,6 +108,8 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     // ------- UPDATE STEP -------
 
     State6DOF delta_measure = odometry->getMeasureState();                  // differenza tra odometria arrivata
+//    delta_measure.setRotation(AngleAxisd::Identity());
+//    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
     State6DOF predicted_measure;
 
     predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
@@ -104,8 +119,10 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
     State6DOF measure_stato = odometry->measurePose(stato_t_predetto);
 
-    predicted_measure.printState("[predicted measure]");
-    stato_t_predetto.printState("[stato_t_predetto]");
+    //cout << "DIOMAIALO: " << stato_t_predetto.toVectorXd().norm() << " ===== " <<  measure_stato.toVectorXd().norm() << " +++++ " << delta_measure.toVectorXd().norm();
+
+//    predicted_measure.printState("[predicted measure]");
+//    stato_t_predetto.printState("[stato_t_predetto]");
 
 //    // CHECK FOR ANGLE-AXIS REPRESENTATION SWITCH
 //    Vector3d tmp_check_vect(0.23,-0.41,0.93);
@@ -128,8 +145,16 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     H_t = odometry->measurementJacobian(stato_t_predetto);
 
     MatrixXd temp = H_t * E_t_pred * H_t.transpose() + Q_t;
+//    cout << endl << endl << temp << endl <<endl ;
     K_t = E_t_pred * H_t.transpose() * temp.inverse();
     kalman_gain = K_t; //this value will be used later on score calculation
+
+//    if (this->getId()==1)
+//    {
+//        cout << endl  << endl << endl << temp << endl << endl << temp.inverse() << endl;
+//    }
+
+//    cout << " qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm() << endl;
 
     // kalman gain
 //    VectorXd kalman_per_msr_diff = K_t * delta_measure.subtract_vect(measure_delta_stato);
@@ -143,8 +168,7 @@ void Particle::particleEstimation(MeasurementModel* odometry){
     particle_sigma = E_t;
 
     //DEBUG:stampa stato_t_predetto
-    stato_filtrato.printState("[stato_t_filtrato]");
+//    stato_filtrato.printState("[stato_t_filtrato]");
 
-    cout << "--------------------------------------------------------------------------------" << endl;
+//    cout << "--------------------------------------------------------------------------------" << endl;
 }
-

@@ -1,5 +1,4 @@
 #include "State6DOF.h"
-
 State6DOF::State6DOF()
 {
     _pose = Eigen::Vector3d::Zero();
@@ -11,6 +10,9 @@ State6DOF::State6DOF()
 Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
 {
     Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
+//    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
+//    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
+//    tmp_matrix.block(6,0,3,1) = tmp_matrix.block(6,0,3,1) - to_be_subtracted.toVectorXd().block(6,0,3,1);
     return tmp_matrix;
 }
 
@@ -37,6 +39,10 @@ State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)
 {
     State6DOF tmp;
     Eigen::VectorXd tmp_v = this->toVectorXd() + to_be_added;
+
+//    Eigen::Matrix<double,12,1> tmp_v = this->toVectorXd();
+//    tmp_v.block(0,0,3,1) = tmp_v.block(0,0,3,1) + to_be_added.block(0,0,3,1);
+//    tmp_v.block(6,0,3,1) = tmp_v.block(6,0,3,1) + to_be_added.block(6,0,3,1);
 
     tmp._pose = tmp_v.block(0,0,3,1);
     if(tmp_v.block(3,0,3,1) == Eigen::VectorXd::Zero(3))

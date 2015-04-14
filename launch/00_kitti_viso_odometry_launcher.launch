@@ -1,8 +1,6 @@
 <launch>
-	<include file="$(find ira_open_street_map)/launch/kitti_05.launch" />
-
 	<!-- Arguments -->
-	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_01.bag"/> <!-- Your bagfile here -->
+	<arg name="bagfile" default="/home/limongi/Desktop/Kitti/kitti_00.bag"/> <!-- Your bagfile here -->
 	<arg name="camera" default="/kitti_stereo" /> <!-- The namespace where images are published -->
 	<arg name="publish_rate" default="0.3" />
 	<param name="/use_sim_time" value="true"/>
@@ -26,13 +24,13 @@
 		output="screen"
 	/> -->
 
-	<!-- Launch ROAD LAYOUT ESTIMATION node -->
+	<!-- Launch ROAD LAYOUT ESTIMATION node  -->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
 		required="true"
 		output="screen"
-		args="/stereo_odometer/odometry"
-	/>  
+		args="stereo_odometer/odometry"
+	/>
 
 	<!-- Run the rosbag 
 	<node pkg="rosbag" type="play" name="rosbag" args="-clock $(arg bagfile) -r $(arg publish_rate)"/>-->
@@ -42,18 +40,18 @@
 		<node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" />
 	</group>
 
-	<!-- Run image stereo viewer + disparity
+	<!-- Run image stereo viewer + disparity-->
 	<node pkg="image_view" type="stereo_view" name="stereo_view">
 		<remap from="stereo" to="$(arg camera)"/>
 		<remap from="image" to="image_rect"/>
-	</node>	 -->
+	</node>	 
 
-	<!-- Run the viso2_ros package 
+	<!-- Run the viso2_ros package -->
 	<node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen">
 		<rosparam param="base_link_frame_id">visual_odometry_camera_frame</rosparam>
 		<remap from="stereo" to="$(arg camera)"/>
 		<remap from="image" to="image_rect"/>
-	</node>-->
+	</node>
 
 	<!-- Launch RViz
 	<node pkg="rviz" type="rviz" name="rviz" respawn="true"
@@ -61,6 +59,6 @@
 		output="screen"
 	/>-->
 
-	<!-- Launch RQT reconfigure 
-	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
+	<!-- Launch RQT reconfigure -->
+	<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/>
 </launch>

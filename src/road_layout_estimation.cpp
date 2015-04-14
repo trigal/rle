@@ -48,6 +48,26 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "road_layout_estimation");
     ros::NodeHandle node_handle;
 
+//    //-------------------------------------------------------------------------------------
+//    cout << "----------------------------------------------------------------------------------" << endl;
+//    tf::Quaternion q1 = tf::createQuaternionFromYaw(M_PI - 0.05);
+//    tf::Quaternion q2 = tf::createQuaternionFromYaw(-M_PI + 0.05);
+//    cout << "q1: " << q1.x() << " " << q1.y() << " " << q1.z() << " " << q1.w() << endl;
+//    cout << "q2: " << q2.x() << " " << q2.y() << " " << q2.z() << " " << q2.w() << endl;
+
+//    tf::Quaternion diff1 = q1.inverse() * q2;
+//    tf::Quaternion diff2 = q2.inverse() * q1;
+
+//    cout << "diff1: " << diff1.x() << " " << diff1.y() << " " << diff1.z() << " " << diff1.w() << endl;
+//    cout << "diff2: " << diff2.x() << " " << diff2.y() << " " << diff2.z() << " " << diff2.w() << endl;
+//    cout << "angle1: " << diff1.getAngle() << endl;
+//    cout << "angle2: " << diff2.getAngle() << endl;
+//    cout << "norm angle1: " << Utils::normalize_angle(diff1.getAngle()) << endl;
+//    cout << "norm angle2: " << Utils::normalize_angle(diff2.getAngle()) << endl;
+
+//    cout << "----------------------------------------------------------------------------------" << endl;
+//    //-------------------------------------------------------------------------------------
+
     // init subscriber
     std::cout << "argc: " << argc << endl;
     string argomento = "/stereo_odometer/odometry";
