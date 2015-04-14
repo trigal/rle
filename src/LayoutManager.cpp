@@ -945,6 +945,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // % Blue distance lines marker array
     marker_array_distances.markers.clear();
 
+    if (!measurement_model->isMeasureValid())
+    {
+        ROS_WARN("LayoutManager says: Invalid measure detected");
+    }
+
+
     // call particle_estimation -------------------------------------------------------------------------------------------------------
     vector<Particle>::iterator particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){

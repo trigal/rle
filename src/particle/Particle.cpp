@@ -78,20 +78,20 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
     E_t_pred = G_t * E_t * G_t.transpose() + R_t;
 
-    if (this->getId()==1){
-        cout << "\nE_t\n" << E_t << endl << endl;
-        cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
+//    if (this->getId()==1){
+//        cout << "\nE_t\n" << E_t << endl << endl;
+//        cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
 
-        cout << "\nR_t\n" << R_t << endl << endl;
+//        cout << "\nR_t\n" << R_t << endl << endl;
 
-        cout << "\nG_t\n" << G_t << endl << endl;
+//        cout << "\nG_t\n" << G_t << endl << endl;
 
-    }
+//    }
 
     // Check if the measure is valid
     if(!odometry->isMeasureValid())
     {
-        ROS_WARN("Invalid measure detected");
+        // ROS_WARN("Particle.cpp -- Invalid measure detected"); moved to LayoutManager.cpp to prevent multiple warnings with one measure
         // TODO: smorzare il moto
         particle_state = stato_t_predetto;
         particle_sigma = E_t_pred;
