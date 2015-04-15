@@ -1340,21 +1340,21 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     publisher_average_pose.publish(odometry); // Odometry message
 
     ifstream RTK;
-    double lat,lon;
+    double from_lat,from_lon,to_lat,to_lon;
     RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
-    RTK >> lat >> lon;
+    RTK >> from_lat >> from_lon;
     RTK.close();
 
     // Get XY values from GPS coords
-    ira_open_street_map::latlon_2_xyRequest conversion;
-    conversion.latitude = lat;
-    conversion.longitude = lon;
-    ira_open_street_map::latlon_2_xyResponse response;
-    if (LayoutManager::latlon_2_xy_client.call(conversion,response))
+    ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
+    query_latlon2xy.latitude = from_lat;
+    query_latlon2xy.longitude = from_lon;
+    ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
+    if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
     {
 
         tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
-        RTK_map_frame.setOrigin(tf::Vector3(response.x,response.y,0));
+        RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
         RTK_map_frame.setRotation(tf::createIdentityQuaternion());
         RTK_map_frame.frame_id_="/map";
 
@@ -1393,11 +1393,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         // Push back line_list
         publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-        RTK_GPS_out_file << msg.header.seq << ";" <<
-                            RTK_local_map_frame.getOrigin().getX() << ";" << RTK_local_map_frame.getOrigin().getY() << ";" << RTK_local_map_frame.getOrigin().getZ() << ";" <<
-                            0 << ";"<< 0 << ";"<< 0 << ";" <<
-                            0 << ";" << 0 << ";" << 0 << ";" << 0 << ";" <<
-                            tot_score / current_layout.size() << "\n" ;
+        RTK_GPS_out_file << msg.header.seq << " " << setprecision(10) <<
+                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+                            0 << " "<< 0 << " "<< 0 << " " <<
+                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+                            tot_score / current_layout.size() << "\n";
     }
     else
     {
@@ -1407,14 +1407,51 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     }
 
 
+    // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
+    tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
+    average_pose_local_map_frame.frame_id_="local_map";
+    average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0),average_pose(1),average_pose(2)));
+    average_pose_local_map_frame.setRotation(tf::createIdentityQuaternion());
+    // Transform pose from "local_map" to "map"
+    try{
+        tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
+
+        ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
+        ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
+        query_xy2latlon.x=average_pose_map_frame.getOrigin().getX();
+        query_xy2latlon.y=average_pose_map_frame.getOrigin().getY();
+        if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon,response_xy2latlon))
+        {
+            // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
+            to_lat=response_xy2latlon.latitude;
+            to_lon=response_xy2latlon.longitude;
+        }
+        else
+        {
+          ROS_ERROR("   Failed to call 'xy_2_latlon_2_srv' service");
+          ros::shutdown(); //augusto debug
+          return;
+        }
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
+        ROS_ERROR("     Transform AVERAGE pose from local_map to map");
+        ros::shutdown();
+    }
+
     // -------------------------------------------------------------------------------------------------------------------------------------
     // SAVE RESULTS TO OUTPUT FILE:
     tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-    RLE_out_file << msg.header.seq << ";" <<
-                               average_pose(0) << ";" << average_pose(1) << ";" << average_pose(2) << ";" <<
-                               roll << ";"<< pitch << ";"<< yaw << ";" <<
-                               average_quaternion.getX() << ";" << average_quaternion.getY() << ";" << average_quaternion.getZ() << ";" << average_quaternion.getW() << ";" <<
-                               tot_score / current_layout.size() << "\n" ;
+    RLE_out_file << msg.header.seq << " " << setprecision(10) <<
+                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                               roll << " "<< pitch << " "<< yaw << " " <<
+                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                               tot_score / current_layout.size() << " " <<
+                               to_lat << " " << to_lon << "\n";
+
+    cout << setprecision(10) << to_lat << "\t" << to_lon << endl;
+
 
 
     tf::StampedTransform VO;
@@ -1423,11 +1460,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
         tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
 
-        LIBVISO_out_file << msg.header.seq << ";" <<
-                                VO.getOrigin().getX()  << ";" << VO.getOrigin().getY()  << ";" << VO.getOrigin().getZ()  << ";" <<
-                                roll << ";"<< pitch << ";"<< yaw << ";" <<
-                                VO.getRotation().getX() << ";" << VO.getRotation().getY() << ";" << VO.getRotation().getZ() << ";" << VO.getRotation().getW() << ";" <<
-                                tot_score / current_layout.size() << "\n" ;
+        LIBVISO_out_file << msg.header.seq << " " << setprecision(10) <<
+                                VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
+                                roll << " "<< pitch << " "<< yaw << " " <<
+                                VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
+                                tot_score / current_layout.size() << "\n";
     }
     catch (tf::TransformException &ex)
     {
