@@ -331,13 +331,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-//            double lat = 49.050384;//49.04999;//49.04951961077; //49.049695;//
-//            double lon = 8.396351;// 8.39645;//8.3965961639946; //8.397790;////
-            double lat = 49.04951961077;
-            double lon = 8.3965961639946;
-            double alt = 0;
-            double cov1 = 4;
-            double cov2 = 4;
+//            double lat = 49.04951961077;
+//            double lon = 8.3965961639946;
+//            double alt = 0;
+//            double cov1 = 4;
+//            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -361,11 +359,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 60;
 
             // KITTI 09 [OK, video serie curve tondeggianti]
-//            double alt = 0;
-//            double lat = 48.972104544468;
-//            double lon = 8.4761469953335;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            double alt = 0;
+            double lat = 48.972104544468;
+            double lon = 8.4761469953335;
+            double cov1 = 60;
+            double cov2 = 60;
 
             // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
 //            double alt = 0;
@@ -1198,7 +1196,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
 
     // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-    if(resampling_count++ == 3)
+    if(resampling_count++ == 4)
 //    if(0)
     {
         resampling_count = 0;
@@ -1226,7 +1224,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
             for(int k = 0; k<current_layout.size(); ++k)
             {
-                if(uniform_rand2(rng) <= 80) //This percentage of weighted samples
+                if(uniform_rand2(rng) <= 95) //This percentage of weighted samples
                 {
                     // WEIGHTED RESAMPLER
                     int particle_counter = 0;
@@ -1393,7 +1391,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         // Push back line_list
         publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-        RTK_GPS_out_file << msg.header.seq << " " << setprecision(10) <<
+        RTK_GPS_out_file << msg.header.seq << " " << setprecision(16) <<
                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                             0 << " "<< 0 << " "<< 0 << " " <<
                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
@@ -1443,7 +1441,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
     // SAVE RESULTS TO OUTPUT FILE:
     tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-    RLE_out_file << msg.header.seq << " " << setprecision(10) <<
+    RLE_out_file << msg.header.seq << " " << setprecision(16) <<
                                average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
                                roll << " "<< pitch << " "<< yaw << " " <<
                                average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
@@ -1460,7 +1458,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
         tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
 
-        LIBVISO_out_file << msg.header.seq << " " << setprecision(10) <<
+        LIBVISO_out_file << msg.header.seq << " " << setprecision(16) <<
                                 VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
                                 roll << " "<< pitch << " "<< yaw << " " <<
                                 VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<

@@ -132,21 +132,21 @@ Visualization Manager:
       Topic: /road_layout_estimation/layout_manager/particle_pose_array
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: GPS Uncertainty
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/circle2
       Name: GPS Mean Init
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: false
       Image Topic: /kitti_stereo/left/image_rect
@@ -163,9 +163,7 @@ Visualization Manager:
       Marker Topic: /ways
       Name: OSM Elements
       Namespaces:
-        direction: true
-        node: true
-        way: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -181,7 +179,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/particle_set
       Name: Particle Set
       Namespaces:
-        particle_set: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.1
@@ -199,7 +197,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
       Name: GT_RTK
       Namespaces:
-        RTK_MARKER: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
