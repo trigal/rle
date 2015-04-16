@@ -303,11 +303,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
 //            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-//            double alt = 0;
-//            double lat = 48.98254523586602;
-//            double lon = 8.39036610004500;
-//            double cov1 = 100;
-//            double cov2 = 100;
+            double alt = 0;
+            double lat = 48.98254523586602;
+            double lon = 8.39036610004500;
+            double cov1 = 100;
+            double cov2 = 100;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
 //            double alt = 0;
@@ -359,11 +359,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 60;
 
             // KITTI 09 [OK, video serie curve tondeggianti]
-            double alt = 0;
-            double lat = 48.972104544468;
-            double lon = 8.4761469953335;
-            double cov1 = 60;
-            double cov2 = 60;
+//            double alt = 0;
+//            double lat = 48.972104544468;
+//            double lon = 8.4761469953335;
+//            double cov1 = 60;
+//            double cov2 = 60;
 
             // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
 //            double alt = 0;

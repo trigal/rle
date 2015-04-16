@@ -4,14 +4,17 @@
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
             <arg name="bagfile" default="kitti_00" />
 
-            <arg name="bagfilewithpath" default="/media/limongi/Volume/KITTI_RAW_DATASET/VO/$(arg bagfile).bag"/>  <!-- Your bagfilewithpath here -->
-            <arg name="camera" default="/kitti_stereo" />                                           <!-- The namespace where images are published -->
+            <arg name="bagfilewithpath" default="/media/limongi/Volume/KITTI_RAW_DATASET/VO/$(arg bagfile)_VO.bag"/>    <!-- Your bagfilewithpath here -->
+            <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
             <arg name="publish_rate" default="0.5" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <param name="/use_sim_time" value="true"/>
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
 
+            <arg name="play_from_VO" default="true" />
+
             <include file="$(find ira_open_street_map)/launch/$(arg bagfile).launch" />
+
 
         <!-- STATIC TRANFORMS -->
             <!-- Static transform fixing Viso moving frame axis -->
@@ -24,8 +27,8 @@
                 <node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
 			
-        <!-- ROSBAG PLAY
-            <node pkg="rosbag" type="play" name="rosbag" args="-clock $(arg bagfilewithpath) -r $(arg publish_rate) --delay=5"/> -->
+        <!-- ROSBAG PLAY ---- do NOT use --clock option with VO bags! -->
+            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=5" if="$(arg play_from_VO)"/>
 
         <!-- VISUAL ODOMETRY STUFF -->
             <!-- Run the ROS package stereo_image_proc -->
@@ -57,7 +60,7 @@
 	<!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
-		required="true"
+                required="true"
 		output="screen"
 		args="/stereo_odometer/odometry"
 	/>  
