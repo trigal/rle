@@ -303,11 +303,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
 //            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-            double alt = 0;
-            double lat = 48.98254523586602;
-            double lon = 8.39036610004500;
-            double cov1 = 100;
-            double cov2 = 100;
+//            double alt = 0;
+//            double lat = 48.98254523586602;
+//            double lon = 8.39036610004500;
+//            double cov1 = 100;
+//            double cov2 = 100;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
 //            double alt = 0;
@@ -331,11 +331,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-//            double lat = 49.04951961077;
-//            double lon = 8.3965961639946;
-//            double alt = 0;
-//            double cov1 = 4;
-//            double cov2 = 4;
+            double lat = 49.04951961077;
+            double lon = 8.3965961639946;
+            double alt = 0;
+            double cov1 = 4;
+            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -1447,10 +1447,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                                average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
                                tot_score / current_layout.size() << " " <<
                                to_lat << " " << to_lon << "\n";
-
-    cout << setprecision(10) << to_lat << "\t" << to_lon << endl;
-
-
 
     tf::StampedTransform VO;
     try{
