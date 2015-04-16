@@ -27,7 +27,7 @@
                 <node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
 			
-        <!-- ROSBAG PLAY ---- do NOT use --clock option with VO bags! -->
+        <!-- ROSBAG PLAY ===== do NOT use the clock option with VO bags! -->
             <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=5" if="$(arg play_from_VO)"/>
 
         <!-- VISUAL ODOMETRY STUFF -->
