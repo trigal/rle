@@ -331,18 +331,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-            double lat = 49.04951961077;
-            double lon = 8.3965961639946;
-            double alt = 0;
-            double cov1 = 4;
-            double cov2 = 4;
+//            double lat = 49.04951961077;
+//            double lon = 8.3965961639946;
+//            double alt = 0;
+//            double cov1 = 4;
+//            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-//            double alt = 0;
-//            double lat = 49.05349304789598;
-//            double lon = 8.39721998765449;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            double alt = 0;
+            double lat = 49.05349304789598;
+            double lon = 8.39721998765449;
+            double cov1 = 50;
+            double cov2 = 50;
 
             // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
 //            double alt = 0;
