@@ -1338,15 +1338,23 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     publisher_average_pose.publish(odometry); // Odometry message
 
     ifstream RTK;
-    double from_lat,from_lon,to_lat,to_lon;
+    double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
     RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
-    RTK >> from_lat >> from_lon;
+    RTK >> from_latitude >> from_longitude >> from_altitude;
     RTK.close();
+
+    sensor_msgs::NavSatFix gps_fix;
+    gps_fix.header.frame_id="/map";
+    gps_fix.header.stamp = msg.header.stamp;
+    gps_fix.latitude=from_latitude;
+    gps_fix.latitude=from_longitude;
+    gps_fix.latitude=from_altitude;
+    gps_pub.publish(gps_fix);
 
     // Get XY values from GPS coords
     ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
-    query_latlon2xy.latitude = from_lat;
-    query_latlon2xy.longitude = from_lon;
+    query_latlon2xy.latitude = from_latitude;
+    query_latlon2xy.longitude = from_longitude;
     ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
     if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
     {
