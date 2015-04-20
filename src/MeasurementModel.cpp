@@ -53,13 +53,20 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tf::StampedTransform fixed_transform;
         Eigen::AngleAxisd tmp_rotational_velocity;
 
+        geometry_msgs::Twist frame_speed;
 
         try
         {
             _listener->waitForTransform("visual_odometry_odom_x_forward","odom",ros::Time(0),ros::Duration(0.1));
             _listener->lookupTransform("visual_odometry_odom_x_forward","odom",ros::Time(0),fixed_transform);
 //            _listener->lookupTransform("visual_odometry_odom_x_forward","odom",ros::Time::now(),fixed_transform);
-//            _listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(.5), frame_speed); // TODO: wishful thinking
+
+            // TODO: wishful thinking
+            // Lookup the twist of the tracking_frame with respect to the observation frame in the reference_frame using the reference point.
+//            _listener->lookupTwist("visual_odometry_car_frame", "visual_odometry_odom_x_forward", "visual_odometry_car_frame", tf::Point(0,0,0), "visual_odometry_car_frame", ros::Time(0), ros::Duration(0.1), frame_speed);
+//            _listener->lookupTwist("");
+
+//            std::cout << frame_speed << std::endl;
 
             _listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",_msg.header.stamp,t1);
             _listener->lookupTransform("visual_odometry_odom_x_forward","visual_odometry_car_frame",_msg.header.stamp - ros::Duration(0.1),t2); // TODO: Parametrize the derivation time
@@ -67,6 +74,8 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
             tmp_translational_velocity = t3.getOrigin() / 0.1;
             tmp_rotational_velocity = Eigen::Quaterniond(t3.getRotation().getW(),t3.getRotation().getX(),t3.getRotation().getY(),t3.getRotation().getZ());
             tmp_rotational_velocity.angle() /= 0.1;
+
+//            std::cout << tmp_translational_velocity.getX() << "\t"<< tmp_translational_velocity.getY() << "\t"<< tmp_translational_velocity.getZ()  << std::endl;
         }
         catch (tf::TransformException &ex)
         {

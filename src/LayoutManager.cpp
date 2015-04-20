@@ -229,10 +229,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     );
 
         mtn_model_ptr->setPropagationError(
-                    config.propagate_translational_vel_error_x,
-                    config.propagate_translational_vel_error_y,
-                    config.propagate_translational_vel_error_z,
-                    config.propagate_rotational_vel_error
+                    config.propagate_translational_percentage_vel_error_x,
+                    config.propagate_translational_percentage_vel_error_y,
+                    config.propagate_translational_percentage_vel_error_z,
+                    config.propagate_rotational_percentage_vel_error
                     );
     }
 
@@ -247,10 +247,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 config.mtn_model_angular_uncertainty
                 );
     default_mtn_model.setPropagationError(
-                config.propagate_translational_vel_error_x,
-                config.propagate_translational_vel_error_y,
-                config.propagate_translational_vel_error_z,
-                config.propagate_rotational_vel_error
+                config.propagate_translational_percentage_vel_error_x,
+                config.propagate_translational_percentage_vel_error_y,
+                config.propagate_translational_percentage_vel_error_z,
+                config.propagate_rotational_percentage_vel_error
                 );
 
     measurement_model->setMeasureCov(
@@ -403,11 +403,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-            double alt = 0;
-            double lat = 49.006719195871;//49.006558;// 49.006616;//
-            double lon = 8.4893558806503;//8.489195;//8.489291;//
-            double cov1 = 50;
-            double cov2 = 50;
+//            double alt = 0;
+//            double lat = 49.006719195871;//49.006558;// 49.006616;//
+//            double lon = 8.4893558806503;//8.489195;//8.489291;//
+//            double cov1 = 50;
+//            double cov2 = 50;
 
             // KITTI 02 [NI, si perde dopo un paio di curve]
 //            double alt = 0;
@@ -424,11 +424,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 50;
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-//            double lat = 49.04951961077;
-//            double lon = 8.3965961639946;
-//            double alt = 0;
-//            double cov1 = 4;
-//            double cov2 = 4;
+            double lat = 49.04951961077;
+            double lon = 8.3965961639946;
+            double alt = 0;
+            double cov1 = 4;
+            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
 //            double alt = 0;
@@ -552,7 +552,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             ROS_INFO_STREAM ("       " << boost::lexical_cast<std::string>(mean(0)) );
             ROS_INFO_STREAM ("       " << boost::lexical_cast<std::string>(mean(1)) );
             ROS_INFO_STREAM ("   COV: " );
-            ROS_INFO_STREAM (covar );
+            ROS_INFO_STREAM (endl << covar );
             ROS_INFO_STREAM ("------------------------------------------------------------" );
 
 
@@ -636,8 +636,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Init particle's sigma
                     MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
-
-                    ROS_INFO_STREAM ("p_sigma" << endl << endl << p_sigma );
 
                     // Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);

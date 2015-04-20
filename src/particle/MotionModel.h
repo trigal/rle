@@ -36,10 +36,10 @@ private:
 
 
     /// Random err added to velocity when propagating the pose
-    double propagate_translational_vel_error_x;
-    double propagate_translational_vel_error_y;
-    double propagate_translational_vel_error_z;
-    double propagate_rotational_vel_error;
+    double propagate_translational_percentage_vel_error_x;
+    double propagate_translational_percentage_vel_error_y;
+    double propagate_translational_percentage_vel_error_z;
+    double propagate_rotational_percentage_vel_error;
 
     /**
      * In case there aren't enough datas from Odometry sensors, a decadency motion model
@@ -92,10 +92,10 @@ public:
     }
 
     void setPropagationError(double translational_x, double translational_y, double translational_z, double rotational){
-        propagate_translational_vel_error_x = translational_x;
-        propagate_translational_vel_error_y = translational_y;
-        propagate_translational_vel_error_z = translational_z;
-        propagate_rotational_vel_error = rotational;
+        propagate_translational_percentage_vel_error_x = translational_x;
+        propagate_translational_percentage_vel_error_y = translational_y;
+        propagate_translational_percentage_vel_error_z = translational_z;
+        propagate_rotational_percentage_vel_error = rotational;
     }
 
     // constructor & destructor ----------------------------------------------------------------

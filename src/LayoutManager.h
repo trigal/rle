@@ -100,8 +100,9 @@ using std::vector;
  */
 class LayoutManager {
 public:
-    MeasurementModel* measurement_model;     /// our Measurment Model
-    static double delta_t;  /// time between current message and last arrived message
+    MeasurementModel* measurement_model;    /// our Measurment Model
+    MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
+    static double delta_t;                  /// time between current message and last arrived message
 
     // Publishers
     ros::Publisher array_pub;
@@ -135,7 +136,6 @@ public:
     int num_particles;
 
     static int step;           /// stores the current layout_manager step
-    MotionModel mtn_model;
 
     // Dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
@@ -283,6 +283,7 @@ public:
     void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
+    void publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point);
 };
 
 #endif /* LAYOUTMANAGER_H_ */

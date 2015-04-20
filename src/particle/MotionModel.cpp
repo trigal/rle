@@ -81,8 +81,6 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
     // initialize values
     State6DOF p_state_propagated;
 
-//    cout << (p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t)).transpose() << endl;
-
     // propagate _pose
     p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t);
 
@@ -92,17 +90,17 @@ State6DOF MotionModel::propagatePose(State6DOF& p_state){
     p_state_propagated._rotation = tmp_angle_axis * p_state._rotation;
 
     // Generate random error with box_muller function
-    Eigen::Vector3d tmp_error;
-    tmp_error(0) = Utils::box_muller(0,propagate_translational_vel_error_x);
-    tmp_error(1) = Utils::box_muller(0,propagate_translational_vel_error_y);
-    tmp_error(2) = Utils::box_muller(0,propagate_translational_vel_error_z);
+    p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * Utils::box_muller(1,propagate_translational_percentage_vel_error_x);
+    p_state_propagated._translational_velocity(1) = p_state._translational_velocity(1) * Utils::box_muller(1,propagate_translational_percentage_vel_error_y);
+    p_state_propagated._translational_velocity(2) = p_state._translational_velocity(2) * Utils::box_muller(1,propagate_translational_percentage_vel_error_z);
 
-    // propagate velocity
-    p_state_propagated._translational_velocity = p_state._translational_velocity + tmp_error; // WARNING + verify error;
 
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
-    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,propagate_rotational_vel_error);
-
+    p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error);
+    p_state_propagated._rotational_velocity.axis()(0) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
+    p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
+    p_state_propagated._rotational_velocity.axis()(2) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
+    p_state_propagated._rotational_velocity.axis().normalize();
 
     return p_state_propagated;
 }

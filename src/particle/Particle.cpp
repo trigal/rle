@@ -66,6 +66,9 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // calcolo belief predetto:
     stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
 
+//    R_t(0,0) *= stato_t.getTranslationalVelocity()(0);
+//    R_t(1,1) *= stato_t.getTranslationalVelocity()(1);
+//    R_t(2,2) *= stato_t.getTranslationalVelocity()(2);
 
 //    // Print
 //    cout << "[particle_id] " << particle_id << endl;
