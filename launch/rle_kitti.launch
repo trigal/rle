@@ -29,7 +29,7 @@
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
 			
         <!-- ROSBAG PLAY ===== do NOT use the clock option with VO bags! -->
-            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3" if="$(arg play_from_VO)"/>
+            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3" if="$(arg play_from_VO)" required="true"/>
 
         <!-- VISUAL ODOMETRY STUFF -->
             <!-- Run the ROS package stereo_image_proc -->
@@ -63,7 +63,7 @@
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
-		args="/stereo_odometer/odometry"
+                args="/stereo_odometer/odometry $(arg bagfile)"
 	/>  
 
         <!-- VISUALIZATION STUFF -->

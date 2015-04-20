@@ -56,7 +56,9 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile){
+
+    this->bagfile = bagfile;
 
     // set this node_handle as the same of 'road_layout_manager'
     node_handle = n;
@@ -123,7 +125,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
  */
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    cout << "   Reconfigure callback" << endl;
+    cout << "   Reconfigure callback! " << bagfile << endl;
 
     // update score guassian distribution values
     street_distribution_sigma = config.street_distribution_sigma;
@@ -271,7 +273,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
             // wait for GPS message (coming from Android device)
-            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
+//            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
 
             // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
 //            double alt = 0.0;
@@ -279,7 +281,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double lat = gps_msg->latitude;
 ////            double cov1 = gps_msg->position_covariance[0];
 ////            double cov2 = gps_msg->position_covariance[4];
-
 //            double cov1 = 15;
 //            double cov2 = 15;
 //            ROS_INFO_STREAM("Tutto ok");
@@ -307,75 +308,113 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 15;
 //            double cov2 = 15;
 
-//            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-            double alt = 0;
-            double lat = 48.98254523586602;
-            double lon = 8.39036610004500;
-            double cov1 = 15;
-            double cov2 = 15;
 
-//            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-//            double alt = 0;
-//            double lat = 49.006719195871;//49.006558;// 49.006616;//
-//            double lon = 8.4893558806503;//8.489195;//8.489291;//
-//            double cov1 = 50;
-//            double cov2 = 50;
+            // INITIALIZATION
+            double alt =0.0f;
+            double lat =0.0f;
+            double lon =0.0f;
+            double cov1 =0.0f;
+            double cov2 =0.0f;
+
+            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
+            if (bagfile.compare("kitti_00")==0)
+            {
+                alt = 0;
+                lat = 48.98254523586602;
+                lon = 8.39036610004500;
+                cov1 = 15;
+                cov2 = 15;
+            }
+
+            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
+            if (bagfile.compare("kitti_01")==0)
+            {
+                alt = 0;
+                lat = 49.006719195871;//49.006558;// 49.006616;//
+                lon = 8.4893558806503;//8.489195;//8.489291;//
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 02 [NI, si perde dopo un paio di curve]
-//            double alt = 0;
-//            double lat = 48.987607723096;
-//            double lon = 8.4697469732634;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_02")==0)
+            {
+                alt = 0;
+                lat = 48.987607723096;
+                lon = 8.4697469732634;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
-//            // KITTI 04 [OK, video road, rettilineo corto]
-//            double alt = 0;
-//            double lat = 49.033603440345;
-//            double lon = 8.3950031909457;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            // KITTI 04 [OK, video road, rettilineo corto]
+            if (bagfile.compare("kitti_04")==0)
+            {
+                alt = 0;
+                lat = 49.033603440345;
+                lon = 8.3950031909457;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-//            double lat = 49.04951961077;
-//            double lon = 8.3965961639946;
-//            double alt = 0;
-//            double cov1 = 4;
-//            double cov2 = 4;
+            if (bagfile.compare("kitti_05")==0)
+            {
+                lat = 49.04951961077;
+                lon = 8.3965961639946;
+                alt = 0;
+                cov1 = 4;
+                cov2 = 4;
+            }
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-            double alt = 0;
-            double lat = 49.05349304789598;
-            double lon = 8.39721998765449;
-            double cov1 = 50;
-            double cov2 = 50;
+            if (bagfile.compare("kitti_06")==0)
+            {
+                alt = 0;
+                lat = 49.05349304789598;
+                lon = 8.39721998765449;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
-//            double alt = 0;
-//            double lat = 48.985319;//48.98523696217;
-//            double lon = 8.393801;//8.3936414564418;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            if (bagfile.compare("kitti_07")==0)
+            {
+                alt = 0;
+                lat = 48.985319;//48.98523696217;
+                lon = 8.393801;//8.3936414564418;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 08 [bag inizia dopo]
-//            double alt = 0;
-//            double lat = 48.984311;
-//            double lon = 8.397817;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_08")==0)
+            {
+                alt = 0;
+                lat = 48.984311;
+                lon = 8.397817;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
             // KITTI 09 [OK, video serie curve tondeggianti]
-//            double alt = 0;
-//            double lat = 48.972104544468;
-//            double lon = 8.4761469953335;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_09")==0)
+            {
+                alt = 0;
+                lat = 48.972104544468;
+                lon = 8.4761469953335;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
             // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
-//            double alt = 0;
-//            double lat = 48.972406;//48.972455;//48.97253396005;
-//            double lon = 8.478662;//8.478660;//8.4785980847297;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            if (bagfile.compare("kitti_10")==0)
+            {
+                alt = 0;
+                lat = 48.972406;//48.972455;//48.97253396005;
+                lon = 8.478662;//8.478660;//8.4785980847297;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
@@ -905,6 +944,8 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
+
+    cout << bagfile << endl;
     // Beep #ENABLE: sudo modprobe pcspkr  #DISABLE sudo modprobe -r pcspkr
     printf("\a");
 

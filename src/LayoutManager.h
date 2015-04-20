@@ -176,6 +176,7 @@ private:
     visualization_msgs::MarkerArray marker_z_particle;
     visualization_msgs::MarkerArray marker_array_GT_RTK;
 
+    string bagfile;
 
 
     /**
@@ -265,7 +266,7 @@ public:
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-    LayoutManager(ros::NodeHandle& n, std::string& topic);
+    LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile);
 
     ~LayoutManager(){
         current_layout.clear();
