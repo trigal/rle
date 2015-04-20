@@ -88,7 +88,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
 
     // init publisher
     LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/road_layout_estimation/layout_manager/particle_pose_array",1);
-    LayoutManager::gps_pub = n.advertise<geometry_msgs::PoseStamped>("/road_layout_estimation/layout_manager/gps_fix",1);
+    LayoutManager::gps_pub = n.advertise<sensor_msgs::NavSatFix>("/road_layout_estimation/layout_manager/gps_fix",1);
     LayoutManager::street_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/quaternion_pose",1);
     LayoutManager::particle_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/particle_pose",1);
     LayoutManager::diff_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/diff_pose",1);
@@ -270,15 +270,20 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
-//            // wait for GPS message (coming from Android device)
-//            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/fix");
+            // wait for GPS message (coming from Android device)
+            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
 
-//            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
-//            double alt = gps_msg->altitude;
-//            double lat = gps_msg->latitude;
+            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
+//            double alt = 0.0;
 //            double lon = gps_msg->longitude;
-//            double cov1 = gps_msg->position_covariance[0];
-//            double cov2 = gps_msg->position_covariance[4];
+//            double lat = gps_msg->latitude;
+////            double cov1 = gps_msg->position_covariance[0];
+////            double cov2 = gps_msg->position_covariance[4];
+
+//            double cov1 = 15;
+//            double cov2 = 15;
+//            ROS_INFO_STREAM("Tutto ok");
+
 
             // ------ simulated GPS msg ----------- //
             // via Chiese
@@ -303,11 +308,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
 //            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-//            double alt = 0;
-//            double lat = 48.98254523586602;
-//            double lon = 8.39036610004500;
-//            double cov1 = 100;
-//            double cov2 = 100;
+            double alt = 0;
+            double lat = 48.98254523586602;
+            double lon = 8.39036610004500;
+            double cov1 = 15;
+            double cov2 = 15;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
 //            double alt = 0;
@@ -423,6 +428,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             ira_open_street_map::latlon_2_xy latlon_2_xy_srv;
             latlon_2_xy_srv.request.latitude = lat;
             latlon_2_xy_srv.request.longitude = lon;
+
+            ROS_INFO_STREAM(lat << "\t" << lon);
+
             geometry_msgs::Point point;
 //            geometry_msgs::PoseStamped fix; // used for GPS publisher
             if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
@@ -432,7 +440,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             }
             else
             {
-              ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+              ROS_ERROR("  Error with 'latlon_2_xy_srv' service");
               ros::shutdown(); //augusto debug
               return;
             }
@@ -449,8 +457,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             cout << "------------------------------------------------------------" << endl;
             cout << "GPS FIX COORDINATES:" << endl;
-            cout << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-            cout << "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
+            cout << std::setprecision(16) << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
+            cout << std::setprecision(16) <<  "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
             cout << endl;
             cout << "MULTIVARIATE PARAMS: " << endl;
             cout << "   MEAN: " << endl;
@@ -1339,7 +1347,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     ifstream RTK;
     double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
-    RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    RTK.open(((string)("/media/cattaneo/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
     RTK >> from_latitude >> from_longitude >> from_altitude;
     RTK.close();
 
@@ -1347,8 +1355,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     gps_fix.header.frame_id="/map";
     gps_fix.header.stamp = msg.header.stamp;
     gps_fix.latitude=from_latitude;
-    gps_fix.latitude=from_longitude;
-    gps_fix.latitude=from_altitude;
+    gps_fix.longitude=from_longitude;
+    gps_fix.altitude=from_altitude;
     gps_pub.publish(gps_fix);
 
     // Get XY values from GPS coords
