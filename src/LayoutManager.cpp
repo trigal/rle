@@ -81,6 +81,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
 
     // init motion model
 //    mtn_model = new MotionModel(); TODO: perché qui è stato rimosso? ora dove è?
+    //Augusto: è nella reconfigure_callback , appena rinominato come default_motion_model...non capisco perché non è un puntatore ad un oggetto come per il measurement!
+
     measurement_model = new MeasurementModel();
 
     // init header timestamp
@@ -121,6 +123,89 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
  * @param config
  * @param level
  */
+void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point)
+{
+    uint32_t shape = visualization_msgs::Marker::SPHERE;
+
+    visualization_msgs::Marker marker;
+    // Set the frame ID and timestamp.
+    marker.header.frame_id = "map";
+
+    // Set the namespace and id for this marker.  This serves to create a unique ID
+    // Any marker sent with the same namespace and id will overwrite the old one
+    marker.ns = "gauss_sigma";
+    marker.id = 0;
+    marker.type = shape;
+    // Set the marker action.  Options are ADD and DELETE
+    marker.action = visualization_msgs::Marker::ADD;
+
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    marker.pose.position.x = point.x;
+    marker.pose.position.y = point.y;
+    marker.pose.position.z = 0;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    marker.scale.x = sqrt(cov1)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
+    marker.scale.y = sqrt(cov2)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
+    marker.scale.z = .1;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    marker.color.r = 0.0f;
+    marker.color.g = 1.0f;
+    marker.color.b = 0.0f;
+    marker.color.a = 0.3f;
+
+    marker.lifetime = ros::Duration();
+    marker.header.stamp = ros::Time::now();
+
+
+    visualization_msgs::Marker marker2;
+    // Set the frame ID and timestamp.
+    marker2.header.frame_id = "map";
+
+    // Set the namespace and id for this marker.  This serves to create a unique ID
+    // Any marker sent with the same namespace and id will overwrite the old one
+    marker2.ns = "gauss_sigma";
+    marker2.id = 1;
+    marker2.type = shape;
+    // Set the marker action.  Options are ADD and DELETE
+    marker2.action = visualization_msgs::Marker::ADD;
+
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    marker2.pose.position.x = point.x;
+    marker2.pose.position.y = point.y;
+    marker2.pose.position.z = 0;
+    marker2.pose.orientation.x = 0.0;
+    marker2.pose.orientation.y = 0.0;
+    marker2.pose.orientation.z = 0.0;
+    marker2.pose.orientation.w = 1.0;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    marker2.scale.x = .1;
+    marker2.scale.y = .5;
+    marker2.scale.z = 80;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    marker2.color.r = 0.0f;
+    marker2.color.g = 0.0f;
+    marker2.color.b = 1.0f;
+    marker2.color.a = 1.0f;
+
+    marker2.lifetime = ros::Duration();
+    marker2.header.stamp = ros::Time::now();
+
+    // Publish the marker
+    marker_pub.publish(marker);
+    marker_pub2.publish(marker2);
+
+    marker1 = marker;
+    marker2 = marker2;
+}
+
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
     cout << "   Reconfigure callback" << endl;
@@ -153,13 +238,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
     // WARNING in teoria questi due non sono più necessari. CHECK!
-    mtn_model.setErrorCovariance(
+    // motion_model lo abbiamo definito come oggetto della particle.
+    // Il Layout manager ha un oggetto default_motion_model che viene copiato in ogni particella.
+    default_mtn_model.setErrorCovariance(
                 config.mtn_model_position_uncertainty,
                 config.mtn_model_orientation_uncertainty,
                 config.mtn_model_linear_uncertainty,
                 config.mtn_model_angular_uncertainty
                 );
-    mtn_model.setPropagationError(
+    default_mtn_model.setPropagationError(
                 config.propagate_translational_vel_error_x,
                 config.propagate_translational_vel_error_y,
                 config.propagate_translational_vel_error_z,
@@ -182,17 +269,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            int particles_to_add = config.particles_number - num_particles;
            for(int i=0; i<particles_to_add; i++)
            {
-               Particle part(counter, mtn_model);
+               Particle new_particle(counter, default_mtn_model);
 
                State6DOF tmp;
                tmp.addNoise(0.5, 0.5, 0.5, 0.5);
 
-               part.setParticleState(tmp);
+               new_particle.setParticleState(tmp);
 
                // update particle score using OpenStreetMap
                if(LayoutManager::openstreetmap_enabled){
                    // Get particle state
-                   Vector3d p_state = part.getParticleState().getPose();
+                   Vector3d p_state = new_particle.getParticleState().getPose();
                    geometry_msgs::PoseStamped pose_local_map_frame;
                    pose_local_map_frame.header.frame_id = "local_map";
                    pose_local_map_frame.header.stamp = ros::Time::now();
@@ -211,7 +298,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                    {
                        ROS_ERROR("%s",ex.what());
                        ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
-                       ros::shutdown();
+                       ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                        return;
                    }
 
@@ -232,17 +319,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                        double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
                        double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
                        double distance = sqrt(dx*dx + dy*dy + dz*dz);
-                       part.setParticleScore(pdf(normal_dist, distance));
+                       new_particle.setParticleScore(pdf(normal_dist, distance));
                    }
                    else
                    {
                        // Either service is down or particle is too far from a street
-                       part.setParticleScore(0);
+                       new_particle.setParticleScore(0);
                    }
                }
 
                // Push particle
-               current_layout.push_back(part);
+               current_layout.push_back(new_particle);
 
                // Update counter
                counter = counter+1;
@@ -251,6 +338,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         else if(config.particles_number < num_particles)
         {
             // let's erase particles starting from particle-set tail
+            // WARNING: should we remove RANDOM particles instead of 'the last N particles'?
            int particles_to_remove = num_particles - config.particles_number;
            for(int i=0; i<particles_to_remove; i++){
                // delete last element
@@ -271,7 +359,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
             // wait for GPS message (coming from Android device)
-            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
+//            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
 
             // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
 //            double alt = 0.0;
@@ -308,18 +396,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 15;
 
 //            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-            double alt = 0;
-            double lat = 48.98254523586602;
-            double lon = 8.39036610004500;
-            double cov1 = 15;
-            double cov2 = 15;
+//            double alt = 0;
+//            double lat = 48.98254523586602;
+//            double lon = 8.39036610004500;
+//            double cov1 = 15;
+//            double cov2 = 15;
 
 //            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-//            double alt = 0;
-//            double lat = 49.006719195871;//49.006558;// 49.006616;//
-//            double lon = 8.4893558806503;//8.489195;//8.489291;//
-//            double cov1 = 50;
-//            double cov2 = 50;
+            double alt = 0;
+            double lat = 49.006719195871;//49.006558;// 49.006616;//
+            double lon = 8.4893558806503;//8.489195;//8.489291;//
+            double cov1 = 50;
+            double cov2 = 50;
 
             // KITTI 02 [NI, si perde dopo un paio di curve]
 //            double alt = 0;
@@ -343,11 +431,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov2 = 4;
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-            double alt = 0;
-            double lat = 49.05349304789598;
-            double lon = 8.39721998765449;
-            double cov1 = 50;
-            double cov2 = 50;
+//            double alt = 0;
+//            double lat = 49.05349304789598;
+//            double lon = 8.39721998765449;
+//            double cov1 = 50;
+//            double cov2 = 50;
 
             // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
 //            double alt = 0;
@@ -441,12 +529,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             else
             {
               ROS_ERROR("  Error with 'latlon_2_xy_srv' service");
-              ros::shutdown(); //augusto debug
+              ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
               return;
             }
 
             // Set mean
-            Eigen::Vector2d mean;
+            Eigen::Vector2d mean; //chosen mean for sampling
             mean.setZero();
             mean << point.x, point.y;
 
@@ -455,102 +543,21 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             covar(0,0) = cov1;
             covar(1,1) = cov2;
 
-            cout << "------------------------------------------------------------" << endl;
-            cout << "GPS FIX COORDINATES:" << endl;
-            cout << std::setprecision(16) << "   lat: " << lat << " lon: " << lon << " alt: " << alt << endl;
-            cout << std::setprecision(16) <<  "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) << endl;
-            cout << endl;
-            cout << "MULTIVARIATE PARAMS: " << endl;
-            cout << "   MEAN: " << endl;
-            cout << "       " << boost::lexical_cast<std::string>(mean(0)) << endl;
-            cout << "       " << boost::lexical_cast<std::string>(mean(1)) << endl;
-            cout << "   COV: " << endl;
-            cout << covar << endl;
-            cout << "------------------------------------------------------------" << endl;
+            ROS_INFO_STREAM ("------------------------------------------------------------" );
+            ROS_INFO_STREAM ("GPS FIX COORDINATES:" );
+            ROS_INFO_STREAM (std::setprecision(16) << "   lat: " << lat << " lon: " << lon << " alt: " << alt );
+            ROS_INFO_STREAM (std::setprecision(16) <<  "   x: " << boost::lexical_cast<std::string>(point.x) << " y: " << boost::lexical_cast<std::string>(point.y) );
+            ROS_INFO_STREAM ("MULTIVARIATE PARAMS: " );
+            ROS_INFO_STREAM ("   MEAN: " );
+            ROS_INFO_STREAM ("       " << boost::lexical_cast<std::string>(mean(0)) );
+            ROS_INFO_STREAM ("       " << boost::lexical_cast<std::string>(mean(1)) );
+            ROS_INFO_STREAM ("   COV: " );
+            ROS_INFO_STREAM (covar );
+            ROS_INFO_STREAM ("------------------------------------------------------------" );
 
 
-            /// ---------------------------------------------------------------------------
-            // Set our shape type to be a sphere
-            uint32_t shape = visualization_msgs::Marker::SPHERE;
-
-            visualization_msgs::Marker marker;
-            // Set the frame ID and timestamp.
-            marker.header.frame_id = "map";
-
-            // Set the namespace and id for this marker.  This serves to create a unique ID
-            // Any marker sent with the same namespace and id will overwrite the old one
-            marker.ns = "gauss_sigma";
-            marker.id = 0;
-            marker.type = shape;
-            // Set the marker action.  Options are ADD and DELETE
-            marker.action = visualization_msgs::Marker::ADD;
-
-            // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
-            marker.pose.position.x = point.x;
-            marker.pose.position.y = point.y;
-            marker.pose.position.z = 0;
-            marker.pose.orientation.x = 0.0;
-            marker.pose.orientation.y = 0.0;
-            marker.pose.orientation.z = 0.0;
-            marker.pose.orientation.w = 1.0;
-
-            // Set the scale of the marker -- 1x1x1 here means 1m on a side
-            marker.scale.x = sqrt(cov1)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
-            marker.scale.y = sqrt(cov2)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
-            marker.scale.z = .1;
-
-            // Set the color -- be sure to set alpha to something non-zero!
-            marker.color.r = 0.0f;
-            marker.color.g = 1.0f;
-            marker.color.b = 0.0f;
-            marker.color.a = 0.3f;
-
-            marker.lifetime = ros::Duration();
-            marker.header.stamp = ros::Time::now();
-
-
-            visualization_msgs::Marker marker2;
-            // Set the frame ID and timestamp.
-            marker2.header.frame_id = "map";
-
-            // Set the namespace and id for this marker.  This serves to create a unique ID
-            // Any marker sent with the same namespace and id will overwrite the old one
-            marker2.ns = "gauss_sigma";
-            marker2.id = 1;
-            marker2.type = shape;
-            // Set the marker action.  Options are ADD and DELETE
-            marker2.action = visualization_msgs::Marker::ADD;
-
-            // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
-            marker2.pose.position.x = point.x;
-            marker2.pose.position.y = point.y;
-            marker2.pose.position.z = 0;
-            marker2.pose.orientation.x = 0.0;
-            marker2.pose.orientation.y = 0.0;
-            marker2.pose.orientation.z = 0.0;
-            marker2.pose.orientation.w = 1.0;
-
-            // Set the scale of the marker -- 1x1x1 here means 1m on a side
-            marker2.scale.x = .1;
-            marker2.scale.y = .5;
-            marker2.scale.z = 80;
-
-            // Set the color -- be sure to set alpha to something non-zero!
-            marker2.color.r = 0.0f;
-            marker2.color.g = 0.0f;
-            marker2.color.b = 1.0f;
-            marker2.color.a = 1.0f;
-
-            marker2.lifetime = ros::Duration();
-            marker2.header.stamp = ros::Time::now();
-
-            // Publish the marker
-            marker_pub.publish(marker);
-            marker_pub2.publish(marker2);
-
-            marker1 = marker;
-            marker2 = marker2;
-            // -------------------------------------------------------------------------------
+            // Publish initial markers (uncertainties areas as a green flat sphere.
+            publish_initial_markers(cov1, cov2, point);
 
             particle_poses_statistics = MatrixXd(config.particles_number,2);
 
@@ -567,8 +574,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
             {
                 if(while_ctr == 999){
-                    cout << "   Random particle set init: while ctr reached max limit" << endl;
-                    ros::shutdown(); // augusto debug
+                    ROS_ERROR_STREAM("Random particle set init: while ctr reached max limit" );
+                    ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     /**
                      * TODO: max_radius_size * 2 and find again
                      */
@@ -628,15 +635,18 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     p_pose.setRotation(rotation);
 
                     // Init particle's sigma
-                    MatrixXd p_sigma = mtn_model.getErrorCovariance();
+                    MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
 
-                    cout << "p_sigma" << endl << endl << p_sigma << endl;
+                    ROS_INFO_STREAM ("p_sigma" << endl << endl << p_sigma );
+
                     // Create particle and set its score
-                    Particle part(particle_id, p_pose, p_sigma, mtn_model);
-                    part.setParticleScore(pdf(street_normal_dist,0) + pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
+                    Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
+                    new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
+                    // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
+                    // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
 
                     // Push particle into particle-set
-                    current_layout.push_back(part);
+                    current_layout.push_back(new_particle);
 
                     // Update particles id counter
                     particle_id += 1;
@@ -665,8 +675,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         p_pose.setRotation(rotation_opposite);
 
                         // Create particle and set its score
-                        Particle opposite_part(particle_id, p_pose, p_sigma, mtn_model);
+                        Particle opposite_part(particle_id, p_pose, p_sigma, default_mtn_model);
                         opposite_part.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
+                        // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
+                        // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -678,7 +690,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 else
                 {
                     ROS_ERROR("     Failed to call 'snap_particle_xy' service");
-                    ros::shutdown(); //augusto debug
+                    ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     return;
                 }
 
@@ -690,8 +702,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         {
             // gps initialization disabled, just generate particles with all values set to zero
             for(int i = 0; i < config.particles_number; i++){
-                Particle zero_part(i, mtn_model);
-                MatrixXd tmp_cov = mtn_model.getErrorCovariance();
+                Particle zero_part(i, default_mtn_model);
+                MatrixXd tmp_cov = default_mtn_model.getErrorCovariance();
                 zero_part.setParticleSigma(tmp_cov);
                 current_layout.push_back(zero_part);
             }
@@ -706,8 +718,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
         // print particle poses
-        cout << "Random initialized particle set: " << endl;
-        vector<Particle> particles = current_layout;
+        ROS_INFO_STREAM( "Random initialized particle set: " );
+        vector<Particle> particles = current_layout; //WARNING: this lines copy all the set?!
         for(int i = 0; i<particles.size(); i++)
         {
             // build Pose from Particle
@@ -1002,7 +1014,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             {
                 ROS_ERROR("%s",ex.what());
                 ROS_ERROR("     Transform snapped particle pose from local_map to map");
-                ros::shutdown();
+                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                 return;
             }
 
@@ -1077,7 +1089,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 {
                     ROS_ERROR("%s",ex.what());
                     ROS_ERROR("     Transform snapped particle pose from map to local_map");
-                    ros::shutdown();
+                    ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     return;
                 }
 
@@ -1190,7 +1202,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             {
                 // Either service is down or particle is too far from a street
                 (*particle_itr).setParticleScore(0);
-                ros::shutdown();
+                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
             }// end snap particle client
         } // end openstreetmap enabled
     } // end particle cycle
@@ -1380,7 +1392,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         {
             ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
             ROS_ERROR("     Transform RTK pose from map to local_map");
-            ros::shutdown();
+            ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
         }
 
         visualization_msgs::Marker RTK_MARKER;
@@ -1416,7 +1428,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     else
     {
       ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-      ros::shutdown(); //augusto debug
+      ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
       return;
     }
 
@@ -1443,7 +1455,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         else
         {
           ROS_ERROR("   Failed to call 'xy_2_latlon_2_srv' service");
-          ros::shutdown(); //augusto debug
+          ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
           return;
         }
     }
@@ -1451,7 +1463,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     {
         ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
         ROS_ERROR("     Transform AVERAGE pose from local_map to map");
-        ros::shutdown();
+        ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
     }
 
     // -------------------------------------------------------------------------------------------------------------------------------------
