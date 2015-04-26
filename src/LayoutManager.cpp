@@ -416,6 +416,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 cov2 = 50;
             }
 
+
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
@@ -468,7 +469,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             latlon_2_xy_srv.request.latitude = lat;
             latlon_2_xy_srv.request.longitude = lon;
 
-            ROS_INFO_STREAM(lat << "\t" << lon);
+            ROS_INFO_STREAM("lat: " << lat << "\t" << "lon: " << lon);
 
             geometry_msgs::Point point;
 //            geometry_msgs::PoseStamped fix; // used for GPS publisher
@@ -669,7 +670,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's sigma
                     MatrixXd p_sigma = mtn_model.getErrorCovariance();
 
-                    cout << "p_sigma" << endl << endl << p_sigma << endl;
+//                    cout << "p_sigma" << endl << endl << p_sigma << endl;
                     // Create particle and set its score
                     Particle part(particle_id, p_pose, p_sigma, mtn_model);
                     part.setParticleScore(pdf(street_normal_dist,0) + pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
@@ -1385,11 +1386,17 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     double roll=0.0f, pitch=0.0f, yaw=0.0f;
 
     publisher_average_pose.publish(odometry); // Odometry message
-
     ifstream RTK;
     double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
-    RTK.open(((string)("/media/cattaneo/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % msg.header.seq ) <<  ".txt" << endl;
+    RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    if (!RTK.is_open())
+    {
+        cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
+        ros::shutdown();
+    }
     RTK >> from_latitude >> from_longitude >> from_altitude;
+    cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
     RTK.close();
 
     sensor_msgs::NavSatFix gps_fix;
@@ -1407,7 +1414,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
     if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
     {
-
+        cout << std::setprecision(16) << response_latlon2xy;
         tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
         RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
         RTK_map_frame.setRotation(tf::createIdentityQuaternion());
@@ -1452,7 +1459,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                             0 << " "<< 0 << " "<< 0 << " " <<
                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                            tot_score / current_layout.size() << "\n";
+                            tot_score / current_layout.size() << " " <<
+                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+
+
+//        cout  << msg.header.seq << " " << setprecision(16) <<
+//                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+//                            0 << " "<< 0 << " "<< 0 << " " <<
+//                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+//                            tot_score / current_layout.size() << " " <<
+//                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
     }
     else
     {
@@ -1504,6 +1520,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                                average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
                                tot_score / current_layout.size() << " " <<
                                to_lat << " " << to_lon << "\n";
+
+//    cout << msg.header.seq << " " << setprecision(16) <<
+//                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+//                               roll << " "<< pitch << " "<< yaw << " " <<
+//                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+//                               tot_score / current_layout.size() << " " <<
+//                               to_lat << " " << to_lon << "\n";
 
     tf::StampedTransform VO;
     try{

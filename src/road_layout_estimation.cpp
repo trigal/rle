@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
     std::cout << "Detected " << argc << " arguments (argc), printing values:" << endl;
     for (int i=0; i< argc; i++)
-        std::cout << argv[i] << endl;
+        std::cout << "Argument " << i << ":" << argv[i] << endl;
 
     string visual_odometry_topic = "/stereo_odometer/odometry";
     string bagfile = "kitti_00";
