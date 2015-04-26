@@ -1346,18 +1346,90 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     average_quaternion.setZ(0);
     average_quaternion.setW(0);
 
+    // CALCULATING TOTAL SCORE FOR NORMALIZATION
     double tot_score = 0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-//        ROS_INFO_STREAM("PARTICLE "<< std::setprecision(5) << (*particle_itr).getId() << "\t" << (*particle_itr).getParticleScore() << "\t" << tot_score);
         tot_score += (*particle_itr).getParticleScore();
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // FIRST STEP, every particle in_cluster value = -1
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        (*particle_itr).in_cluster = -1;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    // SECOND STEP, clustering. double for.
+    int cluster_INDEX=0;
+    double euclidean_distance=0.0f; double angle_distance=0.0f;
+    double euclidean_threshold = 2.00f; //meters
+    double angle_threshold     = 0.15f; //radians
+    vector<Particle>::iterator inner_particle_itr;
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+
+        if ((*particle_itr).in_cluster == -1)
+            (*particle_itr).in_cluster == cluster_INDEX++;
+
+        for( inner_particle_itr = current_layout.begin(); inner_particle_itr != current_layout.end(); inner_particle_itr++ ){
+            if (particle_itr == inner_particle_itr)
+                continue;
+            if ((*inner_particle_itr).in_cluster == -1)
+                continue;
+
+            euclidean_distance = sqrt(   (*particle_itr).getParticleState()._pose(0)-(*inner_particle_itr).getParticleState()._pose(0)+
+                                         (*particle_itr).getParticleState()._pose(1)-(*inner_particle_itr).getParticleState()._pose(1)+
+                                         (*particle_itr).getParticleState()._pose(2)-(*inner_particle_itr).getParticleState()._pose(2)
+                                         );
+
+            Eigen::Quaterniond q1 = Eigen::Quaterniond((*particle_itr).getParticleState().getRotation());
+            Eigen::Quaterniond q2 = Eigen::Quaterniond((*inner_particle_itr).getParticleState().getRotation());
+            tf::Quaternion t1,t2;
+            t1.setX(q1.x());t2.setX(q2.x());
+            t1.setY(q1.y());t2.setY(q2.y());
+            t1.setZ(q1.z());t2.setZ(q2.z());
+            t1.setW(q1.w());t2.setW(q2.w());
+
+            angle_distance = t1.angleShortestPath(t2);
+
+            if (euclidean_distance < euclidean_threshold)
+                if (angle_distance < angle_threshold)
+                    (*inner_particle_itr).in_cluster  = (*particle_itr).in_cluster;
+
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //STEP3 - searching best cluster
+    vector<double> clusters;
+    clusters.resize(cluster_INDEX);
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        clusters[(*particle_itr).in_cluster]+=(*particle_itr).getParticleScore() / tot_score;
+    }
+    int best_cluster=-1;
+    double best_cluster_score=-1.0f;
+    for(int looking_for_best_cluster = 0; looking_for_best_cluster < cluster_INDEX; looking_for_best_cluster++ )
+    {
+        if (clusters[looking_for_best_cluster]>best_cluster_score)
+        {
+            best_cluster_score=clusters[looking_for_best_cluster];
+            best_cluster=looking_for_best_cluster;
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    // CREATING STATISTICS FOR RLE OUTPUT
     double sum=0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+
+        // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
+        if ((*particle_itr).in_cluster != best_cluster)
+            continue;
+
         state = (*particle_itr).getParticleState();
-
-
-//        RTK_GPS_out_file << state.getPose()(0) << ";" << state.getPose()(1) << ";" << state.getPose()(2) << ";" << (*particle_itr).getParticleScore() << ";" << (*particle_itr).getParticleScore()/tot_score<< endl;
-//        cout << state.getPose()(2) << endl;
         average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
         sum += (*particle_itr).getParticleScore() / tot_score;
         Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
@@ -1366,14 +1438,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         t.setY(q.y());
         t.setZ(q.z());
         t.setW(q.w());
-//        ROS_INFO_STREAM("TF QUAT\t" << t.getX() << " "<< t.getY() << " "<< t.getZ() << " "<< t.getW() << " " << q.vec().transpose());
-
         average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
     }
-//    cout << sum << "------------------------   END\n";
     average_quaternion.normalize();
-//    RTK_GPS_out_file << average_pose(0) <<";"<< average_pose(1) <<";"<< average_pose(2) << ";" << tot_score << endl << endl;
-//    average_pose/=current_layout.size();
+    ///////////////////////////////////////////////////////////////////////////
+
+
 
     nav_msgs::Odometry odometry;
     odometry.header.frame_id="/local_map";
@@ -1407,6 +1477,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     gps_fix.altitude=from_altitude;
     gps_pub.publish(gps_fix);
 
+
+    /*
+     *      SAVING GPS-RTK PART
+     */
     // Get XY values from GPS coords
     ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
     query_latlon2xy.latitude = from_latitude;
@@ -1463,21 +1537,25 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
 
 
-//        cout  << msg.header.seq << " " << setprecision(16) <<
-//                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-//                            0 << " "<< 0 << " "<< 0 << " " <<
-//                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-//                            tot_score / current_layout.size() << " " <<
-//                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+        //        cout  << msg.header.seq << " " << setprecision(16) <<
+        //                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+        //                            0 << " "<< 0 << " "<< 0 << " " <<
+        //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+        //                            tot_score / current_layout.size() << " " <<
+        //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
     }
     else
     {
-      ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-      ros::shutdown(); //augusto debug
-      return;
+        ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+        ros::shutdown(); //augusto debug
+        return;
     }
 
 
+
+    /*
+     *      SAVING RLE PART
+     */
     // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
     tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
     average_pose_local_map_frame.frame_id_="local_map";
@@ -1503,6 +1581,23 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
           ros::shutdown(); //augusto debug
           return;
         }
+
+        // -------------------------------------------------------------------------------------------------------------------------------------
+        // SAVE RESULTS TO OUTPUT FILE:
+        tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
+        RLE_out_file << msg.header.seq << " " << setprecision(16) <<
+                        average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                        roll << " "<< pitch << " "<< yaw << " " <<
+                        average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                        tot_score / current_layout.size() << " " <<
+                        to_lat << " " << to_lon << "\n";
+
+        //    cout << msg.header.seq << " " << setprecision(16) <<
+        //                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+        //                               roll << " "<< pitch << " "<< yaw << " " <<
+        //                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+        //                               tot_score / current_layout.size() << " " <<
+        //                               to_lat << " " << to_lon << "\n";
     }
     catch (tf::TransformException &ex)
     {
@@ -1511,22 +1606,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         ros::shutdown();
     }
 
-    // -------------------------------------------------------------------------------------------------------------------------------------
-    // SAVE RESULTS TO OUTPUT FILE:
-    tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-    RLE_out_file << msg.header.seq << " " << setprecision(16) <<
-                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                               roll << " "<< pitch << " "<< yaw << " " <<
-                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                               tot_score / current_layout.size() << " " <<
-                               to_lat << " " << to_lon << "\n";
 
-//    cout << msg.header.seq << " " << setprecision(16) <<
-//                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-//                               roll << " "<< pitch << " "<< yaw << " " <<
-//                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-//                               tot_score / current_layout.size() << " " <<
-//                               to_lat << " " << to_lon << "\n";
+    /*
+     *      SAVING LIBVISO PART
+     */
 
     tf::StampedTransform VO;
     try{

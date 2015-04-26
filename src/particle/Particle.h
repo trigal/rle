@@ -40,6 +40,8 @@ private:
 
 public:
 
+    int in_cluster;
+
     /**
      * This function will use "motion-model" class to propagate all particle's components
      */
