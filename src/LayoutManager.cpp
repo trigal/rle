@@ -186,6 +186,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            {
                Particle part(counter, mtn_model);
 
+               part.in_cluster = -1;
+
                State6DOF tmp;
                tmp.addNoise(0.5, 0.5, 0.5, 0.5);
 
@@ -1363,13 +1365,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // SECOND STEP, clustering. double for.
     int cluster_INDEX=0;
     double euclidean_distance=0.0f; double angle_distance=0.0f;
-    double euclidean_threshold = 2.00f; //meters
-    double angle_threshold     = 0.15f; //radians
+    double euclidean_threshold = 2.50f; //meters
+    double angle_threshold     = 0.20f; //radians
     vector<Particle>::iterator inner_particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
 
         if ((*particle_itr).in_cluster == -1)
-            (*particle_itr).in_cluster == cluster_INDEX++;
+            (*particle_itr).in_cluster = cluster_INDEX++;
 
         for( inner_particle_itr = current_layout.begin(); inner_particle_itr != current_layout.end(); inner_particle_itr++ ){
             if (particle_itr == inner_particle_itr)
@@ -1407,6 +1409,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
         clusters[(*particle_itr).in_cluster]+=(*particle_itr).getParticleScore() / tot_score;
     }
+
     int best_cluster=-1;
     double best_cluster_score=-1.0f;
     for(int looking_for_best_cluster = 0; looking_for_best_cluster < cluster_INDEX; looking_for_best_cluster++ )
@@ -1417,20 +1420,30 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             best_cluster=looking_for_best_cluster;
         }
     }
+    double cluster_score=0.0f;
+    int best_cluster_size=0;
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        if ((*particle_itr).in_cluster == best_cluster)
+        {
+            cluster_score += (*particle_itr).getParticleScore();
+            best_cluster_size++;
+        }
+    }
+    cout << "Best cluster size: " << best_cluster_size << endl;
     ///////////////////////////////////////////////////////////////////////////
-
 
     ///////////////////////////////////////////////////////////////////////////
     // CREATING STATISTICS FOR RLE OUTPUT
     double sum=0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-
+	//cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
+    
         // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
         if ((*particle_itr).in_cluster != best_cluster)
             continue;
 
         state = (*particle_itr).getParticleState();
-        average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
+        average_pose += state.getPose() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
         sum += (*particle_itr).getParticleScore() / tot_score;
         Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
         tf::Quaternion t;
