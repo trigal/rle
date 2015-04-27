@@ -41,6 +41,7 @@ private:
 public:
 
     int in_cluster;
+    double distance_to_closest_segment;
 
     /**
      * This function will use "motion-model" class to propagate all particle's components
