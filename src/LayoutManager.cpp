@@ -1365,7 +1365,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // SECOND STEP, clustering. double for.
     int cluster_INDEX=0;
     double euclidean_distance=0.0f; double angle_distance=0.0f;
-    double euclidean_threshold = 2.50f; //meters
+    double euclidean_threshold = 5.00f; //meters
     double angle_threshold     = 0.20f; //radians
     vector<Particle>::iterator inner_particle_itr;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){

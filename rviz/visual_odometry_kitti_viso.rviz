@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
         - /OSM Elements1/Namespaces1
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
@@ -34,7 +35,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 1
+      Cell Size: 2.5
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -48,7 +49,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 1000
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/Axes
@@ -163,7 +164,9 @@ Visualization Manager:
       Marker Topic: /ways
       Name: OSM Elements
       Namespaces:
-        {}
+        direction: true
+        node: true
+        way: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -179,7 +182,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/particle_set
       Name: Particle Set
       Namespaces:
-        {}
+        particle_set: true
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.1
@@ -197,7 +200,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
       Name: GT_RTK
       Namespaces:
-        {}
+        RTK_MARKER: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -224,22 +227,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 192.64
+      Distance: 99.5926
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 57.3053
-        Y: -49.8146
-        Z: -65.1263
+        X: 107.188
+        Y: -38.8573
+        Z: 27.1595
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.870398
+      Pitch: 1.0054
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.4054
+      Yaw: 2.1754
     Saved: ~
 Window Geometry:
   Displays:
