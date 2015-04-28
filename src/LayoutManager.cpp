@@ -1139,6 +1139,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 double distance = sqrt(dx*dx + dy*dy + dz*dz);
                 (*particle_itr).distance_to_closest_segment = distance;
 
+                if (distance > 30)
+                    ROS_ERROR_STREAM("MOOOOOLTO LONTANI: " << distance);
+
                 // add line to marker array distances
                 publishMarkerArrayDistances((*particle_itr).getId(),
                                             tf_pose_local_map_frame.getOrigin().getX(),
@@ -1473,9 +1476,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
 
         if (enabled_clustering)
-            average_distance+=(*particle_itr).distance_to_closest_segment / cluster_score;
+            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / cluster_score;
         else
-            average_distance+=(*particle_itr).distance_to_closest_segment / tot_score;
+            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / tot_score;
     }
     average_quaternion.normalize();
     ///////////////////////////////////////////////////////////////////////////
