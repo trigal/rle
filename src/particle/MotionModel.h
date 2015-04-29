@@ -63,6 +63,7 @@ public:
      */
 //    VectorXd propagatePose(VectorXd& particle_state);
     State6DOF propagatePose(State6DOF& p_state);
+    State6DOF propagatePoseWithControl(State6DOF& p_state, State6DOF &control);
 
     /**
      * @brief motionJacobi

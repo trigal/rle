@@ -1,20 +1,20 @@
 echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <kml xmlns=\"http://www.opengis.net/kml/2.2\">
  <Document>
-  <name>RTK GPS lines</name>
+  <name>RLE lines</name>
 
 	<Style id=\"sh_ylw-pushpin\">
 		<IconStyle>
 			<scale>1.2</scale>
 		</IconStyle>
 		<LineStyle>
-			<color>ff00ff00</color>
+			<color>ffff0000</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>
 	<Style id=\"sn_ylw-pushpin\">
 		<LineStyle>
-			<color>ff00ff00</color>
+			<color>ffff0000</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>

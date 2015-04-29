@@ -68,12 +68,70 @@ VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
 }
 
 
+State6DOF MotionModel::propagatePoseWithControl(State6DOF& p_state,State6DOF& control)
+{
+    // MOTION EQUATION:
+    // s_t+1 = s_t + v_t * Delta_t + R
+    // v_t+1 = v_t + R
+
+    // initialize values
+    State6DOF p_state_propagated;
+
+    Eigen::Vector3d tmp_error;
+    tmp_error(0) = Utils::box_muller(0,propagate_translational_vel_error_x);
+    tmp_error(1) = Utils::box_muller(0,propagate_translational_vel_error_y);
+    tmp_error(2) = Utils::box_muller(0,propagate_translational_vel_error_z);
+    // propagate _pose
+    if(control._translational_velocity[2] < 0)
+    {
+//        ROS_INFO_STREAM("LIBVISO failure: " << control._translational_velocity[2] << " == " << LayoutManager::delta_t);
+//        cout << p_state._pose.transpose() << endl;
+        p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * LayoutManager::delta_t) + tmp_error;
+//        cout << p_state_propagated._pose.transpose() << endl;
+
+
+        // propagate pose _rotation
+        Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
+        tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t + Utils::box_muller(0,propagate_rotational_vel_error);
+        p_state_propagated._rotation = tmp_angle_axis * p_state._rotation;
+
+        // Generate random error with box_muller function
+
+        // propagate velocity
+        p_state_propagated._translational_velocity = p_state._translational_velocity; // WARNING + verify error;
+
+        p_state_propagated._rotational_velocity = p_state._rotational_velocity;
+        p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle();// + Utils::box_muller(0,propagate_rotational_vel_error);
+    }
+    else
+    {
+        p_state_propagated._pose = p_state._pose + p_state._rotation * (control._translational_velocity * LayoutManager::delta_t) + tmp_error;
+        // propagate pose _rotation
+        Eigen::AngleAxisd tmp_angle_axis(control._rotational_velocity);
+        tmp_angle_axis.angle() = tmp_angle_axis.angle() * LayoutManager::delta_t + Utils::box_muller(0,propagate_rotational_vel_error);
+        p_state_propagated._rotation = tmp_angle_axis * p_state._rotation;
+
+        // Generate random error with box_muller function
+
+        // propagate velocity
+        p_state_propagated._translational_velocity = control._translational_velocity;// + tmp_error; // WARNING + verify error;
+
+        p_state_propagated._rotational_velocity = control._rotational_velocity;
+        p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle();// + Utils::box_muller(0,propagate_rotational_vel_error);
+    }
+
+
+
+    return p_state_propagated;
+}
+
 /**
  * @brief this function is used by EKF in order to propagate particle's pose
  * @param p_state
  * @return p_state_predicted
  */
-State6DOF MotionModel::propagatePose(State6DOF& p_state){
+State6DOF MotionModel::propagatePose(State6DOF& p_state)
+{
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * Delta_t + R
     // v_t+1 = v_t + R
