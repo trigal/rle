@@ -1,20 +1,20 @@
 echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <kml xmlns=\"http://www.opengis.net/kml/2.2\">
  <Document>
-  <name>RTK GPS lines</name>
+  <name>VISO lines</name>
 
 	<Style id=\"sh_ylw-pushpin\">
 		<IconStyle>
 			<scale>1.2</scale>
 		</IconStyle>
 		<LineStyle>
-			<color>ff0000ff</color>
+			<color>ffff0000</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>
 	<Style id=\"sn_ylw-pushpin\">
 		<LineStyle>
-			<color>ff0000ff</color>
+			<color>ffff0000</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>
@@ -30,7 +30,7 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	</StyleMap>
 
   <Placemark id=\"track1\">
-   <name>RTK GPS Path</name>
+   <name>VISO Path</name>
    <styleUrl>#msn_ylw-pushpin</styleUrl>
    <LineString>
     <coordinates>" > $1.kml

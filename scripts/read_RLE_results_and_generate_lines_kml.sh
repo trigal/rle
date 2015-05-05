@@ -8,13 +8,13 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 			<scale>1.2</scale>
 		</IconStyle>
 		<LineStyle>
-			<color>ffff0000</color>
+			<color>ff00ff00</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>
 	<Style id=\"sn_ylw-pushpin\">
 		<LineStyle>
-			<color>ffff0000</color>
+			<color>ff00ff00</color>
 			<width>4</width>
 		</LineStyle>
 	</Style>
@@ -30,7 +30,7 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 	</StyleMap>
 
   <Placemark id=\"track1\">
-   <name>RTK GPS Path</name>
+   <name>RLE Path</name>
    <styleUrl>#msn_ylw-pushpin</styleUrl>
    <LineString>
     <coordinates>" > $1.kml

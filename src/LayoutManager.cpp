@@ -1359,7 +1359,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         tot_score += (*particle_itr).getParticleScore();
     }
 
-    bool enabled_clustering = false;
+    bool enabled_clustering = false; 
     int best_cluster=-1;
     int best_cluster_size=0;
     double cluster_score=0.0f;
@@ -1653,6 +1653,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
      *      SAVING LIBVISO PART
      */
 
+    // TODO: calculate LAT LON
     tf::StampedTransform VO;
     try{
         tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
