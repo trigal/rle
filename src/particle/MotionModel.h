@@ -41,6 +41,11 @@ private:
     double propagate_translational_percentage_vel_error_z;
     double propagate_rotational_percentage_vel_error;
 
+    double propagate_translational_vel_error_x;
+    double propagate_translational_vel_error_y;
+    double propagate_translational_vel_error_z;
+    double propagate_rotational_vel_error;
+
     /**
      * In case there aren't enough datas from Odometry sensors, a decadency motion model
      * will be applied on particle propagation
@@ -62,7 +67,9 @@ public:
      * @return
      */
 //    VectorXd propagatePose(VectorXd& particle_state);
-    State6DOF propagatePose(State6DOF& p_state);
+    State6DOF propagatePoseWithAbsolute(State6DOF& p_state);                    //old behavior
+    State6DOF propagatePoseWithPercentage(State6DOF& p_state);                  //enhanced behavior, but we had troubles with this
+    State6DOF propagatePoseWithControl(State6DOF& p_state, State6DOF &control); //used in ITSC 2015 submission
 
     /**
      * @brief motionJacobi

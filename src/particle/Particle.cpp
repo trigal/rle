@@ -64,7 +64,9 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
 
     // ------- PREDICTION STEP -------
     // calcolo belief predetto:
-    stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
+//    stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
+    State6DOF tmp_odom = odometry->getMeasureState();
+    stato_t_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, tmp_odom);
 
 //    R_t(0,0) *= stato_t.getTranslationalVelocity()(0);
 //    R_t(1,1) *= stato_t.getTranslationalVelocity()(1);
@@ -92,7 +94,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
 //    }
 
     // Check if the measure is valid
-    if(!odometry->isMeasureValid())
+    if(true) // !odometry->isMeasureValid())
     {
         // TODO: smorzare il moto
         particle_state = stato_t_predetto;

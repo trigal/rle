@@ -4,7 +4,7 @@
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
             <arg name="bagfile" default="kitti_00" />
 
-            <arg name="bagfilewithpath" default="/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
+            <arg name="bagfilewithpath" default="/media/limongi/Volume/KITTI_RAW_DATASET/VO/$(arg bagfile)_VO.bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
             <arg name="publish_rate" default="1.0" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
@@ -12,7 +12,7 @@
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
 
             <arg name="play_from_VO" default="true" />      <!-- if you want to autoplay the bag file -->
-            <arg name="enable_VO" default="true" />        <!-- if the VO BAGS are used, put FALSE here -->
+            <arg name="enable_VO" default="false" />        <!-- if the VO BAGS are used, put FALSE here -->
 
             <include file="$(find ira_open_street_map)/launch/$(arg bagfile).launch" />
 
@@ -29,7 +29,7 @@
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
 			
         <!-- ROSBAG PLAY ===== do NOT use the clock option with VO bags! -->
-            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3 --clock" if="$(arg play_from_VO)" required="true"/>
+            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3" if="$(arg play_from_VO)" required="true"/>
 
         <!-- VISUAL ODOMETRY STUFF -->
             <!-- Run the ROS package stereo_image_proc -->
@@ -37,7 +37,7 @@
                     <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" if="$(arg enable_VO)"/>
             </group>
             <!-- Run the viso2_ros package -->
-            <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen" if="$(arg enable_VO)" required="true">
+            <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen" if="$(arg enable_VO)">
                     <rosparam param="base_link_frame_id">visual_odometry_camera_frame</rosparam>
                     <remap from="stereo" to="$(arg camera)"/>
                     <remap from="image" to="image_rect"/>
@@ -63,15 +63,15 @@
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
-                args="/stereo_odometer/odometry $(arg bagfile)"
+		args="/stereo_odometer/odometry $(arg bagfile)"
 	/>  
 
         <!-- VISUALIZATION STUFF -->
-            <!-- Launch RViz-->
+            <!-- Launch RViz -->
             <node pkg="rviz" type="rviz" name="rviz" respawn="true"
                     args="-d $(arg rviz)"
                     output="screen"
-            />
+            /> 
 
 	<!-- Launch RQT reconfigure 
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
