@@ -56,7 +56,9 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic){
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile){
+
+    this->bagfile = bagfile;
 
     // set this node_handle as the same of 'road_layout_manager'
     node_handle = n;
@@ -208,7 +210,7 @@ void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_m
 
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    cout << "   Reconfigure callback" << endl;
+    cout << "   Reconfigure callback! " << bagfile << endl;
 
     // update score guassian distribution values
     street_distribution_sigma = config.street_distribution_sigma;
@@ -229,10 +231,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     );
 
         mtn_model_ptr->setPropagationError(
-                    config.propagate_translational_percentage_vel_error_x,
-                    config.propagate_translational_percentage_vel_error_y,
-                    config.propagate_translational_percentage_vel_error_z,
-                    config.propagate_rotational_percentage_vel_error
+                    config.propagate_translational_vel_error_x,
+                    config.propagate_translational_vel_error_y,
+                    config.propagate_translational_vel_error_z,
+                    config.propagate_rotational_vel_error
                     );
     }
 
@@ -247,10 +249,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 config.mtn_model_angular_uncertainty
                 );
     default_mtn_model.setPropagationError(
-                config.propagate_translational_percentage_vel_error_x,
-                config.propagate_translational_percentage_vel_error_y,
-                config.propagate_translational_percentage_vel_error_z,
-                config.propagate_rotational_percentage_vel_error
+                config.propagate_translational_vel_error_x,
+                config.propagate_translational_vel_error_y,
+                config.propagate_translational_vel_error_z,
+                config.propagate_rotational_vel_error
                 );
 
     measurement_model->setMeasureCov(
@@ -270,6 +272,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            for(int i=0; i<particles_to_add; i++)
            {
                Particle new_particle(counter, default_mtn_model);
+
+               new_particle.in_cluster = -1;
+               new_particle.distance_to_closest_segment = 0.0f;
 
                State6DOF tmp;
                tmp.addNoise(0.5, 0.5, 0.5, 0.5);
@@ -395,75 +400,114 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            double cov1 = 15;
 //            double cov2 = 15;
 
-//            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-//            double alt = 0;
-//            double lat = 48.98254523586602;
-//            double lon = 8.39036610004500;
-//            double cov1 = 15;
-//            double cov2 = 15;
 
-//            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-//            double alt = 0;
-//            double lat = 49.006719195871;//49.006558;// 49.006616;//
-//            double lon = 8.4893558806503;//8.489195;//8.489291;//
-//            double cov1 = 50;
-//            double cov2 = 50;
+            // INITIALIZATION
+            double alt =0.0f;
+            double lat =0.0f;
+            double lon =0.0f;
+            double cov1 =0.0f;
+            double cov2 =0.0f;
+
+            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
+            if (bagfile.compare("kitti_00")==0)
+            {
+                alt = 0;
+                lat = 48.98254523586602;
+                lon = 8.39036610004500;
+                cov1 = 15;
+                cov2 = 15;
+            }
+
+            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
+            if (bagfile.compare("kitti_01")==0)
+            {
+                alt = 0;
+                lat = 49.006719195871;//49.006558;// 49.006616;//
+                lon = 8.4893558806503;//8.489195;//8.489291;//
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 02 [NI, si perde dopo un paio di curve]
-//            double alt = 0;
-//            double lat = 48.987607723096;
-//            double lon = 8.4697469732634;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_02")==0)
+            {
+                alt = 0;
+                lat = 48.987607723096;
+                lon = 8.4697469732634;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
-//            // KITTI 04 [OK, video road, rettilineo corto]
-//            double alt = 0;
-//            double lat = 49.033603440345;
-//            double lon = 8.3950031909457;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            // KITTI 04 [OK, video road, rettilineo corto]
+            if (bagfile.compare("kitti_04")==0)
+            {
+                alt = 0;
+                lat = 49.033603440345;
+                lon = 8.3950031909457;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-            double lat = 49.04951961077;
-            double lon = 8.3965961639946;
-            double alt = 0;
-            double cov1 = 4;
-            double cov2 = 4;
+            if (bagfile.compare("kitti_05")==0)
+            {
+                lat = 49.04951961077;
+                lon = 8.3965961639946;
+                alt = 0;
+                cov1 = 4;
+                cov2 = 4;
+            }
 
             // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-//            double alt = 0;
-//            double lat = 49.05349304789598;
-//            double lon = 8.39721998765449;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            if (bagfile.compare("kitti_06")==0)
+            {
+                alt = 0;
+                lat = 49.05349304789598;
+                lon = 8.39721998765449;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
-//            double alt = 0;
-//            double lat = 48.985319;//48.98523696217;
-//            double lon = 8.393801;//8.3936414564418;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            if (bagfile.compare("kitti_07")==0)
+            {
+                alt = 0;
+                lat = 48.985319;//48.98523696217;
+                lon = 8.393801;//8.3936414564418;
+                cov1 = 50;
+                cov2 = 50;
+            }
 
             // KITTI 08 [bag inizia dopo]
-//            double alt = 0;
-//            double lat = 48.984311;
-//            double lon = 8.397817;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_08")==0)
+            {
+                alt = 0;
+                lat = 48.984311;
+                lon = 8.397817;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
             // KITTI 09 [OK, video serie curve tondeggianti]
-//            double alt = 0;
-//            double lat = 48.972104544468;
-//            double lon = 8.4761469953335;
-//            double cov1 = 60;
-//            double cov2 = 60;
+            if (bagfile.compare("kitti_09")==0)
+            {
+                alt = 0;
+                lat = 48.972104544468;
+                lon = 8.4761469953335;
+                cov1 = 60;
+                cov2 = 60;
+            }
 
             // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
-//            double alt = 0;
-//            double lat = 48.972406;//48.972455;//48.97253396005;
-//            double lon = 8.478662;//8.478660;//8.4785980847297;
-//            double cov1 = 50;
-//            double cov2 = 50;
+            if (bagfile.compare("kitti_10")==0)
+            {
+                alt = 0;
+                lat = 48.972406;//48.972455;//48.97253396005;
+                lon = 8.478662;//8.478660;//8.4785980847297;
+                cov1 = 50;
+                cov2 = 50;
+            }
+
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
@@ -517,7 +561,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             latlon_2_xy_srv.request.latitude = lat;
             latlon_2_xy_srv.request.longitude = lon;
 
-            ROS_INFO_STREAM(lat << "\t" << lon);
+            ROS_INFO_STREAM("lat: " << lat << "\t" << "lon: " << lon);
 
             geometry_msgs::Point point;
 //            geometry_msgs::PoseStamped fix; // used for GPS publisher
@@ -637,6 +681,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's sigma
                     MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
 
+                    cout << "p_sigma" << endl << endl << p_sigma << endl;
                     // Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
                     new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
@@ -915,6 +960,9 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
+
+    ROS_INFO_STREAM ("Using bagfile: " << bagfile);
+
     // Beep #ENABLE: sudo modprobe pcspkr  #DISABLE sudo modprobe -r pcspkr
     printf("\a");
 
@@ -1314,34 +1362,139 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     average_quaternion.setZ(0);
     average_quaternion.setW(0);
 
+    // CALCULATING TOTAL SCORE FOR NORMALIZATION
     double tot_score = 0.0d;
     for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
 //        ROS_INFO_STREAM("PARTICLE "<< std::setprecision(5) << (*particle_itr).getId() << "\t" << (*particle_itr).getParticleScore() << "\t" << tot_score);
         tot_score += (*particle_itr).getParticleScore();
     }
-    double sum=0.0d;
-    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+
+    bool enabled_clustering = false; 
+    int best_cluster=-1;
+    int best_cluster_size=0;
+    double cluster_score=0.0f;
+    double best_cluster_score = -1.0f;
+    if (enabled_clustering)
+    {
+        ///////////////////////////////////////////////////////////////////////////
+        // FIRST STEP, every particle in_cluster value = -1
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+            (*particle_itr).in_cluster = -1;
+        }
+        ///////////////////////////////////////////////////////////////////////////
+
+        ///////////////////////////////////////////////////////////////////////////
+        // SECOND STEP, clustering. double for.
+        int cluster_INDEX=0;
+        double euclidean_distance=0.0f; double angle_distance=0.0f;
+        double euclidean_threshold = 5.00f; //meters
+        double angle_threshold     = 0.20f; //radians
+        vector<Particle>::iterator inner_particle_itr;
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+
+            if ((*particle_itr).in_cluster == -1)
+                (*particle_itr).in_cluster = cluster_INDEX++;
+
+            for( inner_particle_itr = current_layout.begin(); inner_particle_itr != current_layout.end(); inner_particle_itr++ ){
+                if (particle_itr == inner_particle_itr)
+                    continue;
+                if ((*inner_particle_itr).in_cluster == -1)
+                    continue;
+
+                euclidean_distance = sqrt(   (*particle_itr).getParticleState()._pose(0)-(*inner_particle_itr).getParticleState()._pose(0)+
+                                             (*particle_itr).getParticleState()._pose(1)-(*inner_particle_itr).getParticleState()._pose(1)+
+                                             (*particle_itr).getParticleState()._pose(2)-(*inner_particle_itr).getParticleState()._pose(2)
+                                             );
+
+                Eigen::Quaterniond q1 = Eigen::Quaterniond((*particle_itr).getParticleState().getRotation());
+                Eigen::Quaterniond q2 = Eigen::Quaterniond((*inner_particle_itr).getParticleState().getRotation());
+                tf::Quaternion t1,t2;
+                t1.setX(q1.x());t2.setX(q2.x());
+                t1.setY(q1.y());t2.setY(q2.y());
+                t1.setZ(q1.z());t2.setZ(q2.z());
+                t1.setW(q1.w());t2.setW(q2.w());
+
+                angle_distance = t1.angleShortestPath(t2);
+
+                if (euclidean_distance < euclidean_threshold)
+                    if (angle_distance < angle_threshold)
+                        (*inner_particle_itr).in_cluster  = (*particle_itr).in_cluster;
+
+            }
+        }
+        ///////////////////////////////////////////////////////////////////////////
+
+        ///////////////////////////////////////////////////////////////////////////
+        //STEP3 - searching best cluster
+        vector<double> clusters;
+        clusters.resize(cluster_INDEX);
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+            clusters[(*particle_itr).in_cluster]+=(*particle_itr).getParticleScore() / tot_score;
+        }
+
+        best_cluster=-1;
+        best_cluster_score=-1.0f;
+        for(int looking_for_best_cluster = 0; looking_for_best_cluster < cluster_INDEX; looking_for_best_cluster++ )
+        {
+            if (clusters[looking_for_best_cluster]>best_cluster_score)
+            {
+                best_cluster_score=clusters[looking_for_best_cluster];
+                best_cluster=looking_for_best_cluster;
+            }
+        }
+        cluster_score=0.0f;
+        best_cluster_size=0;
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+            if ((*particle_itr).in_cluster == best_cluster)
+            {
+                cluster_score += (*particle_itr).getParticleScore();
+                best_cluster_size++;
+            }
+        }
+        cout << "Best cluster size: " << best_cluster_size << endl;
+        ///////////////////////////////////////////////////////////////////////////
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // CREATING STATISTICS FOR RLE OUTPUT
+
+    double average_distance=0.0f;
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    {
+        //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
+    
+        // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
+        if (enabled_clustering && ((*particle_itr).in_cluster != best_cluster) )
+            continue;
+
         state = (*particle_itr).getParticleState();
+        if (enabled_clustering)
+            average_pose += state.getPose() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
+        else
+            average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
 
-
-//        RTK_GPS_out_file << state.getPose()(0) << ";" << state.getPose()(1) << ";" << state.getPose()(2) << ";" << (*particle_itr).getParticleScore() << ";" << (*particle_itr).getParticleScore()/tot_score<< endl;
-//        cout << state.getPose()(2) << endl;
-        average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
-        sum += (*particle_itr).getParticleScore() / tot_score;
+        //sum += (*particle_itr).getParticleScore() / tot_score;
         Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
         tf::Quaternion t;
         t.setX(q.x());
         t.setY(q.y());
         t.setZ(q.z());
         t.setW(q.w());
-//        ROS_INFO_STREAM("TF QUAT\t" << t.getX() << " "<< t.getY() << " "<< t.getZ() << " "<< t.getW() << " " << q.vec().transpose());
 
-        average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
+        if (enabled_clustering)
+            average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / cluster_score);
+        else
+            average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
+
+        if (enabled_clustering)
+            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / cluster_score;
+        else
+            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / tot_score;
     }
-//    cout << sum << "------------------------   END\n";
     average_quaternion.normalize();
-//    RTK_GPS_out_file << average_pose(0) <<";"<< average_pose(1) <<";"<< average_pose(2) << ";" << tot_score << endl << endl;
-//    average_pose/=current_layout.size();
+    ///////////////////////////////////////////////////////////////////////////
+
+
 
     nav_msgs::Odometry odometry;
     odometry.header.frame_id="/local_map";
@@ -1357,8 +1510,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     ifstream RTK;
     double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
-    RTK.open(((string)("/media/cattaneo/Volume/KITTI_RAW_DATASET/BAGS/05/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    //TODO: find an alternative to this shit
+    cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % msg.header.seq ) <<  ".txt" << endl;
+    RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+    if (!RTK.is_open())
+    {
+        cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
+        ros::shutdown();
+    }
     RTK >> from_latitude >> from_longitude >> from_altitude;
+    cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
     RTK.close();
 
     sensor_msgs::NavSatFix gps_fix;
@@ -1369,6 +1530,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     gps_fix.altitude=from_altitude;
     gps_pub.publish(gps_fix);
 
+
+    /*
+     *      SAVING GPS-RTK PART
+     */
     // Get XY values from GPS coords
     ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
     query_latlon2xy.latitude = from_latitude;
@@ -1376,7 +1541,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
     if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
     {
-
+        cout << std::setprecision(16) << response_latlon2xy;
         tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
         RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
         RTK_map_frame.setRotation(tf::createIdentityQuaternion());
@@ -1421,16 +1586,29 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                             0 << " "<< 0 << " "<< 0 << " " <<
                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                            tot_score / current_layout.size() << "\n";
+                            tot_score / current_layout.size() << " " <<
+                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+
+
+        //        cout  << msg.header.seq << " " << setprecision(16) <<
+        //                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+        //                            0 << " "<< 0 << " "<< 0 << " " <<
+        //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+        //                            tot_score / current_layout.size() << " " <<
+        //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
     }
     else
     {
-      ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-      ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-      return;
+        ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+        ros::shutdown(); //augusto debug
+        return;
     }
 
 
+
+    /*
+     *      SAVING RLE PART
+     */
     // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
     tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
     average_pose_local_map_frame.frame_id_="local_map";
@@ -1456,24 +1634,39 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
           ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
           return;
         }
+
+        // -------------------------------------------------------------------------------------------------------------------------------------
+        // SAVE RESULTS TO OUTPUT FILE:
+        tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
+        RLE_out_file << msg.header.seq << " " << setprecision(16) <<
+                        average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                        roll << " "<< pitch << " "<< yaw << " " <<
+                        average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                        tot_score / current_layout.size() << " " <<
+                        to_lat << " " << to_lon << " " <<
+                        average_distance << "\n";
+
+        cout << msg.header.seq << " " << setprecision(16) <<
+                        average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                        roll << " "<< pitch << " "<< yaw << " " <<
+                        average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                        tot_score / current_layout.size() << " " <<
+                        to_lat << " " << to_lon << " " <<
+                        average_distance << "\n";
     }
     catch (tf::TransformException &ex)
     {
         ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
         ROS_ERROR("     Transform AVERAGE pose from local_map to map");
-        ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+        ros::shutdown();
     }
 
-    // -------------------------------------------------------------------------------------------------------------------------------------
-    // SAVE RESULTS TO OUTPUT FILE:
-    tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-    RLE_out_file << msg.header.seq << " " << setprecision(16) <<
-                               average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                               roll << " "<< pitch << " "<< yaw << " " <<
-                               average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                               tot_score / current_layout.size() << " " <<
-                               to_lat << " " << to_lon << "\n";
 
+    /*
+     *      SAVING LIBVISO PART
+     */
+
+    // TODO: calculate LAT LON
     tf::StampedTransform VO;
     try{
         tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
