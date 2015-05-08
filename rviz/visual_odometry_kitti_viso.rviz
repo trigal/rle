@@ -226,38 +226,23 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-<<<<<<< HEAD
-      Angle: 0
-      Class: rviz/TopDownOrtho
-=======
       Class: rviz/Orbit
-      Distance: 110.631
->>>>>>> running-experiments
+      Distance: 520.457
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-<<<<<<< HEAD
-      Name: Current View
-      Near Clip Distance: 0.01
-      Scale: 10
-      Target Frame: visual_odometry_car_frame
-      Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
-=======
       Focal Point:
-        X: 8.20805
-        Y: 15.6274
-        Z: -2.83259
+        X: 203.903
+        Y: 26.9842
+        Z: 0.0216353
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5698
-      Target Frame: visual_odometry_car_frame
+      Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 4.73858
->>>>>>> running-experiments
     Saved: ~
 Window Geometry:
   Displays:
