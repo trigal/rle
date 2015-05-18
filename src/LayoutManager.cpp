@@ -361,153 +361,161 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         {
             ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
-            // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
-
-            // wait for GPS message (coming from Android device)
-//            sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/viso2_ros/gps_fix");
-
-            // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
-//            double alt = 0.0;
-//            double lon = gps_msg->longitude;
-//            double lat = gps_msg->latitude;
-////            double cov1 = gps_msg->position_covariance[0];
-////            double cov2 = gps_msg->position_covariance[4];
-
-//            double cov1 = 15;
-//            double cov2 = 15;
-//            ROS_INFO_STREAM("Tutto ok");
-
-
-            // ------ simulated GPS msg ----------- //
-            // via Chiese
-//            double alt = 164.78;
-//            double lat = 45.520172;
-//            double lon = 9.217983;
-//            double cov1 = 15;
-//            double cov2 = 15;
-
-//            // nodo mappa oneway
-//            double alt = 164.78;
-//            double lat = 45.5232719;
-//            double lon = 9.2148104;
-//            double cov1 = 15;
-//            double cov2 = 15;
-
-//            // U14
-//            double alt = 164.78;
-//            double lat = 45.5238;
-//            double lon = 9.21954;
-//            double cov1 = 15;
-//            double cov2 = 15;
-
-
             // INITIALIZATION
-            double alt =0.0f;
-            double lat =0.0f;
-            double lon =0.0f;
-            double cov1 =0.0f;
-            double cov2 =0.0f;
+            double alt  = 0.0f;
+            double lat  = 0.0f;
+            double lon  = 0.0f;
+            double cov1 = 0.0f;
+            double cov2 = 0.0f;
 
-            // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-            if (bagfile.compare("kitti_00")==0)
+            bool gps_message = true;
+            if (gps_message)
             {
-                alt = 0;
-                lat = 48.98254523586602;
-                lon = 8.39036610004500;
-                cov1 = 15;
-                cov2 = 15;
-            }
+                // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
-            // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-            if (bagfile.compare("kitti_01")==0)
+                // wait for GPS message (coming from Android device)
+                sensor_msgs::NavSatFix::ConstPtr gps_msg = ros::topic::waitForMessage<sensor_msgs::NavSatFix>("/kitti_player/oxts/gps");
+
+                // Save values into local vars (this is a trick when GPS device isn't available or we want to simulate a GPS msg)
+                alt  = 0.0;
+                lon  = gps_msg->longitude;
+                lat  = gps_msg->latitude;
+                cov1 = gps_msg->position_covariance[0];
+                cov2 = gps_msg->position_covariance[4];
+
+                //            double cov1 = 15;
+                //            double cov2 = 15;
+                //            ROS_INFO_STREAM("Tutto ok");
+            }
+            else
             {
-                alt = 0;
-                lat = 49.006719195871;//49.006558;// 49.006616;//
-                lon = 8.4893558806503;//8.489195;//8.489291;//
-                cov1 = 50;
-                cov2 = 50;
-            }
 
-            // KITTI 02 [NI, si perde dopo un paio di curve]
-            if (bagfile.compare("kitti_02")==0)
-            {
-                alt = 0;
-                lat = 48.987607723096;
-                lon = 8.4697469732634;
-                cov1 = 60;
-                cov2 = 60;
-            }
 
-            // KITTI 04 [OK, video road, rettilineo corto]
-            if (bagfile.compare("kitti_04")==0)
-            {
-                alt = 0;
-                lat = 49.033603440345;
-                lon = 8.3950031909457;
-                cov1 = 50;
-                cov2 = 50;
-            }
+                // ------ simulated GPS msg ----------- //
+                // via Chiese
+                //            double alt = 164.78;
+                //            double lat = 45.520172;
+                //            double lon = 9.217983;
+                //            double cov1 = 15;
+                //            double cov2 = 15;
 
-            // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-            if (bagfile.compare("kitti_05")==0)
-            {
-                lat = 49.04951961077;
-                lon = 8.3965961639946;
-                alt = 0;
-                cov1 = 4;
-                cov2 = 4;
-            }
+                //            // nodo mappa oneway
+                //            double alt = 164.78;
+                //            double lat = 45.5232719;
+                //            double lon = 9.2148104;
+                //            double cov1 = 15;
+                //            double cov2 = 15;
 
-            // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-            if (bagfile.compare("kitti_06")==0)
-            {
-                alt = 0;
-                lat = 49.05349304789598;
-                lon = 8.39721998765449;
-                cov1 = 50;
-                cov2 = 50;
-            }
+                //            // U14
+                //            double alt = 164.78;
+                //            double lat = 45.5238;
+                //            double lon = 9.21954;
+                //            double cov1 = 15;
+                //            double cov2 = 15;
 
-            // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
-            if (bagfile.compare("kitti_07")==0)
-            {
-                alt = 0;
-                lat = 48.985319;//48.98523696217;
-                lon = 8.393801;//8.3936414564418;
-                cov1 = 50;
-                cov2 = 50;
-            }
 
-            // KITTI 08 [bag inizia dopo]
-            if (bagfile.compare("kitti_08")==0)
-            {
-                alt = 0;
-                lat = 48.984311;
-                lon = 8.397817;
-                cov1 = 60;
-                cov2 = 60;
-            }
+                // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
+                if (bagfile.compare("kitti_00")==0)
+                {
+                    alt = 0;
+                    lat = 48.98254523586602;
+                    lon = 8.39036610004500;
+                    cov1 = 15;
+                    cov2 = 15;
+                }
 
-            // KITTI 09 [OK, video serie curve tondeggianti]
-            if (bagfile.compare("kitti_09")==0)
-            {
-                alt = 0;
-                lat = 48.972104544468;
-                lon = 8.4761469953335;
-                cov1 = 60;
-                cov2 = 60;
-            }
+                // KITTI 01 [OK, video autostrada, si perde nella curva finale]
+                if (bagfile.compare("kitti_01")==0)
+                {
+                    alt = 0;
+                    lat = 49.006719195871;//49.006558;// 49.006616;//
+                    lon = 8.4893558806503;//8.489195;//8.489291;//
+                    cov1 = 50;
+                    cov2 = 50;
+                }
 
-            // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
-            if (bagfile.compare("kitti_10")==0)
-            {
-                alt = 0;
-                lat = 48.972406;//48.972455;//48.97253396005;
-                lon = 8.478662;//8.478660;//8.4785980847297;
-                cov1 = 50;
-                cov2 = 50;
-            }
+                // KITTI 02 [NI, si perde dopo un paio di curve]
+                if (bagfile.compare("kitti_02")==0)
+                {
+                    alt = 0;
+                    lat = 48.987607723096;
+                    lon = 8.4697469732634;
+                    cov1 = 60;
+                    cov2 = 60;
+                }
 
+                // KITTI 04 [OK, video road, rettilineo corto]
+                if (bagfile.compare("kitti_04")==0)
+                {
+                    alt = 0;
+                    lat = 49.033603440345;
+                    lon = 8.3950031909457;
+                    cov1 = 50;
+                    cov2 = 50;
+                }
+
+                // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
+                if (bagfile.compare("kitti_05")==0)
+                {
+                    lat = 49.04951961077;
+                    lon = 8.3965961639946;
+                    alt = 0;
+                    cov1 = 4;
+                    cov2 = 4;
+                }
+
+                // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
+                if (bagfile.compare("kitti_06")==0)
+                {
+                    alt = 0;
+                    lat = 49.05349304789598;
+                    lon = 8.39721998765449;
+                    cov1 = 50;
+                    cov2 = 50;
+                }
+
+                // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
+                if (bagfile.compare("kitti_07")==0)
+                {
+                    alt = 0;
+                    lat = 48.985319;//48.98523696217;
+                    lon = 8.393801;//8.3936414564418;
+                    cov1 = 50;
+                    cov2 = 50;
+                }
+
+                // KITTI 08 [bag inizia dopo]
+                if (bagfile.compare("kitti_08")==0)
+                {
+                    alt = 0;
+                    lat = 48.984311;
+                    lon = 8.397817;
+                    cov1 = 60;
+                    cov2 = 60;
+                }
+
+                // KITTI 09 [OK, video serie curve tondeggianti]
+                if (bagfile.compare("kitti_09")==0)
+                {
+                    alt = 0;
+                    lat = 48.972104544468;
+                    lon = 8.4761469953335;
+                    cov1 = 60;
+                    cov2 = 60;
+                }
+
+                // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
+                if (bagfile.compare("kitti_10")==0)
+                {
+                    alt = 0;
+                    lat = 48.972406;//48.972455;//48.97253396005;
+                    lon = 8.478662;//8.478660;//8.4785980847297;
+                    cov1 = 50;
+                    cov2 = 50;
+                }
+
+
+            }
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
                                         // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
