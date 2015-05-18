@@ -71,9 +71,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
 
     // init output files
-    LIBVISO_out_file.open("/home/limongi/Desktop/LIBVISO_distance.txt");
-    RLE_out_file.open("/home/limongi/Desktop/RLE_distance.txt");
-    RTK_GPS_out_file.open("/home/limongi/Desktop/RTK_distance.txt");
+//    LIBVISO_out_file.open("/home/limongi/Desktop/LIBVISO_distance.txt");
+//    RLE_out_file.open("/home/limongi/Desktop/RLE_distance.txt");
+//    RTK_GPS_out_file.open("/home/limongi/Desktop/RTK_distance.txt");
 
     // init values
     step = 0;
@@ -1455,233 +1455,239 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         ///////////////////////////////////////////////////////////////////////////
     }
 
+
+
+    bool enabled_statistics = false;
     ///////////////////////////////////////////////////////////////////////////
     // CREATING STATISTICS FOR RLE OUTPUT
 
-    double average_distance=0.0f;
-    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    if (enabled_statistics)
     {
-        //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
-    
-        // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
-        if (enabled_clustering && ((*particle_itr).in_cluster != best_cluster) )
-            continue;
+        double average_distance=0.0f;
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
+            //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
 
-        state = (*particle_itr).getParticleState();
-        if (enabled_clustering)
-            average_pose += state.getPose() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
-        else
-            average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
+            // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
+            if (enabled_clustering && ((*particle_itr).in_cluster != best_cluster) )
+                continue;
 
-        //sum += (*particle_itr).getParticleScore() / tot_score;
-        Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
-        tf::Quaternion t;
-        t.setX(q.x());
-        t.setY(q.y());
-        t.setZ(q.z());
-        t.setW(q.w());
+            state = (*particle_itr).getParticleState();
+            if (enabled_clustering)
+                average_pose += state.getPose() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
+            else
+                average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
 
-        if (enabled_clustering)
-            average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / cluster_score);
-        else
-            average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
+            //sum += (*particle_itr).getParticleScore() / tot_score;
+            Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
+            tf::Quaternion t;
+            t.setX(q.x());
+            t.setY(q.y());
+            t.setZ(q.z());
+            t.setW(q.w());
 
-        if (enabled_clustering)
-            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / cluster_score;
-        else
-            average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / tot_score;
-    }
-    average_quaternion.normalize();
-    ///////////////////////////////////////////////////////////////////////////
+            if (enabled_clustering)
+                average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / cluster_score);
+            else
+                average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
 
-
-
-    nav_msgs::Odometry odometry;
-    odometry.header.frame_id="/local_map";
-    odometry.header.stamp=ros::Time::now();
-
-    odometry.pose.pose.position.x=average_pose(0);
-    odometry.pose.pose.position.y=average_pose(1);
-    odometry.pose.pose.position.z=average_pose(2);
-    tf::quaternionTFToMsg(average_quaternion,odometry.pose.pose.orientation);
-    double roll=0.0f, pitch=0.0f, yaw=0.0f;
-
-    publisher_average_pose.publish(odometry); // Odometry message
-
-    ifstream RTK;
-    double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
-    //TODO: find an alternative to this shit
-    cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % msg.header.seq ) <<  ".txt" << endl;
-    RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
-    if (!RTK.is_open())
-    {
-        cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
-        ros::shutdown();
-    }
-    RTK >> from_latitude >> from_longitude >> from_altitude;
-    cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
-    RTK.close();
-
-    sensor_msgs::NavSatFix gps_fix;
-    gps_fix.header.frame_id="/map";
-    gps_fix.header.stamp = msg.header.stamp;
-    gps_fix.latitude=from_latitude;
-    gps_fix.longitude=from_longitude;
-    gps_fix.altitude=from_altitude;
-    gps_pub.publish(gps_fix);
+            if (enabled_clustering)
+                average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / cluster_score;
+            else
+                average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / tot_score;
+        }
+        average_quaternion.normalize();
+        ///////////////////////////////////////////////////////////////////////////
 
 
-    /*
+
+        nav_msgs::Odometry odometry;
+        odometry.header.frame_id="/local_map";
+        odometry.header.stamp=ros::Time::now();
+
+        odometry.pose.pose.position.x=average_pose(0);
+        odometry.pose.pose.position.y=average_pose(1);
+        odometry.pose.pose.position.z=average_pose(2);
+        tf::quaternionTFToMsg(average_quaternion,odometry.pose.pose.orientation);
+        double roll=0.0f, pitch=0.0f, yaw=0.0f;
+
+        publisher_average_pose.publish(odometry); // Odometry message
+
+        ifstream RTK;
+        double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
+        //TODO: find an alternative to this shit
+        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % msg.header.seq ) <<  ".txt" << endl;
+        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+        if (!RTK.is_open())
+        {
+            cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
+            ros::shutdown();
+        }
+        RTK >> from_latitude >> from_longitude >> from_altitude;
+        cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
+        RTK.close();
+
+        sensor_msgs::NavSatFix gps_fix;
+        gps_fix.header.frame_id="/map";
+        gps_fix.header.stamp = msg.header.stamp;
+        gps_fix.latitude=from_latitude;
+        gps_fix.longitude=from_longitude;
+        gps_fix.altitude=from_altitude;
+        gps_pub.publish(gps_fix);
+
+
+        /*
      *      SAVING GPS-RTK PART
      */
-    // Get XY values from GPS coords
-    ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
-    query_latlon2xy.latitude = from_latitude;
-    query_latlon2xy.longitude = from_longitude;
-    ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
-    if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
-    {
-        cout << std::setprecision(16) << response_latlon2xy;
-        tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
-        RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
-        RTK_map_frame.setRotation(tf::createIdentityQuaternion());
-        RTK_map_frame.frame_id_="/map";
+        // Get XY values from GPS coords
+        ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
+        query_latlon2xy.latitude = from_latitude;
+        query_latlon2xy.longitude = from_longitude;
+        ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
+        if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
+        {
+            cout << std::setprecision(16) << response_latlon2xy;
+            tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
+            RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
+            RTK_map_frame.setRotation(tf::createIdentityQuaternion());
+            RTK_map_frame.frame_id_="/map";
 
-        // Transform pose from "map" to "local_map"
+            // Transform pose from "map" to "local_map"
+            try{
+                tf_listener.transformPose("local_map", ros::Time(0), RTK_map_frame, "map", RTK_local_map_frame);
+            }
+            catch (tf::TransformException &ex)
+            {
+                ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
+                ROS_ERROR("     Transform RTK pose from map to local_map");
+                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+            }
+
+            visualization_msgs::Marker RTK_MARKER;
+            RTK_MARKER.header.frame_id = "local_map";
+            RTK_MARKER.header.stamp = ros::Time();
+            RTK_MARKER.ns = "RTK_MARKER";
+            RTK_MARKER.id = msg.header.seq; // same as image from kitti dataset
+            RTK_MARKER.type = visualization_msgs::Marker::CYLINDER;
+            RTK_MARKER.action = visualization_msgs::Marker::ADD;
+            RTK_MARKER.pose.orientation.w = 1;
+            RTK_MARKER.scale.x = 0.5;
+            RTK_MARKER.scale.y = 0.5;
+            RTK_MARKER.scale.z = 0.5;
+            RTK_MARKER.color.a = 1.0;
+            RTK_MARKER.color.r = 0;
+            RTK_MARKER.color.g = 1.0;
+            RTK_MARKER.color.b = 0.0;
+            RTK_MARKER.pose.position.x = RTK_local_map_frame.getOrigin().getX();//response.x;
+            RTK_MARKER.pose.position.y = RTK_local_map_frame.getOrigin().getY();//response.y;
+            RTK_MARKER.pose.position.z = RTK_local_map_frame.getOrigin().getZ();//;
+
+            marker_array_GT_RTK.markers.push_back(RTK_MARKER);
+
+            // Push back line_list
+            publisher_GT_RTK.publish(marker_array_GT_RTK);
+
+            RTK_GPS_out_file << msg.header.seq << " " << setprecision(16) <<
+                                RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+                                0 << " "<< 0 << " "<< 0 << " " <<
+                                0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+                                tot_score / current_layout.size() << " " <<
+                                query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+
+
+            //        cout  << msg.header.seq << " " << setprecision(16) <<
+            //                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+            //                            0 << " "<< 0 << " "<< 0 << " " <<
+            //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+            //                            tot_score / current_layout.size() << " " <<
+            //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+        }
+        else
+        {
+            ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+            ros::shutdown(); //augusto debug
+            return;
+        }
+
+
+
+        /*
+     *      SAVING RLE PART
+     */
+        // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
+        tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
+        average_pose_local_map_frame.frame_id_="local_map";
+        average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0),average_pose(1),average_pose(2)));
+        average_pose_local_map_frame.setRotation(tf::createIdentityQuaternion());
+        // Transform pose from "local_map" to "map"
         try{
-            tf_listener.transformPose("local_map", ros::Time(0), RTK_map_frame, "map", RTK_local_map_frame);
+            tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
+
+            ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
+            ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
+            query_xy2latlon.x=average_pose_map_frame.getOrigin().getX();
+            query_xy2latlon.y=average_pose_map_frame.getOrigin().getY();
+            if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon,response_xy2latlon))
+            {
+                // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
+                to_lat=response_xy2latlon.latitude;
+                to_lon=response_xy2latlon.longitude;
+            }
+            else
+            {
+                ROS_ERROR("   Failed to call 'xy_2_latlon_2_srv' service");
+                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+                return;
+            }
+
+            // -------------------------------------------------------------------------------------------------------------------------------------
+            // SAVE RESULTS TO OUTPUT FILE:
+            tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
+            RLE_out_file << msg.header.seq << " " << setprecision(16) <<
+                            average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                            roll << " "<< pitch << " "<< yaw << " " <<
+                            average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                            tot_score / current_layout.size() << " " <<
+                            to_lat << " " << to_lon << " " <<
+                            average_distance << "\n";
+
+            cout << msg.header.seq << " " << setprecision(16) <<
+                    average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                    roll << " "<< pitch << " "<< yaw << " " <<
+                    average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                    tot_score / current_layout.size() << " " <<
+                    to_lat << " " << to_lon << " " <<
+                    average_distance << "\n";
         }
         catch (tf::TransformException &ex)
         {
             ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
-            ROS_ERROR("     Transform RTK pose from map to local_map");
-            ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+            ROS_ERROR("     Transform AVERAGE pose from local_map to map");
+            ros::shutdown();
         }
 
-        visualization_msgs::Marker RTK_MARKER;
-        RTK_MARKER.header.frame_id = "local_map";
-        RTK_MARKER.header.stamp = ros::Time();
-        RTK_MARKER.ns = "RTK_MARKER";
-        RTK_MARKER.id = msg.header.seq; // same as image from kitti dataset
-        RTK_MARKER.type = visualization_msgs::Marker::CYLINDER;
-        RTK_MARKER.action = visualization_msgs::Marker::ADD;
-        RTK_MARKER.pose.orientation.w = 1;
-        RTK_MARKER.scale.x = 0.5;
-        RTK_MARKER.scale.y = 0.5;
-        RTK_MARKER.scale.z = 0.5;
-        RTK_MARKER.color.a = 1.0;
-        RTK_MARKER.color.r = 0;
-        RTK_MARKER.color.g = 1.0;
-        RTK_MARKER.color.b = 0.0;
-        RTK_MARKER.pose.position.x = RTK_local_map_frame.getOrigin().getX();//response.x;
-        RTK_MARKER.pose.position.y = RTK_local_map_frame.getOrigin().getY();//response.y;
-        RTK_MARKER.pose.position.z = RTK_local_map_frame.getOrigin().getZ();//;
 
-        marker_array_GT_RTK.markers.push_back(RTK_MARKER);
-
-        // Push back line_list
-        publisher_GT_RTK.publish(marker_array_GT_RTK);
-
-        RTK_GPS_out_file << msg.header.seq << " " << setprecision(16) <<
-                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-                            0 << " "<< 0 << " "<< 0 << " " <<
-                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                            tot_score / current_layout.size() << " " <<
-                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
-
-
-        //        cout  << msg.header.seq << " " << setprecision(16) <<
-        //                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-        //                            0 << " "<< 0 << " "<< 0 << " " <<
-        //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-        //                            tot_score / current_layout.size() << " " <<
-        //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
-    }
-    else
-    {
-        ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
-        ros::shutdown(); //augusto debug
-        return;
-    }
-
-
-
-    /*
-     *      SAVING RLE PART
-     */
-    // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
-    tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
-    average_pose_local_map_frame.frame_id_="local_map";
-    average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0),average_pose(1),average_pose(2)));
-    average_pose_local_map_frame.setRotation(tf::createIdentityQuaternion());
-    // Transform pose from "local_map" to "map"
-    try{
-        tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
-
-        ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
-        ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
-        query_xy2latlon.x=average_pose_map_frame.getOrigin().getX();
-        query_xy2latlon.y=average_pose_map_frame.getOrigin().getY();
-        if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon,response_xy2latlon))
-        {
-            // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
-            to_lat=response_xy2latlon.latitude;
-            to_lon=response_xy2latlon.longitude;
-        }
-        else
-        {
-          ROS_ERROR("   Failed to call 'xy_2_latlon_2_srv' service");
-          ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-          return;
-        }
-
-        // -------------------------------------------------------------------------------------------------------------------------------------
-        // SAVE RESULTS TO OUTPUT FILE:
-        tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-        RLE_out_file << msg.header.seq << " " << setprecision(16) <<
-                        average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                        roll << " "<< pitch << " "<< yaw << " " <<
-                        average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                        tot_score / current_layout.size() << " " <<
-                        to_lat << " " << to_lon << " " <<
-                        average_distance << "\n";
-
-        cout << msg.header.seq << " " << setprecision(16) <<
-                        average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                        roll << " "<< pitch << " "<< yaw << " " <<
-                        average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                        tot_score / current_layout.size() << " " <<
-                        to_lat << " " << to_lon << " " <<
-                        average_distance << "\n";
-    }
-    catch (tf::TransformException &ex)
-    {
-        ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
-        ROS_ERROR("     Transform AVERAGE pose from local_map to map");
-        ros::shutdown();
-    }
-
-
-    /*
+        /*
      *      SAVING LIBVISO PART
      */
 
-    // TODO: calculate LAT LON
-    tf::StampedTransform VO;
-    try{
-        tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
+        // TODO: calculate LAT LON
+        tf::StampedTransform VO;
+        try{
+            tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
 
-        tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
+            tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
 
-        LIBVISO_out_file << msg.header.seq << " " << setprecision(16) <<
+            LIBVISO_out_file << msg.header.seq << " " << setprecision(16) <<
                                 VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
                                 roll << " "<< pitch << " "<< yaw << " " <<
                                 VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
                                 tot_score / current_layout.size() << "\n";
-    }
-    catch (tf::TransformException &ex)
-    {
-        ROS_WARN("VO");
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_WARN("VO");
+        }
     }
     // -------------------------------------------------------------------------------------------------------------------------------------
 }
