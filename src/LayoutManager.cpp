@@ -552,7 +552,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            xy_2_latlon_srv.request.x = tf_pose_map_frame.getOrigin().getX();
 //            xy_2_latlon_srv.request.y = tf_pose_map_frame.getOrigin().getY();
 //            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
-//                ROS_ERROR("   Failed to call 'xy_2_latlon' service");
+//                ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon' service");
 //                ros::shutdown(); //augusto debug
 //                return;
 //            }
@@ -580,7 +580,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             }
             else
             {
-              ROS_ERROR("  Error with 'latlon_2_xy_srv' service");
+              ROS_ERROR_STREAM("  Error with 'latlon_2_xy_srv' service");
               ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
               return;
             }
@@ -667,7 +667,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     }
                     catch (tf::TransformException &ex)
                     {
-                        ROS_ERROR("%s",ex.what());
+                        ROS_ERROR_STREAM("%s"<<ex.what());
                         ROS_INFO_STREAM("map to local map exception");
                         continue; //Skip this iteration
                     }
@@ -740,7 +740,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
                 else
                 {
-                    ROS_ERROR("     Failed to call 'snap_particle_xy' service");
+                    ROS_ERROR_STREAM("     Failed to call 'snap_particle_xy' service");
                     ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     return;
                 }
@@ -1066,12 +1066,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             }
             catch (tf::TransformException &ex)
             {
-                ROS_ERROR("%s",ex.what());
-                ROS_ERROR("     Transform snapped particle pose from local_map to map");
+                ROS_ERROR_STREAM("%s"<<ex.what());
+                ROS_ERROR_STREAM("     Transform snapped particle pose from local_map to map");
                 ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                 return;
             }
-
 
 //            //TEST 0
             transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
@@ -1141,8 +1140,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 }
                 catch (tf::TransformException &ex)
                 {
-                    ROS_ERROR("%s",ex.what());
-                    ROS_ERROR("     Transform snapped particle pose from map to local_map");
+                    ROS_ERROR_STREAM("%s" << ex.what());
+                    ROS_ERROR_STREAM("     Transform snapped particle pose from map to local_map");
                     ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     return;
                 }
@@ -1256,6 +1255,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             {
                 // Either service is down or particle is too far from a street
                 (*particle_itr).setParticleScore(0);
+                ROS_ERROR_STREAM("Either service is down or particle is too far from a street. Shutdown in LayoutManager.cpp");
                 ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
             }// end snap particle client
         } // end openstreetmap enabled
@@ -1566,8 +1566,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             }
             catch (tf::TransformException &ex)
             {
-                ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
-                ROS_ERROR("     Transform RTK pose from map to local_map");
+                ROS_ERROR_STREAM("LayoutManager.cpp says: %s"<<ex.what());
+                ROS_ERROR_STREAM("     Transform RTK pose from map to local_map");
                 ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
             }
 
@@ -1612,7 +1612,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         }
         else
         {
-            ROS_ERROR("   Failed to call 'latlon_2_xy_srv' service");
+            ROS_ERROR_STREAM("   Failed to call 'latlon_2_xy_srv' service");
             ros::shutdown(); //augusto debug
             return;
         }
@@ -1643,7 +1643,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
             }
             else
             {
-                ROS_ERROR("   Failed to call 'xy_2_latlon_2_srv' service");
+                ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon_2_srv' service");
                 ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                 return;
             }
@@ -1669,8 +1669,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         }
         catch (tf::TransformException &ex)
         {
-            ROS_ERROR("LayoutManager.cpp says: %s",ex.what());
-            ROS_ERROR("     Transform AVERAGE pose from local_map to map");
+            ROS_ERROR_STREAM("LayoutManager.cpp says: %s"<<ex.what());
+            ROS_ERROR_STREAM("     Transform AVERAGE pose from local_map to map");
             ros::shutdown();
         }
 
@@ -1694,7 +1694,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
         }
         catch (tf::TransformException &ex)
         {
-            ROS_WARN("VO");
+            ROS_WARN_STREAM("VO");
         }
     }
     // -------------------------------------------------------------------------------------------------------------------------------------
