@@ -34,8 +34,8 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
-
         _msg = m;
+        _msg_valid = true;
 
 //        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
 
@@ -45,6 +45,15 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tf::StampedTransform new_transform;
         new_transform.setOrigin(tf::Vector3(_msg.pose.pose.position.x, _msg.pose.pose.position.y, _msg.pose.pose.position.z));
         new_transform.setRotation(tf::Quaternion( _msg.pose.pose.orientation.x, _msg.pose.pose.orientation.y, _msg.pose.pose.orientation.z, _msg.pose.pose.orientation.w));
+
+        if(_first_run)
+        {
+            _old_transform = new_transform;
+            _old_msg = _msg;
+            _first_run = false;
+            _msg_valid = false;
+            return;
+        }
 
         tf::StampedTransform t1,t2;
         tf::Transform t3;
@@ -84,15 +93,6 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
             return;
         }
 
-        if(_first_run)
-        {
-            _old_transform = new_transform;
-            _old_msg = _msg;
-            _first_run = false;
-            _msg_valid = false;
-            return;
-        }
-        _msg_valid = true;
 
         tf::Transform delta_transform;
 
