@@ -56,7 +56,8 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile){
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile)
+{
 
     this->bagfile = bagfile;
 
@@ -69,11 +70,6 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 
     // init road_lane_detection subscriber
     road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
-
-    // init output files
-//    LIBVISO_out_file.open("/home/limongi/Desktop/LIBVISO_distance.txt");
-//    RLE_out_file.open("/home/limongi/Desktop/RLE_distance.txt");
-//    RTK_GPS_out_file.open("/home/limongi/Desktop/RTK_distance.txt");
 
     // init values
     step = 0;
@@ -1072,7 +1068,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
                 return;
             }
 
-//            //TEST 0
+            //TEST 0 - Send TF Transforms (MSG & TF) local_map > pose; Them shuld be the same
             transform.setOrigin( tf::Vector3(pose_local_map_frame.pose.position.x, pose_local_map_frame.pose.position.y, pose_local_map_frame.pose.position.z) );
             q.setX(pose_local_map_frame.pose.orientation.x);
             q.setY(pose_local_map_frame.pose.orientation.y);
@@ -1153,7 +1149,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
                 // calculate distance from original particle positin and snapped particle position ---------------------------------
                 // use it for score calculation with normal distribution PDF
-                double dx = tf_pose_local_map_frame.getOrigin().getX() - tf_snapped_local_map_frame.getOrigin().getX();
+                double dx = tf_pose_local_map_frame.getOrigin().getX() -    tf_snapped_local_map_frame.getOrigin().getX();
                 double dy = tf_pose_local_map_frame.getOrigin().getY() - tf_snapped_local_map_frame.getOrigin().getY();
                 double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0; // particle Z axis is forced to be next to zero
                 double distance = sqrt(dx*dx + dy*dy + dz*dz);
@@ -1754,7 +1750,8 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
 /**
  * Estimate particles' components using particle filter
  */
-void LayoutManager::componentsEstimation(){
+void LayoutManager::componentsEstimation()
+{
     // STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
     sampling();
 
@@ -1781,7 +1778,8 @@ void LayoutManager::sampling(){
  * PARTICLE FILTER, STEP 2:
  * @brief LayoutManager::componentsPerturbation
  */
-void LayoutManager::componentsPerturbation(){
+void LayoutManager::componentsPerturbation()
+{
 
     // first, iterate over all particles of 'current_layout'
     for(int i=0; i<current_layout.size(); i++){
@@ -1789,7 +1787,8 @@ void LayoutManager::componentsPerturbation(){
         vector<LayoutComponent*> vec = p.getLayoutComponents();
 
         // second, iterate over all layout-components of current 'particle'
-        for(int j=0; j<vec.size(); j++){
+        for(int j=0; j<vec.size(); j++)
+        {
             LayoutComponent* lc = vec.at(j);
             lc->componentPerturbation();
         }
@@ -1802,7 +1801,8 @@ void LayoutManager::componentsPerturbation(){
  *
  * andiamo a vedere quanto bene fitta la componente della singola particella nella realtà
  */
-void LayoutManager::calculateLayoutComponentsWeight(){
+void LayoutManager::calculateLayoutComponentsWeight()
+{
     // first, iterate over all particles of 'current_layout'
     for(int i=0; i<current_layout.size(); i++){
         Particle p = current_layout.at(i);
