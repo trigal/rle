@@ -98,9 +98,10 @@ using std::vector;
 /**
  * Implementation of the current layout estimator
  */
-class LayoutManager {
+class LayoutManager
+{
 public:
-    MeasurementModel* measurement_model;    /// our Measurment Model
+    MeasurementModel* measurement_model;    /// our Measurment Model [created in the CLASS CONSTRUCTOR]
     MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
     static double delta_t;                  /// time between current message and last arrived message
 
@@ -195,7 +196,7 @@ private:
     /**
 	 * Sampling from the state transition p(x_t | u_t , x_t-1):
 	 * we propagate the particle and its components with the motion model
-     * and genera//currentLayout.resize(0);te a predicted particle-set
+     * and generate a predicted particle-set
 	 */
 	void sampling();
 
@@ -268,7 +269,8 @@ public:
     // costructor & destructor ----------------------------------------------------------------------
     LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile);
 
-    ~LayoutManager(){
+    ~LayoutManager()
+    {
         current_layout.clear();
 //        stat_out_file.close();
         LIBVISO_out_file.close();
