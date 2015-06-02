@@ -31,9 +31,13 @@ private:
     State6DOF _measure;
     tf::TransformListener *_listener;
     tf::StampedTransform _old_transform;
+    tf::StampedTransform fixed_transform; //fixed transform from ODOM(libviso) to VISUAL_ODOMETRY_X_FORWARD
     bool _first_run;
     bool _msg_valid;
     nav_msgs::Odometry _msg, _old_msg; /// current msg arrived from Visual Odometry
+
+    geometry_msgs::Twist frameSpeed;
+    geometry_msgs::Twist oldFrameSpeed;
 
     class Tracker{
 
@@ -110,6 +114,8 @@ public:
         _msr_cov.resize(0,0);
         delete _listener;
     }
+    tf::StampedTransform getFixed_transform() const;
+    void setFixed_transform(const tf::StampedTransform &value);
 };
 
 #endif /* ODOMETRY_H_ */

@@ -7,12 +7,13 @@ Panels:
         - /Global Options1
         - /Status1
         - /Grid1
-        - /Left Camera1/Status1
         - /OSM Elements1/Namespaces1
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
+        - /Axes8
+        - /Axes9
       Splitter Ratio: 0.425791
-    Tree Height: 642
+    Tree Height: 641
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -103,19 +104,65 @@ Visualization Manager:
       Reference Frame: tf_pose_local_map_frame_ROTATED
       Value: false
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
-      Marker Scale: 1
+        kitti_stereo:
+          Value: true
+        local_map:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+        pose_local_map_frame:
+          Value: true
+        snapped_map_frame:
+          Value: true
+        start:
+          Value: true
+        tf_pose_local_map_frame:
+          Value: true
+        tf_pose_local_map_frame_ROTATED:
+          Value: true
+        tf_snapped_local_map_frame:
+          Value: true
+        tf_snapped_map_frame:
+          Value: true
+        visual_odometry_camera_frame:
+          Value: true
+        visual_odometry_car_frame:
+          Value: true
+        visual_odometry_odom_x_forward:
+          Value: true
+      Marker Scale: 10
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        local_map:
+          pose_local_map_frame:
+            {}
+          tf_pose_local_map_frame:
+            {}
+          tf_pose_local_map_frame_ROTATED:
+            {}
+          tf_snapped_local_map_frame:
+            {}
+          visual_odometry_odom_x_forward:
+            odom:
+              visual_odometry_camera_frame:
+                visual_odometry_car_frame:
+                  {}
+        map:
+          snapped_map_frame:
+            {}
+          tf_snapped_map_frame:
+            {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 170; 0
@@ -204,6 +251,20 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 10
+      Name: Axes
+      Radius: 1
+      Reference Frame: visual_odometry_car_frame
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 10
+      Name: Axes
+      Radius: 1
+      Reference Frame: visual_odometry_odom_x_forward
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -227,33 +288,33 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 368.06
+      Class: rviz/XYOrbit
+      Distance: 57.0145
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.697874
-        Y: -32.0006
-        Z: -24.6503
+        X: 0.649456
+        Y: -6.17437
+        Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.0548
+      Pitch: 0.509802
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 5.53357
+      Value: XYOrbit (rviz)
+      Yaw: 1.69856
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 948
+  Height: 947
   Hide Left Dock: false
   Hide Right Dock: false
   Left Camera:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000018200000311fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004100000311000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000311fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000004100000311000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000004fe000000a9fc0100000003fb00000016004c006500660074002000430061006d0065007200610000000000000004fe0000008400fffffffb0000000a00560069006500770073030000004e00000080000002e100000197fb0000000a0049006d00610067006501000004a20000005c000000000000000000000003000005000000003efc0100000002fb0000000800540069006d0065010000000000000500000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000002630000031100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000018200000310fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004100000310000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000310fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000004100000310000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000004fe000000a9fc0100000003fb00000016004c006500660074002000430061006d0065007200610000000000000004fe0000008400fffffffb0000000a00560069006500770073030000004e00000080000002e100000197fb0000000a0049006d00610067006501000004a20000005c000000000000000000000003000004fe0000003efc0100000002fb0000000800540069006d00650100000000000004fe000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000002610000031000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -262,6 +323,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1280
-  X: -8
+  Width: 1278
+  X: -7
   Y: 17

@@ -115,7 +115,8 @@ public:
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md) {
+    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md)
+    {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
@@ -126,7 +127,11 @@ public:
         particle_score = 0;
     }
     Particle(unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
-        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md) {
+        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
+    {
+        ROS_DEBUG_STREAM("Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model)");
+        ROS_DEBUG_STREAM("mt_md:\t" << mt_md.propagate_translational_vel_error_x << "\t" << mt_md.propagate_translational_vel_error_y << "\t" << mt_md.propagate_translational_vel_error_z);
+
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
     }

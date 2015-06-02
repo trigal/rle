@@ -4,48 +4,52 @@
  *      Universita' degli Studi Milano - Bicocca, DISCO                    *
  *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
  *                                                                         *
- *   Author:    Dario Limongi                                              *
- *   Email:     dario.limongi@gmail.com                                    *
- *   Date:      25/05/2014                                                 *
+ *   Authors:                                                              *
+ *              Augusto Luis Ballardini - ballardini@disco.unimib.it       *
+ *              Axel         Furlan     - furlan@disco.unimib.it           *
+ *              Dario        Limongi    - dario.limongi@gmail.com          *
  *                                                                         *
  ***************************************************************************/
 
 #ifndef LAYOUTMANAGER_H_
 #define LAYOUTMANAGER_H_
 
+
 #include "Utils.h"
-#include "MeasurementModel.h"
-#include "particle/Particle.h"
-#include <vector>
-#include "nav_msgs/Odometry.h"
-#include "road_lane_detection/road_lane.h"
-#include "road_lane_detection/road_lane_array.h"
-#include "particle/LayoutComponent_RoadLane.h"
-#include <sensor_msgs/NavSatFix.h>
+#include "eigenmultivariatenormal.hpp"
 #include "geometry_msgs/PoseArray.h"
-#include <Eigen/Dense>
-#include <Eigen/Core>
-#include <dynamic_reconfigure/server.h>
-#include <road_layout_estimation/road_layout_estimationConfig.h>
-#include <tf/transform_listener.h>
+#include "ira_open_street_map/get_closest_way_distance_utm.h"
+#include "ira_open_street_map/latlon_2_xy.h"
+#include "ira_open_street_map/snap_particle_xy.h"
+#include "ira_open_street_map/xy_2_latlon.h"
+#include "MeasurementModel.h"
+#include "nav_msgs/Odometry.h"
+#include "particle/LayoutComponent_Building.h"
+#include "particle/LayoutComponent_RoadLane.h"
+#include "particle/LayoutComponent.h"
+#include "particle/Particle.h"
+#include "road_lane_detection/road_lane_array.h"
+#include "road_lane_detection/road_lane.h"
+#include "visualization_msgs/Marker.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/uniform_real.hpp>
-#include "eigenmultivariatenormal.hpp"
-#include "particle/LayoutComponent_Building.h"
-#include "particle/LayoutComponent.h"
-#include "ira_open_street_map/snap_particle_xy.h"
-#include "ira_open_street_map/latlon_2_xy.h"
-#include "ira_open_street_map/xy_2_latlon.h"
-#include "ira_open_street_map/get_closest_way_distance_utm.h"
-#include <ros/package.h>
-#include "visualization_msgs/Marker.h"
-#include <visualization_msgs/MarkerArray.h>
+#include <dynamic_reconfigure/server.h>
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <fstream>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <math.h>
+#include <road_layout_estimation/road_layout_estimationConfig.h>
+#include <ros/package.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <tf/transform_listener.h>
+#include <vector>
+#include <visualization_msgs/MarkerArray.h>
+#include <ros/console.h>
+
 
 #include <numeric>
 #include <functional>
@@ -145,95 +149,6 @@ public:
 
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
-private:
-    tf::TransformListener tf_listener;
-    boost::mt19937 rng;                /// The uniform pseudo-random algorithm
-    double street_distribution_sigma;  /// Street gaussian distribution sigma
-    double angle_distribution_sigma;   /// Angle difference gaussian distribution sigma
-    double street_distribution_weight; /// Tells how does street pdf weight on score calculation
-    double angle_distribution_weight;  /// Tells how does angle pdf weight on score calculation
-
-    static bool openstreetmap_enabled; /// check this flag if we want to initialize particle-set with GPS and associate OSM score
-    static bool first_run;  /// flag used for initiliazing particle-set with gps
-    static bool first_msg;  /// flag used for init particle-set
-    nav_msgs::Odometry old_msg; /// used for delta_t calculation
-
-    bool new_detections;				/// indicates detectors found new detections (not used)
-    vector<Particle> current_layout;	/// stores the current layout
-    long resampling_count;
-
-    MatrixXd particle_poses_statistics; /// To calculate the statistics of the particle set for evaluation purposes (localization confidence)
-
-    // output files
-    ofstream stat_out_file;
-    ofstream LIBVISO_out_file;
-    ofstream RLE_out_file;
-    ofstream RTK_GPS_out_file;
-
-    visualization_msgs::MarkerArray marker_array;
-    visualization_msgs::MarkerArray marker_array_distances;
-    visualization_msgs::MarkerArray marker_array_angles;
-    visualization_msgs::MarkerArray marker_z_snapped;
-    visualization_msgs::MarkerArray marker_z_particle;
-    visualization_msgs::MarkerArray marker_array_GT_RTK;
-
-    string bagfile;
-
-
-    /**
-     * @brief checkHasMoved
-     * @return
-     */
-    bool checkHasMoved();
-
-    /**
-     * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
-     * STEP 2: PERTURBATE COMPONENT POSES
-     * STEP 3: WEIGHT LAYOUT-COMPONENTS
-     */
-    void componentsEstimation();
-
-    /**
-	 * Sampling from the state transition p(x_t | u_t , x_t-1):
-	 * we propagate the particle and its components with the motion model
-     * and generate a predicted particle-set
-	 */
-	void sampling();
-
-    void componentsPerturbation();
-
-    void calculateLayoutComponentsWeight();
-
-	/**
-	 * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
-	 * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
-	 * @param particle-set predetto
-	 * @return particle-set con resampling
-	 */
-	void resampling();
-
-
-    /**
-     * FORMULA CALCOLO SCORE
-     *
-     * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
-     *  1- Kalman gain sulla pose della particella
-     *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
-     *
-     * Cardinalità >= 2
-     *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
-     *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
-     *
-     * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
-     * essa sarà mantenuta in vita nonostante lo score sia basso.
-     * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
-     * uno score di valore basso per motivi di natura diversa.
-     *
-     */
-	void calculateScore();
-
-public:
-
     /**
      * Genera una stima del layout al tempo t a partire dal currentLayout
      * @return particle set al tempo t
@@ -268,18 +183,22 @@ public:
 
     // costructor & destructor ----------------------------------------------------------------------
     LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile);
+    LayoutManager(const LayoutManager &other);
+
+    LayoutManager& operator=(const LayoutManager&);
 
     ~LayoutManager()
     {
+        ROS_INFO_STREAM("RLE is stopping ...");
         current_layout.clear();
 //        stat_out_file.close();
         LIBVISO_out_file.close();
         RLE_out_file.close();
         RTK_GPS_out_file.close();
         delete measurement_model;
+        node_handle.shutdown();
     }
-	LayoutManager(const LayoutManager &other);
-	LayoutManager& operator=(const LayoutManager&);
+
 
     void normalizeParticleSet();
     void publishMarkerArray();
@@ -287,6 +206,105 @@ public:
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
     void publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point);
+
+
+    // Timers
+    ros::Timer RLE_timer_loop;                       //main loop pointer
+    void rleStart();
+    void rleStop();
+
+private:
+    tf::TransformListener tf_listener;
+    boost::mt19937 rng;                         // The uniform pseudo-random algorithm
+    double street_distribution_sigma;           // Street gaussian distribution sigma
+    double angle_distribution_sigma;            // Angle difference gaussian distribution sigma
+    double street_distribution_weight;          // Tells how does street pdf weight on score calculation
+    double angle_distribution_weight;           // Tells how does angle pdf weight on score calculation
+
+    static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
+    static bool first_run;                      // flag used for initiliazing particle-set with gps
+    static bool first_msg;                      // flag used for init particle-set
+    nav_msgs::Odometry old_msg;                 // used for delta_t calculation
+
+    bool new_detections;				        // indicates detectors found new detections (not used)
+    vector<Particle> current_layout;	        // stores the current layout
+    long resampling_count;
+
+    MatrixXd particle_poses_statistics;         // To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+
+    // output files
+    ofstream stat_out_file;
+    ofstream LIBVISO_out_file;
+    ofstream RLE_out_file;
+    ofstream RTK_GPS_out_file;
+
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::MarkerArray marker_array_distances;
+    visualization_msgs::MarkerArray marker_array_angles;
+    visualization_msgs::MarkerArray marker_z_snapped;
+    visualization_msgs::MarkerArray marker_z_particle;
+    visualization_msgs::MarkerArray marker_array_GT_RTK;
+
+    string bagfile;
+
+
+    bool start_with_gps_message;                // select RLE mode, hard-coded KITTI initializations, or GPS message
+
+
+    /*
+     * @brief checkHasMoved
+     * @return
+     */
+    bool checkHasMoved();
+
+    /*
+     * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+     * STEP 2: PERTURBATE COMPONENT POSES
+     * STEP 3: WEIGHT LAYOUT-COMPONENTS
+     */
+    void componentsEstimation();
+
+    /*
+     * Sampling from the state transition p(x_t | u_t , x_t-1):
+     * we propagate the particle and its components with the motion model
+     * and generate a predicted particle-set
+     */
+    void sampling();
+    void componentsPerturbation();
+    void calculateLayoutComponentsWeight();
+
+
+    /*
+     * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
+     * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
+     * @param particle-set predetto
+     * @return particle-set con resampling
+     */
+    void resampling();
+
+
+    /*
+     * FORMULA CALCOLO SCORE
+     *
+     * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
+     *  1- Kalman gain sulla pose della particella
+     *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
+     *
+     * Cardinalità >= 2
+     *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
+     *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
+     *
+     * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+     * essa sarà mantenuta in vita nonostante lo score sia basso.
+     * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
+     * uno score di valore basso per motivi di natura diversa.
+     *
+     */
+    void calculateScore();
+
+
+    void rleMainLoop(const ros::TimerEvent&);
+
 };
 
 #endif /* LAYOUTMANAGER_H_ */

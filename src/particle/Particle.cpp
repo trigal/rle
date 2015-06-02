@@ -65,7 +65,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     // ------- PREDICTION STEP -------
     // calcolo belief predetto:
 //    stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
-    State6DOF tmp_odom = odometry->getMeasureState();
+    State6DOF tmp_odom = odometry->getMeasureState();                           // _measure from MeasurementModel, the DELTA + speeds
     stato_t_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, tmp_odom);
 
 //    R_t(0,0) *= stato_t.getTranslationalVelocity()(0);

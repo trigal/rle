@@ -70,6 +70,8 @@ VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
 
 State6DOF MotionModel::propagatePoseWithControl(State6DOF& p_state,State6DOF& control)
 {
+    ROS_INFO_STREAM("control\t" << control._translational_velocity[0]<<"\t"<<control._translational_velocity[2]<<"\t"<<control._translational_velocity[2]);
+
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * Delta_t + R
     // v_t+1 = v_t + R
@@ -81,6 +83,11 @@ State6DOF MotionModel::propagatePoseWithControl(State6DOF& p_state,State6DOF& co
     tmp_error(0) = Utils::box_muller(0,propagate_translational_vel_error_x);
     tmp_error(1) = Utils::box_muller(0,propagate_translational_vel_error_y);
     tmp_error(2) = Utils::box_muller(0,propagate_translational_vel_error_z);
+
+    ROS_DEBUG_STREAM("propagate_translational_vel_error_xyz:\t" << propagate_translational_vel_error_x << "\t" << propagate_translational_vel_error_y << "\t" << propagate_translational_vel_error_z);
+    ROS_DEBUG_STREAM("Errors:\t" << tmp_error(0) << "\t" << tmp_error(1) << "\t" << tmp_error(2));
+
+
     // propagate _pose
     if(control._translational_velocity[2] < 0)
     {

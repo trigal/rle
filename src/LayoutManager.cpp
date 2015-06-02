@@ -4,9 +4,10 @@
  *      Universita' degli Studi Milano - Bicocca, DISCO                    *
  *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
  *                                                                         *
- *   Author:    Dario Limongi                                              *
- *   Email:     dario.limongi@gmail.com                                    *
- *   Date:      25/05/2014                                                 *
+ *   Authors:                                                              *
+ *              Augusto Luis Ballardini - ballardini@disco.unimib.it       *
+ *              Axel         Furlan     - furlan@disco.unimib.it           *
+ *              Dario        Limongi    - dario.limongi@gmail.com          *
  *                                                                         *
  ***************************************************************************/
 #include "LayoutManager.h"
@@ -59,34 +60,63 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
 LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile)
 {
 
-    this->bagfile = bagfile;
+    // This sets the logger level; use this to disable all prints
+    if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) )
+    {
+       ros::console::notifyLoggerLevelsChanged();
+    }
+    else
+    {
+        std::cout << "Error while setting the logger level!" << std::endl;
+    }
 
-    // set this node_handle as the same of 'road_layout_manager'
-    node_handle = n;
-
-    // init odometry subscriber
-    odometry_sub = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
-    ROS_INFO_STREAM("ROAD LAYOUT ESTIMATION STARTED, LISTENING TO: " << odometry_sub.getTopic());
-
-    // init road_lane_detection subscriber
-    road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
-
-    // init values
+    // Init values
     step = 0;
     num_particles = 0;
     resampling_count = 0;
     LayoutManager::first_msg = true;
+    old_msg.header.stamp = ros::Time::now();    // init header timestamp
+    node_handle = n;                            // set this node_handle as the same of 'road_layout_manager'
+    start_with_gps_message  = false;            // select RLE mode, hard-coded KITTI initializations, or GPS message
+
+    this->bagfile = bagfile;
 
     // init motion model
-//    mtn_model = new MotionModel(); TODO: perché qui è stato rimosso? ora dove è?
-    //Augusto: è nella reconfigure_callback , appena rinominato come default_motion_model...non capisco perché non è un puntatore ad un oggetto come per il measurement!
+    // mtn_model = new MotionModel(); TODO: perché qui è stato rimosso? ora dove è?
+    // Augusto: è nella reconfigure_callback , appena rinominato come default_motion_model...
+    // non capisco perché non è un puntatore ad un oggetto come per il measurement
 
     measurement_model = new MeasurementModel();
 
-    // init header timestamp
-    old_msg.header.stamp = ros::Time::now();
+    tf::StampedTransform fixed_transform ;
+    fixed_transform.setOrigin(tf::Vector3(0.0f,0.0f,0.0f));
+    fixed_transform.setRotation(tf::createQuaternionFromRPY(-1.570796f, 0.0f, -1.570796f ));
+    measurement_model->setFixed_transform(fixed_transform);
 
-    // init publisher
+//TODO: check this
+//    try
+//    {
+//        ROS_INFO_STREAM("LayoutManager.cpp Looking up the fixed transform between visual_odometry_odom_x_forward and odom");
+//        tf::StampedTransform fixed_transform;
+//        ros::Time now=ros::Time::now();
+////        tf_listener.waitForTransform("/visual_odometry_odom_x_forward","/odom",now,ros::Duration(10)); //this is fixed, do not lookup for it every time
+////        tf_listener.lookupTransform("/visual_odometry_odom_x_forward","/odom",now,fixed_transform);
+//        ROS_INFO_STREAM("OK VOXF to ODOM");
+//    }
+//    catch (tf::TransformException &ex)
+//    {
+//        ROS_ERROR_STREAM("LayoutManager.cpp FAILED to look up the fixed transform between visual_odometry_odom_x_forward and odom" << endl <<ex.what());
+//        this->~LayoutManager();
+//        return;
+//    }
+
+
+    // Init publisher & subscribers
+    LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+    LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
+
+    ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
+
     LayoutManager::array_pub = n.advertise<geometry_msgs::PoseArray>("/road_layout_estimation/layout_manager/particle_pose_array",1);
     LayoutManager::gps_pub = n.advertise<sensor_msgs::NavSatFix>("/road_layout_estimation/layout_manager/gps_fix",1);
     LayoutManager::street_publisher = n.advertise<geometry_msgs::PoseStamped> ("/road_layout_estimation/layout_manager/quaternion_pose",1);
@@ -100,16 +130,17 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     LayoutManager::publisher_z_particle = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/z_snapped", 1);
     LayoutManager::publisher_GT_RTK = n.advertise<visualization_msgs::MarkerArray>("/road_layout_estimation/layout_manager/GT_RTK", 1);
-
     LayoutManager::publisher_average_pose = n.advertise<nav_msgs::Odometry>("/road_layout_estimation/layout_manager/average_pose",1);
 
-    // init ROS service client
-    latlon_2_xy_client = n.serviceClient<ira_open_street_map::latlon_2_xy>("/ira_open_street_map/latlon_2_xy");
-    xy_2_latlon_client = n.serviceClient<ira_open_street_map::xy_2_latlon>("/ira_open_street_map/xy_2_latlon");
-    snap_particle_xy_client = n.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
-    get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm>("/ira_open_street_map/get_closest_way_distance_utm");
+    // Init ROS service clients
+    latlon_2_xy_client                  = n.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
+    xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
+    snap_particle_xy_client             = n.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
+    get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
 
-    latlon_2_xy_client.waitForExistence(); // WAIT FOR SERVICE -- the function prints some pretty comments
+    latlon_2_xy_client.waitForExistence();      // WAIT FOR SERVICE -- the function prints some pretty comments
+
+    RLE_timer_loop = n.createTimer(ros::Duration(1), &LayoutManager::rleMainLoop, this,false, false);
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -206,7 +237,7 @@ void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_m
 
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    cout << "   Reconfigure callback! " << bagfile << endl;
+    ROS_ERROR_STREAM ("Reconfigure callback! " << bagfile );
 
     // update score guassian distribution values
     street_distribution_sigma = config.street_distribution_sigma;
@@ -216,9 +247,13 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
     // update uncertainty values -----------------------------------------------------------------------------------
-    for(int i=0; i<current_layout.size(); ++i){
+    for(int i=0; i<current_layout.size(); ++i)
+    {        
+
         Particle* particle_ptr = &current_layout.at(i);
+
         MotionModel* mtn_model_ptr = particle_ptr->getMotionModelPtr();
+
         mtn_model_ptr->setErrorCovariance(
                     config.mtn_model_position_uncertainty,
                     config.mtn_model_orientation_uncertainty,
@@ -235,19 +270,30 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     }
 
 
-    // WARNING in teoria questi due non sono più necessari. CHECK!
+    // WARNING in teoria questi due non sono più necessari. CHECK! UPDATE: fondamentale per ora è questa parte.
     // motion_model lo abbiamo definito come oggetto della particle.
     // Il Layout manager ha un oggetto default_motion_model che viene copiato in ogni particella.
+
+    // WARNING: this routine is called even by default constructor, may contain OLD values from a older ROSCORE/ROSPARAM
+    //          i.e. the values may not be the .cfg/default parameters!
     default_mtn_model.setErrorCovariance(
                 config.mtn_model_position_uncertainty,
                 config.mtn_model_orientation_uncertainty,
                 config.mtn_model_linear_uncertainty,
                 config.mtn_model_angular_uncertainty
                 );
+
     default_mtn_model.setPropagationError(
                 config.propagate_translational_vel_error_x,
                 config.propagate_translational_vel_error_y,
                 config.propagate_translational_vel_error_z,
+                config.propagate_rotational_vel_error
+                );
+
+    ROS_ERROR_STREAM ( "config.propagate_translational_vel_error_x"<<
+                config.propagate_translational_vel_error_x << "\t" <<
+                config.propagate_translational_vel_error_y << "\t" <<
+                config.propagate_translational_vel_error_z << "\t" <<
                 config.propagate_rotational_vel_error
                 );
 
@@ -259,7 +305,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     // update particle-set number (only if this isn't the first run) ------------------------------------------------
-    if(!LayoutManager::first_run){
+    if(!LayoutManager::first_run)
+    {
         if(config.particles_number > num_particles)
         {
             // let's add some empty particles to particle-set:
@@ -267,6 +314,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
            int particles_to_add = config.particles_number - num_particles;
            for(int i=0; i<particles_to_add; i++)
            {
+               ROS_DEBUG_STREAM("NEW PARTICLE");
                Particle new_particle(counter, default_mtn_model);
 
                new_particle.in_cluster = -1;
@@ -278,7 +326,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                new_particle.setParticleState(tmp);
 
                // update particle score using OpenStreetMap
-               if(LayoutManager::openstreetmap_enabled){
+               if(LayoutManager::openstreetmap_enabled)
+               {
                    // Get particle state
                    Vector3d p_state = new_particle.getParticleState().getPose();
                    geometry_msgs::PoseStamped pose_local_map_frame;
@@ -364,8 +413,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             double cov1 = 0.0f;
             double cov2 = 0.0f;
 
-            bool gps_message = true;
-            if (gps_message)
+            if (start_with_gps_message)
             {
                 // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
 
@@ -413,6 +461,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
                 if (bagfile.compare("kitti_00")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_00 intial coordinates");
                     alt = 0;
                     lat = 48.98254523586602;
                     lon = 8.39036610004500;
@@ -423,6 +472,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 01 [OK, video autostrada, si perde nella curva finale]
                 if (bagfile.compare("kitti_01")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_01 intial coordinates");
                     alt = 0;
                     lat = 49.006719195871;//49.006558;// 49.006616;//
                     lon = 8.4893558806503;//8.489195;//8.489291;//
@@ -433,6 +483,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 02 [NI, si perde dopo un paio di curve]
                 if (bagfile.compare("kitti_02")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_02 intial coordinates");
                     alt = 0;
                     lat = 48.987607723096;
                     lon = 8.4697469732634;
@@ -443,6 +494,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 04 [OK, video road, rettilineo corto]
                 if (bagfile.compare("kitti_04")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_04 intial coordinates");
                     alt = 0;
                     lat = 49.033603440345;
                     lon = 8.3950031909457;
@@ -453,6 +505,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
                 if (bagfile.compare("kitti_05")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_05 intial coordinates");
                     lat = 49.04951961077;
                     lon = 8.3965961639946;
                     alt = 0;
@@ -463,6 +516,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
                 if (bagfile.compare("kitti_06")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_06 intial coordinates");
                     alt = 0;
                     lat = 49.05349304789598;
                     lon = 8.39721998765449;
@@ -473,6 +527,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
                 if (bagfile.compare("kitti_07")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_07 intial coordinates");
                     alt = 0;
                     lat = 48.985319;//48.98523696217;
                     lon = 8.393801;//8.3936414564418;
@@ -483,6 +538,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 08 [bag inizia dopo]
                 if (bagfile.compare("kitti_08")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_08 intial coordinates");
                     alt = 0;
                     lat = 48.984311;
                     lon = 8.397817;
@@ -493,6 +549,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 09 [OK, video serie curve tondeggianti]
                 if (bagfile.compare("kitti_09")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_09 intial coordinates");
                     alt = 0;
                     lat = 48.972104544468;
                     lon = 8.4761469953335;
@@ -503,6 +560,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
                 if (bagfile.compare("kitti_10")==0)
                 {
+                    ROS_INFO_STREAM("Using hard-coded kitti_10 intial coordinates");
                     alt = 0;
                     lat = 48.972406;//48.972455;//48.97253396005;
                     lon = 8.478662;//8.478660;//8.4785980847297;
@@ -568,7 +626,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             ROS_INFO_STREAM("lat: " << lat << "\t" << "lon: " << lon);
 
             geometry_msgs::Point point;
-//            geometry_msgs::PoseStamped fix; // used for GPS publisher
             if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
             {
                  point.x = latlon_2_xy_srv.response.x;
@@ -686,6 +743,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
 
                     cout << "p_sigma" << endl << endl << p_sigma << endl;
+
                     // Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
                     new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
@@ -981,14 +1039,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     std::cout << " ******* MSG ARRIVED. *******" << std::endl;
 //    Utils::printOdomAngleAxisToCout(msg);
 
-    // if it's our first incoming odometry msg:
-    // (OLD)    just use it as particle-set poses initializer
-    // (NEW)    filter won't be called
-//    if(LayoutManager::first_msg && current_layout.size() == 0){
-//        cout << "   First Odometry message arrived, no particles" << endl;
-//        return;
-//    }
-
     if(LayoutManager::first_msg)
     {
         old_msg = msg;
@@ -1003,6 +1053,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
     // calculate delta_t
     delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+    ROS_ERROR_STREAM(delta_t);
 
 //    std::cout << "DELTA_T:\n" << msg.header.stamp.toSec() << "\n" << old_msg.header.stamp.toSec() << "\n" << delta_t << endl;
 
@@ -1862,6 +1913,22 @@ void LayoutManager::calculateScore(){
     }
 }
 /** **************************************************************************************************************/
+
+void LayoutManager::rleMainLoop(const ros::TimerEvent&)
+{
+    ROS_INFO_STREAM("Main Loop");
+}
+
+void LayoutManager::rleStart()
+{
+    LayoutManager::RLE_timer_loop.start();
+}
+
+void LayoutManager::rleStop()
+{
+    LayoutManager::RLE_timer_loop.stop();
+}
+
 
 vector<Particle> LayoutManager::layoutEstimation(){
     // Check if car has moved, if it has moved then estimate new layout

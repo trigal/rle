@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
     for (int i=0; i< argc; i++)
         std::cout << "Argument " << i << ":" << argv[i] << endl;
 
+    std::cout << endl;
+
     string visual_odometry_topic = "/stereo_odometer/odometry";
     string bagfile = "kitti_00";
 
