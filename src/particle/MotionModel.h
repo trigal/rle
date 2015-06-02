@@ -103,6 +103,11 @@ public:
         propagate_translational_percentage_vel_error_y = translational_y;
         propagate_translational_percentage_vel_error_z = translational_z;
         propagate_rotational_percentage_vel_error = rotational;
+
+        propagate_translational_vel_error_x = translational_x;
+        propagate_translational_vel_error_y = translational_y;
+        propagate_translational_vel_error_z = translational_z;
+        propagate_rotational_vel_error = rotational;
     }
 
     // constructor & destructor ----------------------------------------------------------------
