@@ -45,7 +45,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 
 
         _msg = m;
-        _msg_valid = true;
+        _msg_valid = true;  //used in PARTICLE.cpp
 
 //        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
 
@@ -82,7 +82,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 
         ros::Duration delta_time;
         delta_time = new_transform.stamp_-_old_transform.stamp_;// Augusto sun.night
-        ROS_ERROR_STREAM(delta_time.toSec());
+        ROS_DEBUG_STREAM("void MeasurementModel::setMsg > calculated delta time:" << delta_time.toSec());
 
         // try
         // {
@@ -127,6 +127,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         delta_transform.setOrigin(fixed_transform * _old_transform.inverse() * new_transform.getOrigin());
         delta_transform.setBasis(_old_transform.inverse().getBasis() * new_transform.getBasis());
         tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); // TODO: CHECK THIS MAGIC OUT
+        tmp_q.normalize();
         delta_transform.setRotation(tmp_q);
 
         // 1 and 2 are the same
@@ -138,21 +139,21 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         //ROS_INFO_STREAM( "T3:" << t3.getOrigin().getX() << "\t"<< t3.getOrigin().getY() << "\t"<< t3.getOrigin().getZ());
 
         // pose wrt last position, is a DELTA, so is mostly moving forward! ** PROVED **
-        _measure = State6DOF();        
-        _measure.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ())));
-        _measure.setRotation(Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ())));
+        _measure_Delta = State6DOF();
+        _measure_Delta.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ())));
+        _measure_Delta.setRotation(Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ())));
 
         // OLD AXEL BEHAVIOR
         //_measure.setTranslationalVelocity(Eigen::Vector3d(tmp_translational_velocity.getX(),tmp_translational_velocity.getY(),tmp_translational_velocity.getZ()));
         //_measure.setRotationalVelocity(tmp_rotational_velocity);
 
         // NEW BEHAVIOR
-        _measure.setTranslationalVelocity(Eigen::Vector3d(delta_transform.getOrigin().getX()/delta_time.toSec() ,delta_transform.getOrigin().getY()/delta_time.toSec() ,(delta_transform.getOrigin().getZ()/delta_time.toSec() )));
+        _measure_Delta.setTranslationalVelocity(Eigen::Vector3d(delta_transform.getOrigin().getX()/delta_time.toSec() ,delta_transform.getOrigin().getY()/delta_time.toSec() ,(delta_transform.getOrigin().getZ()/delta_time.toSec() )));
         tmp_rotational_velocity=Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ()));
         tmp_rotational_velocity.angle() /= delta_time.toSec();
-        _measure.setRotationalVelocity(tmp_rotational_velocity);
+        _measure_Delta.setRotationalVelocity(tmp_rotational_velocity);
 
-        ROS_DEBUG_STREAM( "_measure:" << _measure.getTranslationalVelocity()[0] << "\t"<< _measure.getTranslationalVelocity()[1] << "\t"<< _measure.getTranslationalVelocity()[2] );
+        ROS_DEBUG_STREAM( "_measure:" << _measure_Delta.getTranslationalVelocity()[0] << "\t"<< _measure_Delta.getTranslationalVelocity()[1] << "\t"<< _measure_Delta.getTranslationalVelocity()[2] );
 
         // Twist comparison
         //tf::Vector3 v1(frameSpeed.angular.x,frameSpeed.angular.y,frameSpeed.angular.z);

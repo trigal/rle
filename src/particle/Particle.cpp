@@ -46,64 +46,73 @@ void Particle::propagateLayoutComponents(){
  */
 void Particle::particlePoseEstimation(MeasurementModel* odometry){
 
-//    cout << "[entering particleEstimation]" << endl;
+    /*
+     * Here we integrate the new measure from LibViso. The following attempts were proposed.
+     * 1. EKF to smooth the odometry messages received, using the uncertainties provided with LibViso2
+     * 2. EKF using 'distance' from the path. Not yet implemented, but this will mix the PF weight routine.
+     * 3. Straightforward delta integration.
+     */
+
+    // cout << "[entering particleEstimation]" << endl;
 
     // initialize variables
-    State6DOF stato_t = particle_state; /// initial state
-    MatrixXd E_t = particle_sigma;		/// initial sigma (state error covariance)
+    State6DOF stato_t = particle_state;                                         /// initial state
+    MatrixXd E_t = particle_sigma;                                              /// initial sigma (state error covariance)
 
-    State6DOF stato_t_predetto;
-    MatrixXd E_t_pred = MatrixXd::Zero(12,12);		/// predicted sigma (state error covariance)
+    State6DOF stato_ut_predetto;
+    MatrixXd E_t_pred = MatrixXd::Zero(12,12);                                  /// predicted sigma (state error covariance)
 
-    MatrixXd R_t = particle_mtn_model.getErrorCovariance();	/// motion error covariance
-    MatrixXd Q_t = odometry->getMeasureCov();	/// measure error covariance
+    MatrixXd R_t = particle_mtn_model.getErrorCovariance();                     /// motion error covariance     (mtn_model_position_uncertainty ecc)
+    MatrixXd Q_t = odometry->getMeasureCov();                                   /// measure error covariance
 
-    MatrixXd G_t = MatrixXd::Zero(12,12);	/// motion equations jacobian
-    MatrixXd H_t = MatrixXd::Zero(12,12);	/// measure equations jacobian
-    MatrixXd K_t = MatrixXd::Zero(12,12);	/// Kalman gain
+    MatrixXd G_t = MatrixXd::Zero(12,12);	                                    /// motion equations jacobian
+    MatrixXd H_t = MatrixXd::Zero(12,12);	                                    /// measure equations jacobian
+    MatrixXd K_t = MatrixXd::Zero(12,12);	                                    /// Kalman gain
 
     // ------- PREDICTION STEP -------
-    // calcolo belief predetto:
-//    stato_t_predetto = particle_mtn_model.propagatePose(stato_t);
-    State6DOF tmp_odom = odometry->getMeasureState();                           // _measure from MeasurementModel, the DELTA + speeds
-    stato_t_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, tmp_odom);
+    // 1. Absolute
+    // stato_ut_predetto = particle_mtn_model.propagatePose(stato_t);
 
-//    R_t(0,0) *= stato_t.getTranslationalVelocity()(0);
-//    R_t(1,1) *= stato_t.getTranslationalVelocity()(1);
-//    R_t(2,2) *= stato_t.getTranslationalVelocity()(2);
+    // 2. Percentage
+    //stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentage(stato_t); //percentage
 
-//    // Print
-//    cout << "[particle_id] " << particle_id << endl;
-//    cout << "[delta t]     " << LayoutManager::delta_t << endl;
-//    stato_t.printState("[stato_t]");
-//    State6DOF(odometry->getMsg()).printState("[msg]");
-//    State6DOF(odometry->getMeasureState()).printState("[delta misura]");
+    // 3. With odometry
+    State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
+    stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
 
-    // applicazione proprietà gaussiane:
-    G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
+    // Print
+    //cout << "[particle_id] " << particle_id << endl;
+    //cout << "[delta t]     " << LayoutManager::delta_t << endl;
+    stato_t.printState("[stato_t]");
+    //State6DOF(odometry->getMsg()).printState("[msg]");
+    //State6DOF(odometry->getMeasureDeltaState()).printState("[delta misura]");
+
+    //G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
+    G_t = particle_mtn_model.motionJacobian(stato_t); // Check: stato_t al posto di stato_t_predetto
     E_t_pred = G_t * E_t * G_t.transpose() + R_t;
 
-//    if (this->getId()==1){
-//        cout << "\nE_t\n" << E_t << endl << endl;
-//        cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
-
-//        cout << "\nR_t\n" << R_t << endl << endl;
-
-//        cout << "\nG_t\n" << G_t << endl << endl;
-
-//    }
+    //if (this->getId()==1)
+    //{
+    //    cout << "\nE_t\n" << E_t << endl << endl;
+    //    cout << "\nE_t_pred\n" << E_t_pred << endl << endl;
+    //    cout << "\nR_t\n" << R_t << endl << endl;
+    //    cout << "\nG_t\n" << G_t << endl << endl;
+    //}
 
     // Check if the measure is valid
-    if(true) // !odometry->isMeasureValid())
+    if(true) // set to TRUE if using "With Odometry"
+    //if(!odometry->isMeasureValid())
     {
+        //ROS_WARN_STREAM("particlePoseEstimation: Invalid Measure");
+
         // TODO: smorzare il moto
-        particle_state = stato_t_predetto;
+        particle_state = stato_ut_predetto;
         particle_sigma = E_t_pred;
 
         //DEBUG:stampa stato_t_predetto
-//        particle_state.printState("[stato_t_filtrato_prediction_only]");
+        particle_state.printState("[stato_t_filtrato_prediction_only]");
 
-//        cout << "--------------------------------------------------------------------------------" << endl;
+        //cout << "--------------------------------------------------------------------------------" << endl;
 
         return;
     }
@@ -111,22 +120,39 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
 
     // ------- UPDATE STEP -------
 
-    State6DOF delta_measure = odometry->getMeasureState();                  // differenza tra odometria arrivata
+    State6DOF delta_measure = odometry->getMeasureDeltaState();                  // differenza tra odometria arrivata, usata per calcolare misura zt
+    ROS_ASSERT (delta_measure.getRotation().isUnitary());
+
 //    delta_measure.setRotation(AngleAxisd::Identity());
 //    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
-    State6DOF predicted_measure;
 
-    predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
-    predicted_measure.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
+    //State6DOF predicted_measure;
+    //predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    //predicted_measure.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
+    //predicted_measure.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
+    //predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
 
-    predicted_measure.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
-    predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
-    State6DOF measure_stato = odometry->measurePose(stato_t_predetto);
+    State6DOF predicted_measure_zt;
+    predicted_measure_zt.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    predicted_measure_zt.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
+    ROS_ASSERT (predicted_measure_zt.getRotation().isUnitary());
+    predicted_measure_zt.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
+    predicted_measure_zt.setRotationalVelocity(delta_measure.getRotationalVelocity());
+    ROS_ASSERT (predicted_measure_zt.getRotationalVelocity().isUnitary());
 
-    //cout << "DIOMAIALO: " << stato_t_predetto.toVectorXd().norm() << " ===== " <<  measure_stato.toVectorXd().norm() << " +++++ " << delta_measure.toVectorXd().norm();
+    State6DOF measure_h = odometry->measurePose(stato_ut_predetto);
 
-//    predicted_measure.printState("[predicted measure]");
-//    stato_t_predetto.printState("[stato_t_predetto]");
+    // ROS_DEBUG_STREAM ("stato_t_predetto: " << stato_t_predetto.toVectorXd().norm() << " ===== " <<  measure_stato.toVectorXd().norm() << " +++++ " << delta_measure.toVectorXd().norm() );
+
+    stato_ut_predetto.printState("[stato_t_predetto]");
+    predicted_measure_zt.printState("[predicted measure]");
+
+    /*nota: stiamo prendendo da libviso il delta, per applicarlo alla particella e confrontarlo con l'update nostro.
+     * perché invece non prendiamo direttamente il valore diretto di libviso di POSE e non il delta?
+     * risposta: perché nel tempo libviso deriva, il delta probabilmente no, quindi come misura il delta lo prendiamo più affidabile
+     *           rispetto alla comulata
+     */
+
 
 //    // CHECK FOR ANGLE-AXIS REPRESENTATION SWITCH
 //    Vector3d tmp_check_vect(0.23,-0.41,0.93);
@@ -146,33 +172,30 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
 //        ROS_WARN("Angle-axis Rotational Velocity representation switch detected");
 //    }
 
-    H_t = odometry->measurementJacobian(stato_t_predetto);
+    H_t = odometry->measurementJacobian(stato_ut_predetto);                      //return Identity[12] independently from the parameter
 
     MatrixXd temp = H_t * E_t_pred * H_t.transpose() + Q_t;
-//    cout << endl << endl << temp << endl <<endl ;
     K_t = E_t_pred * H_t.transpose() * temp.inverse();
     kalman_gain = K_t; //this value will be used later on score calculation
 
-//    if (this->getId()==1)
-//    {
-//        cout << endl  << endl << endl << temp << endl << endl << temp.inverse() << endl;
-//    }
-
-//    cout << " qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm() << endl;
+    cout << " qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm() << endl;
 
     // kalman gain
-//    VectorXd kalman_per_msr_diff = K_t * delta_measure.subtract_vect(measure_delta_stato);
-    VectorXd kalman_per_msr_diff = K_t * predicted_measure.subtract_vectXd(measure_stato);
+    VectorXd kalman_per_msr_diff =  K_t * (predicted_measure_zt.subtract_vectXd(measure_h));
+
+    //cout << predicted_measure_zt.subtract_vectXd(measure_h) << endl;
+    //cout << "kalman_per_msr_diff\n"<<kalman_per_msr_diff<< endl;
 
     // calculate belief
-    State6DOF stato_filtrato = stato_t_predetto.add_vectXd(kalman_per_msr_diff);
+    State6DOF stato_filtrato = stato_ut_predetto.add_vectXd(kalman_per_msr_diff);
     E_t = (MatrixXd::Identity(12,12) - (K_t * H_t)) * E_t_pred;
+
     // update particle values
     particle_state = stato_filtrato;
     particle_sigma = E_t;
 
     //DEBUG:stampa stato_t_predetto
-//    stato_filtrato.printState("[stato_t_filtrato]");
+    stato_filtrato.printState("[stato_t_filtrato]");
 
 //    cout << "--------------------------------------------------------------------------------" << endl;
 }

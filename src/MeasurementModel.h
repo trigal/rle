@@ -28,7 +28,7 @@ class MeasurementModel {
 private:
 //    VectorXd msr_state; /// measurement (12x1: 6DoF pose + 6 Speed Derivates)
     MatrixXd _msr_cov;   /// measurment covariance (12x12)
-    State6DOF _measure;
+    State6DOF _measure_Delta;
     tf::TransformListener *_listener;
     tf::StampedTransform _old_transform;
     tf::StampedTransform fixed_transform; //fixed transform from ODOM(libviso) to VISUAL_ODOMETRY_X_FORWARD
@@ -64,31 +64,36 @@ public:
 
 
     // getters & setters --------------------------------------------------------------------------
-    void setMeasureState(State6DOF& mrs){
-        _measure._pose = mrs._pose;
-        _measure._rotation = mrs._rotation;
-        _measure._translational_velocity= mrs._translational_velocity;
-        _measure._rotational_velocity= mrs._rotational_velocity;
+    void setMeasureState(State6DOF& mrs)
+    {
+        //        _measure_Delta._pose = mrs._pose;
+        //        _measure_Delta._rotation = mrs._rotation;
+        //        _measure_Delta._translational_velocity= mrs._translational_velocity;
+        //        _measure_Delta._rotational_velocity= mrs._rotational_velocity;
+        _measure_Delta.setPose(mrs.getPose());
+        _measure_Delta.setRotation(mrs.getRotation());
+        _measure_Delta.setTranslationalVelocity(mrs.getTranslationalVelocity());
+        _measure_Delta.setRotationalVelocity(mrs.getRotationalVelocity());
     }
 
-    State6DOF getMeasureState() { return _measure; }
+    State6DOF getMeasureDeltaState() { return _measure_Delta; }
 
-    void setMeasureCov(MatrixXd& msrcov){ _msr_cov = msrcov; }
-    void setMeasureCov(double unc){ _msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
-    void setMeasureCov(double pos_unc, double ori_unc, double lin_unc, double ang_unc) {
+    //void setMeasureCov(MatrixXd& msrcov){ _msr_cov = msrcov; }
+    //void setMeasureCov(double unc){ _msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
+    void setMeasureCov(double position_uncertainty, double orientation_uncertainty, double speed_linear_uncertainty, double speed_angular_uncertainty) {
         _msr_cov = MatrixXd::Zero(12,12);
-        _msr_cov(0,0) = pos_unc*pos_unc;
-        _msr_cov(1,1) = pos_unc*pos_unc;
-        _msr_cov(2,2) = pos_unc*pos_unc;
-        _msr_cov(3,3) = ori_unc*ori_unc;
-        _msr_cov(4,4) = ori_unc*ori_unc;
-        _msr_cov(5,5) = ori_unc*ori_unc;
-        _msr_cov(6,6) = lin_unc*lin_unc;
-        _msr_cov(7,7) = lin_unc*lin_unc;
-        _msr_cov(8,8) = lin_unc*lin_unc;
-        _msr_cov(9,9) = ang_unc*ang_unc;
-        _msr_cov(10,10) = ang_unc*ang_unc;
-        _msr_cov(11,11) = ang_unc*ang_unc;
+        _msr_cov(0,0)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(1,1)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(2,2)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(3,3)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(4,4)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(5,5)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(6,6)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(7,7)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(8,8)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(9,9)   = speed_angular_uncertainty * speed_angular_uncertainty;
+        _msr_cov(10,10) = speed_angular_uncertainty * speed_angular_uncertainty;
+        _msr_cov(11,11) = speed_angular_uncertainty * speed_angular_uncertainty;
     }
     MatrixXd getMeasureCov(){ return _msr_cov; }
 

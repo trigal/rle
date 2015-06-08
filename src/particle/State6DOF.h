@@ -13,7 +13,7 @@ using namespace Eigen;
 class State6DOF
 {
 
-//private:
+//private:  //TODO rimettere privato ed usare i getter/setter
 public:
     Eigen::Vector3d _pose;                      // wrt world
     Eigen::AngleAxisd _rotation;                // wrt world
@@ -33,6 +33,7 @@ public:
     State6DOF add_state6DOF(State6DOF &to_be_added);
     Eigen::VectorXd toVectorXd();
     geometry_msgs::Pose toGeometryMsgPose();
+
     void addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset);
     void printState(std::string head_string);
 
@@ -40,13 +41,13 @@ public:
     Vector3d getPose() { return _pose; }
     void setPose(Vector3d pose){ _pose = pose; }
 
-    AngleAxisd getRotation() { return _rotation; }
+    AngleAxisd getRotation() { ROS_ASSERT(_rotation.isUnitary()); return _rotation; }
     void setRotation(AngleAxisd rotation) { _rotation = rotation; }
 
     Vector3d getTranslationalVelocity() { return _translational_velocity; }
     void setTranslationalVelocity(Vector3d t_velocity) { _translational_velocity = t_velocity; }
 
-    AngleAxisd getRotationalVelocity() { return _rotational_velocity; }
+    AngleAxisd getRotationalVelocity() { ROS_ASSERT(_rotational_velocity.isUnitary()); return _rotational_velocity; }
     void setRotationalVelocity(AngleAxisd rot_velocity) { _rotational_velocity = rot_velocity; }
 
 

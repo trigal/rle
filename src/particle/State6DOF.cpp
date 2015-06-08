@@ -9,10 +9,14 @@ State6DOF::State6DOF()
 
 Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
 {
+    //std::cout << "this->toVectorXd()\n" << this->toVectorXd() << std::endl;
+    //std::cout << "to_be_subtracted.toVectorXd()\n" << to_be_subtracted.toVectorXd() << std::endl<<std::endl;
+
     Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
-//    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
-//    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
-//    tmp_matrix.block(6,0,3,1) = tmp_matrix.block(6,0,3,1) - to_be_subtracted.toVectorXd().block(6,0,3,1);
+
+    //    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
+    //    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
+    //    tmp_matrix.block(6,0,3,1) = tmp_matrix.block(6,0,3,1) - to_be_subtracted.toVectorXd().block(6,0,3,1);
     return tmp_matrix;
 }
 

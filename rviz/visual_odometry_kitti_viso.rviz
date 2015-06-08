@@ -7,6 +7,9 @@ Panels:
         - /Global Options1
         - /Status1
         - /Grid1
+        - /TF1
+        - /TF1/Frames1
+        - /TF1/Tree1
         - /OSM Elements1/Namespaces1
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
@@ -107,7 +110,7 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         kitti_stereo:
           Value: true
         local_map:
@@ -123,15 +126,15 @@ Visualization Manager:
         start:
           Value: true
         tf_pose_local_map_frame:
-          Value: true
+          Value: false
         tf_pose_local_map_frame_ROTATED:
-          Value: true
+          Value: false
         tf_snapped_local_map_frame:
           Value: true
         tf_snapped_map_frame:
           Value: true
         visual_odometry_camera_frame:
-          Value: true
+          Value: false
         visual_odometry_car_frame:
           Value: true
         visual_odometry_odom_x_forward:
@@ -142,21 +145,21 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        local_map:
-          pose_local_map_frame:
-            {}
-          tf_pose_local_map_frame:
-            {}
-          tf_pose_local_map_frame_ROTATED:
-            {}
-          tf_snapped_local_map_frame:
-            {}
-          visual_odometry_odom_x_forward:
-            odom:
-              visual_odometry_camera_frame:
-                visual_odometry_car_frame:
-                  {}
         map:
+          local_map:
+            pose_local_map_frame:
+              {}
+            tf_pose_local_map_frame:
+              {}
+            tf_pose_local_map_frame_ROTATED:
+              {}
+            tf_snapped_local_map_frame:
+              {}
+            visual_odometry_odom_x_forward:
+              odom:
+                visual_odometry_camera_frame:
+                  visual_odometry_car_frame:
+                    {}
           snapped_map_frame:
             {}
           tf_snapped_map_frame:
@@ -289,22 +292,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 57.0145
+      Distance: 39.5412
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.649456
-        Y: -6.17437
-        Z: 0
+        X: 43.5803
+        Y: 17.6337
+        Z: -1.90735e-06
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.509802
+      Pitch: 0.879802
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 1.69856
+      Yaw: 3.02357
     Saved: ~
 Window Geometry:
   Displays:
