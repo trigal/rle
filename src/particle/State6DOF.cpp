@@ -33,10 +33,12 @@ State6DOF State6DOF::subtract_state6DOF(State6DOF &to_be_subtracted)
 
 void State6DOF::printState(std::string head_string)
 {
-    std::cout << head_string << std::endl;
-    std::cout << "       pose: " << this->_pose.transpose() << std::endl << "orientation: " << this->_rotation.angle() << " @ " << this->_rotation.axis().transpose() << std::endl;
-    std::cout << "     linear: " << this->_translational_velocity.transpose() << std::endl << "    angular: " << this->_rotational_velocity.angle() << " @ " << this->_rotational_velocity.axis().transpose() << std::endl << std::endl;
-
+    ROS_DEBUG_STREAM ( head_string );
+    ROS_DEBUG_STREAM ( "       pose: " << this->_pose.transpose());
+    ROS_DEBUG_STREAM ( "orientation: " << this->_rotation.angle() << " @ " << this->_rotation.axis().transpose() );
+    ROS_DEBUG_STREAM ( "     linear: " << this->_translational_velocity.transpose() );
+    ROS_DEBUG_STREAM ( "    angular: " << this->_rotational_velocity.angle() << " @ " << this->_rotational_velocity.axis().transpose() );
+    ROS_DEBUG_STREAM ( "" );
 }
 
 State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)

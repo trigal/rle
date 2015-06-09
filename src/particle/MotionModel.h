@@ -127,6 +127,14 @@ public:
     ~MotionModel(){
         error_covariance.resize(0,0);
     }
+    double getPropagate_translational_percentage_vel_error_x() const;
+    void setPropagate_translational_percentage_vel_error_x(double value);
+    double getPropagate_translational_percentage_vel_error_y() const;
+    void setPropagate_translational_percentage_vel_error_y(double value);
+    double getPropagate_translational_percentage_vel_error_z() const;
+    void setPropagate_translational_percentage_vel_error_z(double value);
+    double getPropagate_rotational_percentage_vel_error() const;
+    void setPropagate_rotational_percentage_vel_error(double value);
 };
 
 #endif /* MOTIONMODEL_H_ */

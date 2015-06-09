@@ -41,10 +41,11 @@ void Particle::propagateLayoutComponents(){
 
 /** **************************************************************************************************************/
 /**
- * @brief Implementation of E.K.F. used for particle Odometry estimation
- * @param particle
+ * @brief     Implementation of E.K.F. used for particle pose propagation
+ * @param[in] deltaTime Real deltatime between two consecutive iterations. Not the delta between LIBVISO2 msgs
+ * @param[in] odometry  The measurement model, one for all particles/hypotheses
  */
-void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTime)
+void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTimerTime, double deltaOdomTime)
 {
     // odometry is the measurementModel of the LAYOUTMANAGER (default motion model)
     // check if _first_run is still set.
@@ -94,8 +95,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
 
     // 3. With odometry but Percentage
-    State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
-    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDelta(stato_t, deltaTime);
+    //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
+    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDelta(stato_t, deltaTimerTime);
 
     // Print
     //cout << "[particle_id] " << particle_id << endl;
@@ -121,7 +122,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //if(true) // set to TRUE if using "With Odometry"
     if(!odometry->isMeasureValid())
     {
-        ROS_WARN_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure");
+        ROS_WARN_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
 
         // TODO: smorzare il moto
         particle_state = stato_ut_predetto;
@@ -139,7 +140,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     // ------- UPDATE STEP -------
 
-    State6DOF delta_measure = odometry->getMeasureDeltaState();                  // differenza tra odometria arrivata, usata per calcolare misura zt
+    //State6DOF delta_measure = odometry->getMeasureDeltaState();                  // differenza tra odometria arrivata, usata per calcolare misura zt
+    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);                  // differenza tra odometria arrivata, usata per calcolare misura zt
     ROS_ASSERT (delta_measure.getRotation().isUnitary());
 
 //    delta_measure.setRotation(AngleAxisd::Identity());
@@ -197,7 +199,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     K_t = E_t_pred * H_t.transpose() * temp.inverse();
     kalman_gain = K_t; //this value will be used later on score calculation
 
-    cout << " qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm() << endl;
+    ROS_DEBUG_STREAM(" qt " << Q_t.norm() << " temp " << temp.norm() << " Ht " << H_t.transpose().norm() << " temp inv " << temp.inverse().norm() << " K " << kalman_gain.norm());
 
     // kalman gain
     VectorXd kalman_per_msr_diff =  K_t * (predicted_measure_zt.subtract_vectXd(measure_h));

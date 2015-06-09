@@ -87,6 +87,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         ros::Duration delta_time;
         delta_time = new_transform.stamp_-_old_transform.stamp_;// Augusto sun.night
         ROS_DEBUG_STREAM("void MeasurementModel::setMsg > calculated delta time:" << delta_time.toSec());
+        ROS_ASSERT(delta_time==LayoutManager::delta_t); //TODO: check, if not assert [OK] we may use the LayoutManager::delta_t
 
         // try
         // {

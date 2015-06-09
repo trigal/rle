@@ -13,8 +13,8 @@
 #include "LayoutManager.h"
 
 bool LayoutManager::openstreetmap_enabled = true; /// check this flag if we want to initialize particle-set with OSM and GPS
-double LayoutManager::delta_t = 1;      /// Initialize static member value for C++ compilation
-double LayoutManager::deltaTimer = 0.1;   /// Initialize static member value for C++ compilation
+double LayoutManager::deltaOdomTime = 1;      /// Initialize static member value for C++ compilation
+double LayoutManager::deltaTimerTime = 0.1;   /// Initialize static member value for C++ compilation
 bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
 bool LayoutManager::first_msg = true;   /// first odometry msg flag
 int LayoutManager::step = 0;            /// filter step counter
@@ -58,11 +58,11 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  * @param n 'road_layout_manager' NodeHandle
  * @param l_components vector of layout components
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile)
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
 {
 
     // This sets the logger level; use this to disable all prints
-    if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) )
+    if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, loggingLevel) )
     {
        ros::console::notifyLoggerLevelsChanged();
     }
@@ -142,8 +142,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 
     latlon_2_xy_client.waitForExistence();      // WAIT FOR SERVICE -- the function prints some pretty comments
 
-    RLE_timer_loop = n.createTimer(ros::Duration(0.1), &LayoutManager::rleMainLoop, this,false, false);
-    RLE_timer_loop = n.createTimer(ros::Duration(0.1), &LayoutManager::layoutEstimation, this,false, false);
+    deltaTimerTime=timerInterval; //deltaTimer of the LayoutManager Class is initialy set as the requested interval
+    //RLE_timer_loop = n.createTimer(ros::Duration(deltaTimer), &LayoutManager::rleMainLoop, this,false, false);
+    RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this,false, false);
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
@@ -242,7 +243,7 @@ void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_m
 
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
-    ROS_ERROR_STREAM ("Reconfigure callback! " << bagfile );
+    ROS_INFO_STREAM ("Reconfigure callback! " << bagfile );
 
     // update score guassian distribution values
     street_distribution_sigma  = config.street_distribution_sigma;
@@ -831,7 +832,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
         // print particle poses
-        ROS_INFO_STREAM( "Random initialized particle set: " );
+        ROS_DEBUG_STREAM( "Random initialized particle set: " );
         vector<Particle> particles = current_layout; //WARNING: this lines copy all the set?!
         for(int i = 0; i<particles.size(); i++)
         {
@@ -1044,7 +1045,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     marker_pub.publish(marker1);
     marker_pub2.publish(marker2);
 
-    cout << "--------------------------------------------------------------------------------" << endl;
+    ROS_INFO_STREAM("--------------------------------------------------------------------------------");
     cout << "[step: " << step << "]" << endl; step++;
 
     // stampo misura arrivata
@@ -1064,10 +1065,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     measurement_model->setMsg(msg);
 
     // calculate delta_t
-    delta_t = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+    deltaOdomTime = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Odometry Timestamp: " << msg.header.stamp);
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Previous Timestamp: " << old_msg.header.stamp);
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Delta Timestamp    : "<< delta_t);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Delta Timestamp    : "<< deltaOdomTime);
 
     // Diff quaternions used for angle score
     tf::Quaternion first_quaternion_diff;
@@ -1748,7 +1749,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
 {
-    cout << "--------------------------------------------------------------------------------" << endl;
+    ROS_INFO_STREAM("--------------------------------------------------------------------------------");
     ROS_INFO_STREAM("Entering OdomCallBack v2");
     vector<Particle>::iterator particle_itr;
 
@@ -1757,10 +1758,11 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     // marker_pub.publish(marker1);
     // marker_pub2.publish(marker2);
 
-    cout << "[step: " << step << "]" << endl; step++;
+    ROS_INFO_STREAM("[step: " << step << "]");
+    step++;
 
     // stampo misura arrivata
-    std::cout << " ******* MSG ARRIVED. *******" << std::endl;
+    ROS_INFO_STREAM(" ******* MSG ARRIVED. *******");
 
     if(LayoutManager::first_msg)
     {
@@ -1773,8 +1775,15 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     // update flag
     LayoutManager::first_msg = false;
 
+    // calculate delta_t
+    deltaOdomTime = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Odometry Timestamp: " << msg.header.stamp);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Previous Timestamp: " << old_msg.header.stamp);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Delta Timestamp    : "<< deltaOdomTime);
+
     // retrieve measurement from odometry
     measurement_model->setMsg(msg);
+
 
     // % LINES
     publisher_marker_array_distances.publish(marker_array_distances);
@@ -1862,13 +1871,15 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
     // Get particle-set
-    vector<Particle> particles = current_layout;
-    geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
-    array_msg.header.stamp = ros::Time::now();//msg.header.stamp;
+    /// **disabling arrows
+    ///vector<Particle> particles = current_layout;
+    ///geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+    ///array_msg.header.stamp = ros::Time::now();//msg.header.stamp;
 
     // Publish it!
-    array_pub.publish(array_msg);
-    LayoutManager::publishMarkerArray();
+    //array_pub.publish(array_msg);
+    /// moving to timer loop routine
+    //LayoutManager::publishMarkerArray();
     // -------------------------------------------------------------------------------------------------------------------------------------
 
     // Update old_msg with current one for next step delta_t calculation
@@ -2616,22 +2627,26 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 }
 /** **************************************************************************************************************/
 
-void LayoutManager::rleMainLoop(const ros::TimerEvent& timerEvent)
+ROS_DEPRECATED void LayoutManager::rleMainLoop(const ros::TimerEvent& timerEvent)
 {
 
-    cout << "--------------------------------------------------------------------------------" << endl;
-    this->deltaTimer = (timerEvent.current_real-timerEvent.last_real).toSec();
+    ///
+    /// DEPRECATED
+    ///
+
+    ROS_INFO_STREAM("--------------------------------------------------------------------------------");
+    this->deltaTimerTime = (timerEvent.current_real-timerEvent.last_real).toSec();
 
     ROS_INFO_STREAM ("Entering RLE Main Loop\t" << timerEvent.current_expected << "\t"
                                                 << timerEvent.current_real << "\t"
                                                 << timerEvent.profile.last_duration.toSec() << "\t"
-                                                << this->deltaTimer << "\t"
+                                                << this->deltaTimerTime << "\t"
                      );
 
-    if (this->deltaTimer>10)
+    if (this->deltaTimerTime>10)
     {
         ROS_WARN_STREAM("Warning, deltaTimer>10 seconds. Force deltatimer = 0.1 HARDCODED");
-        this->deltaTimer = 0.1;
+        this->deltaTimerTime = 0.1;
     }
 
 
@@ -2662,7 +2677,7 @@ void LayoutManager::rleMainLoop(const ros::TimerEvent& timerEvent)
         // SAMPLING ---------------------------------------------------------------------------------------------
         // estimate particle
         ROS_DEBUG_STREAM("Estimating pose of particle n# " << (*particle_itr).getId());
-        (*particle_itr).particlePoseEstimation(measurement_model,this->deltaTimer);
+        (*particle_itr).particlePoseEstimation(measurement_model,this->deltaTimerTime);
 
         // SCORE using OpenStreetMap-----------------------------------------------------------------------------
         // update particle score using OpenStreetMap
@@ -2884,7 +2899,7 @@ void LayoutManager::rleMainLoop(const ros::TimerEvent& timerEvent)
     } // end particle cycle
 
     ROS_INFO_STREAM ("Exiting RLE Main Loop\t");
-    cout << "--------------------------------------------------------------------------------" << endl;
+    ROS_INFO_STREAM("--------------------------------------------------------------------------------");
 }
 
 void LayoutManager::rleStart()
@@ -2901,19 +2916,19 @@ void LayoutManager::rleStop()
 void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 {
 
-    cout << "--------------------------------------------------------------------------------" << endl;
-    this->deltaTimer = (timerEvent.current_real-timerEvent.last_real).toSec();
+    ROS_INFO_STREAM("--------------------------------------------------------------------------------");
+    this->deltaTimerTime = (timerEvent.current_real-timerEvent.last_real).toSec();
 
     ROS_INFO_STREAM ("Entering RLE layoutEstimation\t" << timerEvent.current_expected << "\t"
                                                        << timerEvent.current_real << "\t"
                                                        << timerEvent.profile.last_duration.toSec() << "\t"
-                                                       << this->deltaTimer << "\t"
+                                                       << this->deltaTimerTime << "\t"
                      );
 
-    if (this->deltaTimer>10)
+    if (this->deltaTimerTime>10)
     {
         ROS_WARN_STREAM("Warning, deltaTimer>10 seconds. Force deltatimer = 0.1 HARDCODED");
-        this->deltaTimer = 0.1;
+        this->deltaTimerTime = 0.1;
     }
 
     // The measurementModel return invalid measure in the FIRST iteration. If invalid, the delta is not
@@ -2921,6 +2936,20 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
     // copied into the particle_state velocities(rot/trans).
     if (!measurement_model->isMeasureValid())
         ROS_WARN_STREAM("LayoutManager::layoutEstimation says: Invalid measure detected."  );
+
+
+    // This should be unnecessary with the EKF enabled since we integrate the measure into the reading, but now
+    // we're simply applying error as an odometry-model.
+    //if (this->first_run)
+    //{
+    //    vector<Particle>::iterator particle_itr;
+    //    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    //    {
+    //        ROS_WARN_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
+    //        (*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());
+    //    }
+    //    this->first_run=false;
+    //}
 
 
     // Check if car has moved, if it has moved then estimate new layout
@@ -2931,7 +2960,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ROS_DEBUG_STREAM("Estimating pose of particle n# " << (*particle_itr).getId());
-            (*particle_itr).particlePoseEstimation(measurement_model,this->deltaTimer);
+            (*particle_itr).particlePoseEstimation(measurement_model,this->deltaTimerTime,this->deltaOdomTime);
         }        
 
         // -------------- sampling + perturbation + weight layout-components ------------- //
@@ -2953,6 +2982,9 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 //			(2) calculate score
 //			(3) resample all combination
         }
+
+        /// Other
+        LayoutManager::publishMarkerArray();
     }
     else
     {
@@ -2961,6 +2993,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
     }
 
+    ROS_INFO_STREAM ("Exiting RLE layoutEstimation\t");
 
     //return current_layout; // current layout is the <vector> of Particles
 }

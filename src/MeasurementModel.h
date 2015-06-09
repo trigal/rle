@@ -76,7 +76,45 @@ public:
         _measure_Delta.setRotationalVelocity(mrs.getRotationalVelocity());
     }
 
-    State6DOF getMeasureDeltaState() { return _measure_Delta; }
+    State6DOF getMeasureDeltaState()
+    {
+        return _measure_Delta;
+    }
+
+    State6DOF getMeasureDeltaStateScaledWithTime(double deltaTimerTime=0.0f, double deltaOdomTime=0.0f)
+    {
+        /// Here the _measure_delta is scaled by the fraction of time between the last libviso2 delta and the elapsed time from the last iteration of RLE
+
+        double scaling_factor=deltaOdomTime/deltaTimerTime;
+        ROS_ASSERT(scaling_factor>0);
+        ROS_ASSERT(std::isnormal(scaling_factor));  //a normal value: i.e., whether it is neither infinity, NaN, zero or subnormal.
+
+        State6DOF scaled;
+        Vector3d tmpVector3d;
+        AngleAxisd tmpAngleAxisd;
+
+        tmpVector3d =_measure_Delta.getPose();
+        tmpAngleAxisd =_measure_Delta.getRotation();
+
+        tmpVector3d(0)/=scaling_factor;
+        tmpVector3d(1)/=scaling_factor;
+        tmpVector3d(2)/=scaling_factor;
+        tmpAngleAxisd.angle()=tmpAngleAxisd.angle()/scaling_factor;
+
+        scaled.setPose(tmpVector3d);
+        scaled.setRotation(tmpAngleAxisd);
+        scaled.setRotationalVelocity(_measure_Delta.getRotationalVelocity());
+        scaled.setTranslationalVelocity(_measure_Delta.getTranslationalVelocity());
+
+        //_measure_Delta.printState("ORIGINAL");
+        //scaled.printState("SCALED");
+
+        ROS_ASSERT(scaled.getRotation().isUnitary());
+        ROS_ASSERT(scaled.getRotationalVelocity().isUnitary());
+
+        return scaled;
+    }
+
 
     //void setMeasureCov(MatrixXd& msrcov){ _msr_cov = msrcov; }
     //void setMeasureCov(double unc){ _msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }

@@ -75,7 +75,7 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particlePoseEstimation(MeasurementModel *odometry, double deltaTime=0);
+    void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime=0.0f, double deltaOdomTime=0.0f);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
     vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}
@@ -133,8 +133,8 @@ public:
         : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
     {
         ROS_DEBUG_STREAM("Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model)");
-        ROS_DEBUG_STREAM("mt_md:\t" << mt_md.propagate_translational_vel_error_x << "\t" << mt_md.propagate_translational_vel_error_y << "\t" << mt_md.propagate_translational_vel_error_z);
-
+        ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_vel_error_x << "\t" << mt_md.propagate_translational_vel_error_y << "\t" << mt_md.propagate_translational_vel_error_z);
+        ROS_DEBUG_STREAM("Motion Model    %     Translational Velocity errors:\t" << mt_md.getPropagate_translational_percentage_vel_error_x() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_y() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_z());
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
     }

@@ -107,8 +107,8 @@ class LayoutManager
 public:
     MeasurementModel* measurement_model;    /// our Measurment Model [created in the CLASS CONSTRUCTOR]
     MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
-    static double delta_t;                  /// time between current message and last arrived message (static should be unnecessary here)
-    static double deltaTimer;
+    static double deltaOdomTime;                  /// time between current message and last arrived message (static should be unnecessary here)
+    static double deltaTimerTime;
 
     // Publishers
     ros::Publisher array_pub;
@@ -184,7 +184,7 @@ public:
     void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
-    LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile);
+    LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel);
     LayoutManager(const LayoutManager &other);
 
     LayoutManager& operator=(const LayoutManager&);
