@@ -126,15 +126,15 @@ Visualization Manager:
         start:
           Value: true
         tf_pose_local_map_frame:
-          Value: false
+          Value: true
         tf_pose_local_map_frame_ROTATED:
-          Value: false
+          Value: true
         tf_snapped_local_map_frame:
           Value: true
         tf_snapped_map_frame:
           Value: true
         visual_odometry_camera_frame:
-          Value: false
+          Value: true
         visual_odometry_car_frame:
           Value: true
         visual_odometry_odom_x_forward:
@@ -145,21 +145,21 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
+        local_map:
+          pose_local_map_frame:
+            {}
+          tf_pose_local_map_frame:
+            {}
+          tf_pose_local_map_frame_ROTATED:
+            {}
+          tf_snapped_local_map_frame:
+            {}
+          visual_odometry_odom_x_forward:
+            odom:
+              visual_odometry_camera_frame:
+                visual_odometry_car_frame:
+                  {}
         map:
-          local_map:
-            pose_local_map_frame:
-              {}
-            tf_pose_local_map_frame:
-              {}
-            tf_pose_local_map_frame_ROTATED:
-              {}
-            tf_snapped_local_map_frame:
-              {}
-            visual_odometry_odom_x_forward:
-              odom:
-                visual_odometry_camera_frame:
-                  visual_odometry_car_frame:
-                    {}
           snapped_map_frame:
             {}
           tf_snapped_map_frame:
@@ -292,16 +292,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 39.5412
+      Distance: 135.967
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 43.5803
-        Y: 17.6337
-        Z: -1.90735e-06
+        X: 22.4337
+        Y: 8.73725
+        Z: 8.81466e-06
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 0.879802

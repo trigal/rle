@@ -32,7 +32,6 @@ private:
     tf::TransformListener *_listener;
     tf::StampedTransform _old_transform;
     tf::StampedTransform fixed_transform; //fixed transform from ODOM(libviso) to VISUAL_ODOMETRY_X_FORWARD
-    bool _first_run;
     bool _msg_valid;
     nav_msgs::Odometry _msg, _old_msg; /// current msg arrived from Visual Odometry
 
@@ -49,6 +48,7 @@ private:
 
 public:
 
+    bool _first_run;
     /**
      * @brief measurementJacobi
      * @param p_state_predicted
@@ -98,7 +98,7 @@ public:
     MatrixXd getMeasureCov(){ return _msr_cov; }
 
 
-
+    bool getFirstRun() {return _first_run;}
     void setMsg(const nav_msgs::Odometry& m);
     bool isMeasureValid() { return _msg_valid; }
 

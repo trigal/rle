@@ -75,7 +75,7 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particlePoseEstimation(MeasurementModel *odometry);
+    void particlePoseEstimation(MeasurementModel *odometry, double deltaTime=0);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
     vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}
@@ -83,6 +83,9 @@ public:
 
     State6DOF getParticleState(){ return particle_state; }
     void setParticleState(const State6DOF& p_state){ particle_state = p_state;}
+    void setParticleVelocities(const State6DOF& p_state){ particle_state._rotational_velocity    = p_state._rotational_velocity;
+                                                          particle_state._translational_velocity = p_state._translational_velocity;
+                                                        }
 
     MatrixXd getParticleSigma(){ return particle_sigma; }
     void setParticleSigma(MatrixXd& p_sigma){ particle_sigma = p_sigma; }

@@ -44,7 +44,20 @@ void Particle::propagateLayoutComponents(){
  * @brief Implementation of E.K.F. used for particle Odometry estimation
  * @param particle
  */
-void Particle::particlePoseEstimation(MeasurementModel* odometry){
+void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTime)
+{
+    // odometry is the measurementModel of the LAYOUTMANAGER (default motion model)
+    // check if _first_run is still set.
+    if(odometry->getFirstRun())
+    {
+        ROS_WARN_STREAM("First run in particlePoseEstimation");
+        particle_state.setRotationalVelocity(odometry->getMeasureDeltaState().getRotationalVelocity());
+        particle_state.setTranslationalVelocity(odometry->getMeasureDeltaState().getTranslationalVelocity());
+    }
+    else
+    {
+        ROS_DEBUG_STREAM("particlePoseEstimation: Measure OK");
+    }
 
     /*
      * Here we integrate the new measure from LibViso. The following attempts were proposed.
@@ -77,8 +90,12 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentage(stato_t); //percentage
 
     // 3. With odometry
+    //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
+    //stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
+
+    // 3. With odometry but Percentage
     State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
-    stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
+    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDelta(stato_t, deltaTime);
 
     // Print
     //cout << "[particle_id] " << particle_id << endl;
@@ -99,14 +116,16 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry){
     //    cout << "\nG_t\n" << G_t << endl << endl;
     //}
 
+
     // Check if the measure is valid
-    if(true) // set to TRUE if using "With Odometry"
-    //if(!odometry->isMeasureValid())
+    //if(true) // set to TRUE if using "With Odometry"
+    if(!odometry->isMeasureValid())
     {
-        //ROS_WARN_STREAM("particlePoseEstimation: Invalid Measure");
+        ROS_WARN_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure");
 
         // TODO: smorzare il moto
         particle_state = stato_ut_predetto;
+
         particle_sigma = E_t_pred;
 
         //DEBUG:stampa stato_t_predetto

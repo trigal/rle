@@ -34,6 +34,8 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
+    ROS_DEBUG_STREAM("Entering MeasurementModel::setMsg");
+
         /*  m is the OdometryCallback value (const nav_msgs::Odometry& msg)
          *  here we store the DELTA pose and the VELOCITY in the
          *  _measure Class Parameter
@@ -59,15 +61,17 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 
         if(_first_run)
         {
+            ROS_DEBUG_STREAM("Setting message, but first run detected");
             _old_transform = new_transform;
             _old_msg = _msg;
-            _first_run = false;
+            //_first_run = false; // not here anymore, i'll set this when the odometry2-callback is called.
             _msg_valid = false;
+            ROS_DEBUG_STREAM("Exiting MeasurementModel::setMsg cause First_Run");
             return;
         }
 
-        ROS_INFO_STREAM_ONCE("old transform " << _old_transform.stamp_);
-        ROS_INFO_STREAM_ONCE("new transform " << new_transform.stamp_);
+        ROS_INFO_STREAM_ONCE("Old transform " << _old_transform.stamp_ << " THIS MESSAGE WILL NOT APPEAR ANYMORE");
+        ROS_INFO_STREAM_ONCE("New transform " << new_transform.stamp_  << " THIS MESSAGE WILL NOT APPEAR ANYMORE");
 
         tf::StampedTransform t1,t2;
         tf::Transform t3;
@@ -153,7 +157,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tmp_rotational_velocity.angle() /= delta_time.toSec();
         _measure_Delta.setRotationalVelocity(tmp_rotational_velocity);
 
-        ROS_DEBUG_STREAM( "_measure:" << _measure_Delta.getTranslationalVelocity()[0] << "\t"<< _measure_Delta.getTranslationalVelocity()[1] << "\t"<< _measure_Delta.getTranslationalVelocity()[2] );
+        ROS_DEBUG_STREAM( "_measure: " << _measure_Delta.getTranslationalVelocity()[0] << "\t"<< _measure_Delta.getTranslationalVelocity()[1] << "\t"<< _measure_Delta.getTranslationalVelocity()[2] );
 
         // Twist comparison
         //tf::Vector3 v1(frameSpeed.angular.x,frameSpeed.angular.y,frameSpeed.angular.z);
@@ -177,6 +181,8 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         oldFrameSpeed = frameSpeed;
         _old_transform = new_transform;
         _old_msg = _msg;
+
+        ROS_DEBUG_STREAM("Exiting MeasurementModel::setMsg");
 }
 
 
@@ -189,6 +195,7 @@ void MeasurementModel::setFixed_transform(const tf::StampedTransform &value)
 {
     fixed_transform = value;
 }
+
 MatrixXd MeasurementModel::measurementJacobian(State6DOF& p_state_predicted){
     /**
      * H_t:
