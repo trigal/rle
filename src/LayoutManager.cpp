@@ -2931,25 +2931,30 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         this->deltaTimerTime = 0.1;
     }
 
-    // The measurementModel return invalid measure in the FIRST iteration. If invalid, the delta is not
-    // stored in the measurement_model. In the particlePoseEstimation the odometry/libviso speeds are
-    // copied into the particle_state velocities(rot/trans).
-    if (!measurement_model->isMeasureValid())
-        ROS_WARN_STREAM("LayoutManager::layoutEstimation says: Invalid measure detected."  );
 
 
     // This should be unnecessary with the EKF enabled since we integrate the measure into the reading, but now
     // we're simply applying error as an odometry-model.
-    //if (this->first_run)
-    //{
-    //    vector<Particle>::iterator particle_itr;
-    //    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
-    //    {
-    //        ROS_WARN_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
-    //        (*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());
-    //    }
-    //    this->first_run=false;
-    //}
+    if (this->first_run)
+    {
+        // The measurementModel return invalid measure in the FIRST iteration. If invalid, the delta is not
+        // stored in the measurement_model. In the particlePoseEstimation the odometry/libviso speeds are
+        // copied into the particle_state velocities(rot/trans).
+        if (!measurement_model->isMeasureValid())
+        {
+            ROS_WARN_STREAM("LayoutManager::layoutEstimation says: Invalid measure detected."  );
+            ROS_INFO_STREAM ("Exiting RLE layoutEstimation due to invalid measure");
+            return;
+        }
+
+        vector<Particle>::iterator particle_itr;
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
+            ROS_WARN_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
+            (*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());
+        }
+        this->first_run=false;
+    }
 
 
     // Check if car has moved, if it has moved then estimate new layout

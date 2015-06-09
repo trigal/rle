@@ -108,7 +108,7 @@ VectorXd MotionModel::propagateComponent(VectorXd& pc_state){
 }
 
 
-State6DOF MotionModel::propagatePoseWithControlPercentage(State6DOF& p_state,State6DOF& control, double deltaTime)
+State6DOF MotionModel::propagatePoseWithControlPercentageAndDelta(State6DOF& p_state,State6DOF& control, double deltaTime)
 {
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * %v_t*  dt
@@ -158,7 +158,7 @@ State6DOF MotionModel::propagatePoseWithControlPercentage(State6DOF& p_state,Sta
     p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * percentageVelError(0);
     p_state_propagated._translational_velocity(1) = p_state._translational_velocity(1) * percentageVelError(1);
     p_state_propagated._translational_velocity(2) = p_state._translational_velocity(2) * percentageVelError(2);
-    ROS_DEBUG_STREAM("Resulting Speeds:\t" << p_state._translational_velocity(0) << "\t" << p_state._translational_velocity(1) << "\t" << p_state._translational_velocity(2));
+    ROS_DEBUG_STREAM("Resulting Speeds:\t" << p_state_propagated._translational_velocity(0) << "\t" << p_state_propagated._translational_velocity(1) << "\t" << p_state_propagated._translational_velocity(2));
 
     // propagate speed, velocity
     p_state_propagated._rotational_velocity.angle()    = control.getRotationalVelocity().angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error);
@@ -299,9 +299,9 @@ State6DOF MotionModel::propagatePoseWithPercentage(State6DOF& p_state)
     return p_state_propagated;
 }
 
-State6DOF MotionModel::propagatePoseWithPercentageAndDelta(State6DOF& p_state, double deltaTime)
+State6DOF MotionModel::propagatePoseWithPercentageAndDeltatime(State6DOF& p_state, double deltaTime)
 {
-    ROS_DEBUG_STREAM("entering propagatePoseWithPercentageAndDelta");
+    ROS_DEBUG_STREAM("> entering propagatePoseWithPercentageAndDelta");
     ROS_ASSERT(p_state.getRotation().isUnitary());
     ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
@@ -325,7 +325,7 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDelta(State6DOF& p_state, d
     p_state_propagated._pose(0)+=Utils::box_muller(0,propagate_translational_vel_error_x);
     p_state_propagated._pose(1)+=Utils::box_muller(0,propagate_translational_vel_error_y);
     p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z);
-
+    BUG qui sommo xyz su sistema di cordinate ad cazzium.
     // propagate _pose
     //Eigen::Vector3d speedToApply;
     //speedToApply(0) = p_state._translational_velocity(0) * percentageVelError(0);
@@ -337,28 +337,32 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDelta(State6DOF& p_state, d
     //p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z); ///adding error
 
     // propagate pose _rotation
-    Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);
+    Eigen::AngleAxisd tmpAngleAxisd(p_state._rotational_velocity);
     ROS_DEBUG_STREAM("Angle (deg): " << p_state.getRotationalVelocity().angle() << "\tVector: " << p_state.getRotationalVelocity().axis()(0) <<"\t"<< p_state.getRotationalVelocity().axis()(1) << "\t"<< p_state.getRotationalVelocity().axis()(2) );
-    tmp_angle_axis.angle() = tmp_angle_axis.angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error) * deltaTime;
-    tmp_angle_axis.angle() += Utils::box_muller(0,propagate_rotational_vel_error);         ///adding error
-    p_state_propagated._rotation = tmp_angle_axis * p_state._rotation ;
+    tmpAngleAxisd.angle() = tmpAngleAxisd.angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error) * deltaTime;
+    tmpAngleAxisd.angle() += Utils::box_muller(0,propagate_rotational_vel_error);         ///adding error
+    anche quick_exit();
+    //tmpAngleAxisd.axis()(0) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
+    //tmpAngleAxisd.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
+    //tmpAngleAxisd.axis().normalize();
+    p_state_propagated._rotation = tmpAngleAxisd * p_state._rotation ;
     ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
 
     // Generate random error with box_muller function
     p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * percentageVelError(0);
     p_state_propagated._translational_velocity(1) = p_state._translational_velocity(1) * percentageVelError(1);
     p_state_propagated._translational_velocity(2) = p_state._translational_velocity(2) * percentageVelError(2);
-    ROS_DEBUG_STREAM("Resulting Speeds:\t" << p_state._translational_velocity(0) << "\t" << p_state._translational_velocity(1) << "\t" << p_state._translational_velocity(2));
+    ROS_DEBUG_STREAM("Resulting Speeds:\t" << p_state_propagated._translational_velocity(0) << "\t" << p_state_propagated._translational_velocity(1) << "\t" << p_state_propagated._translational_velocity(2));
 
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
     p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error);
-    p_state_propagated._rotational_velocity.axis()(0) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
-    p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
+    //p_state_propagated._rotational_velocity.axis()(0) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
+    //p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
     //p_state_propagated._rotational_velocity.axis()(2) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
-    p_state_propagated._rotational_velocity.axis().normalize();
+    //p_state_propagated._rotational_velocity.axis().normalize();
     ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
 
-    ROS_DEBUG_STREAM("exiting propagatePoseWithPercentageAndDelta");
+    ROS_DEBUG_STREAM("< exiting propagatePoseWithPercentageAndDelta");
     return p_state_propagated;
 }
 

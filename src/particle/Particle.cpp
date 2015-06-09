@@ -94,16 +94,16 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
 
-    // 3. With odometry but Percentage
+    // 3. Tryin again with EKF
+    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDeltatime(stato_t, deltaTimerTime);
+
+    // 4. With odometry but Percentage
     //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
-    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDelta(stato_t, deltaTimerTime);
+    //stato_ut_predetto = particle_mtn_model.propagatePoseWithControlPercentageAndDelta(stato_t, deltaFromLibviso, deltaTimerTime);
 
     // Print
-    //cout << "[particle_id] " << particle_id << endl;
-    //cout << "[delta t]     " << LayoutManager::delta_t << endl;
     stato_t.printState("[stato_t]");
-    //State6DOF(odometry->getMsg()).printState("[msg]");
-    //State6DOF(odometry->getMeasureDeltaState()).printState("[delta misura]");
+    stato_ut_predetto.printState("[stato_t_predetto]");
 
     //G_t = particle_mtn_model.motionJacobian(stato_t_predetto); // Check: stato_t al posto di stato_t_predetto
     G_t = particle_mtn_model.motionJacobian(stato_t); // Check: stato_t al posto di stato_t_predetto
@@ -119,8 +119,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
 
     // Check if the measure is valid
-    //if(true) // set to TRUE if using "With Odometry"
-    if(!odometry->isMeasureValid())
+    if(true) // set to TRUE if using "With Odometry"
+    //if(!odometry->isMeasureValid())
     {
         ROS_WARN_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
 
@@ -140,8 +140,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     // ------- UPDATE STEP -------
 
-    //State6DOF delta_measure = odometry->getMeasureDeltaState();                  // differenza tra odometria arrivata, usata per calcolare misura zt
-    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);                  // differenza tra odometria arrivata, usata per calcolare misura zt
+    //State6DOF delta_measure = odometry->getMeasureDeltaState();                                            // differenza tra odometria arrivata, usata per calcolare misura zt
+    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);    // here the measurement is scaled with the timestamps. Needed in decoupling.
     ROS_ASSERT (delta_measure.getRotation().isUnitary());
 
 //    delta_measure.setRotation(AngleAxisd::Identity());
@@ -165,7 +165,6 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     // ROS_DEBUG_STREAM ("stato_t_predetto: " << stato_t_predetto.toVectorXd().norm() << " ===== " <<  measure_stato.toVectorXd().norm() << " +++++ " << delta_measure.toVectorXd().norm() );
 
-    stato_ut_predetto.printState("[stato_t_predetto]");
     predicted_measure_zt.printState("[predicted measure]");
 
     /*nota: stiamo prendendo da libviso il delta, per applicarlo alla particella e confrontarlo con l'update nostro.

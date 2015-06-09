@@ -54,7 +54,6 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 
 //        _msr_cov = Eigen::MatrixXd::Identity(12,12) * 1.2; //   Utils::getCovFromOdom(m);
 
-
         /// this fixes #416
         //_msr_cov = Utils::getCovFromOdom(m);
 

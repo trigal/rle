@@ -108,65 +108,19 @@ Visualization Manager:
       Reference Frame: tf_pose_local_map_frame_ROTATED
       Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        kitti_stereo:
-          Value: true
-        local_map:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        pose_local_map_frame:
-          Value: true
-        snapped_map_frame:
-          Value: true
-        start:
-          Value: true
-        tf_pose_local_map_frame:
-          Value: true
-        tf_pose_local_map_frame_ROTATED:
-          Value: true
-        tf_snapped_local_map_frame:
-          Value: true
-        tf_snapped_map_frame:
-          Value: true
-        visual_odometry_camera_frame:
-          Value: true
-        visual_odometry_car_frame:
-          Value: true
-        visual_odometry_odom_x_forward:
-          Value: true
       Marker Scale: 10
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        local_map:
-          pose_local_map_frame:
-            {}
-          tf_pose_local_map_frame:
-            {}
-          tf_pose_local_map_frame_ROTATED:
-            {}
-          tf_snapped_local_map_frame:
-            {}
-          visual_odometry_odom_x_forward:
-            odom:
-              visual_odometry_camera_frame:
-                visual_odometry_car_frame:
-                  {}
-        map:
-          snapped_map_frame:
-            {}
-          tf_snapped_map_frame:
-            {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 170; 0
@@ -293,22 +247,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 119.166
+      Distance: 126.5
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 44.5427
-        Y: 2.97799
-        Z: 8.81466e-06
+        X: 3.08372
+        Y: 11.916
+        Z: 9.43146e-06
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.4398
+      Pitch: 1.1298
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.16357
+      Yaw: 3.03857
     Saved: ~
 Window Geometry:
   Displays:
