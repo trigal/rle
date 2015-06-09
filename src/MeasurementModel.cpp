@@ -43,6 +43,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
          *                 pose           rotation
          *             trans_velocity   rot_velocity
          *
+         *  following #416, i'm not using anymore the provided covariance matrix
          */
 
 
@@ -52,7 +53,10 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 //        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
 
 //        _msr_cov = Eigen::MatrixXd::Identity(12,12) * 1.2; //   Utils::getCovFromOdom(m);
-        _msr_cov = Utils::getCovFromOdom(m);
+
+
+        /// this fixes #416
+        //_msr_cov = Utils::getCovFromOdom(m);
 
         tf::StampedTransform new_transform;
         new_transform.setOrigin(tf::Vector3(_msg.pose.pose.position.x, _msg.pose.pose.position.y, _msg.pose.pose.position.z));

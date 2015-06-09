@@ -321,20 +321,20 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDelta(State6DOF& p_state, d
     ROS_DEBUG_STREAM("State speeds:\t" << p_state._translational_velocity(0) << "\t" << p_state._translational_velocity(1) << "\t" << p_state._translational_velocity(2));
 
     // propagate _pose
-//    p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * deltaTime);
-//    p_state_propagated._pose(0)+=Utils::box_muller(0,propagate_translational_vel_error_x);
-//    p_state_propagated._pose(1)+=Utils::box_muller(0,propagate_translational_vel_error_y);
-//    p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z);
+    p_state_propagated._pose = p_state._pose + p_state._rotation * (p_state._translational_velocity * deltaTime);
+    p_state_propagated._pose(0)+=Utils::box_muller(0,propagate_translational_vel_error_x);
+    p_state_propagated._pose(1)+=Utils::box_muller(0,propagate_translational_vel_error_y);
+    p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z);
 
     // propagate _pose
-    Eigen::Vector3d speedToApply;
-    speedToApply(0) = p_state._translational_velocity(0) * percentageVelError(0);
-    speedToApply(1) = p_state._translational_velocity(1) * percentageVelError(1);
-    speedToApply(2) = p_state._translational_velocity(2) * percentageVelError(2);
-    p_state_propagated._pose = p_state._pose + p_state._rotation * (speedToApply * deltaTime);
-    p_state_propagated._pose(0)+=Utils::box_muller(0,propagate_translational_vel_error_x); ///adding error
-    p_state_propagated._pose(1)+=Utils::box_muller(0,propagate_translational_vel_error_y); ///adding error
-    p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z); ///adding error
+    //Eigen::Vector3d speedToApply;
+    //speedToApply(0) = p_state._translational_velocity(0) * percentageVelError(0);
+    //speedToApply(1) = p_state._translational_velocity(1) * percentageVelError(1);
+    //speedToApply(2) = p_state._translational_velocity(2) * percentageVelError(2);
+    //p_state_propagated._pose = p_state._pose + p_state._rotation * (speedToApply * deltaTime);
+    //p_state_propagated._pose(0)+=Utils::box_muller(0,propagate_translational_vel_error_x); ///adding error
+    //p_state_propagated._pose(1)+=Utils::box_muller(0,propagate_translational_vel_error_y); ///adding error
+    //p_state_propagated._pose(2)+=Utils::box_muller(0,propagate_translational_vel_error_z); ///adding error
 
     // propagate pose _rotation
     Eigen::AngleAxisd tmp_angle_axis(p_state._rotational_velocity);

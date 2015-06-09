@@ -258,16 +258,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         Particle* particle_ptr = &current_layout.at(i);
 
-        MotionModel* mtn_model_ptr = particle_ptr->getMotionModelPtr();
+        MotionModel* motionModelPointer = particle_ptr->getMotionModelPtr();
 
-        mtn_model_ptr->setErrorCovariance(
+        motionModelPointer->setErrorCovariance(
                     config.mtn_model_position_uncertainty,
                     config.mtn_model_orientation_uncertainty,
                     config.mtn_model_linear_uncertainty,
                     config.mtn_model_angular_uncertainty
                     );
 
-        mtn_model_ptr->setPropagationError(
+        motionModelPointer->setPropagationError(
                     config.propagate_translational_vel_error_x,
                     config.propagate_translational_vel_error_y,
                     config.propagate_translational_vel_error_z,
@@ -1793,80 +1793,80 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     publisher_z_particle.publish(marker_z_particle);
     // -------------------------------------------------------------------------------------------------------------------------------------
 
-    // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-    if(resampling_count++ == 4)
-//    if(0)
-    {
-        ROS_DEBUG_STREAM("Resampling phase!");
-        resampling_count = 0;
-        vector<Particle> new_current_layout;
-        vector<double> particle_score_vect;
-        double cum_score_sum = 0;
-
-        // Build cumulative sum of the score and roulette vector
-        for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
-        {
-             cum_score_sum += (*particle_itr).getParticleScore();
-             particle_score_vect.push_back(cum_score_sum);
-        }
-
-
-        if(cum_score_sum != 0)
-        {
-            // Init uniform distribution
-            boost::uniform_real<double> uniform_rand(0, cum_score_sum);
-            boost::uniform_real<double> uniform_rand2(0, 100);
-            boost::uniform_real<double> uniform_rand3(0, current_layout.size());
-
-            // find weight that is at least num
-            vector<double>::iterator score_itr;
-
-            for(int k = 0; k<current_layout.size(); ++k)
-            {
-                if(uniform_rand2(rng) <= 95) //This percentage of weighted samples
-                {
-                    // WEIGHTED RESAMPLER
-                    int particle_counter = 0;
-                    double num = uniform_rand(rng);
-
-                    for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
-                    {
-                        if( *score_itr >= num)
-                        {
-                            Particle temp_part = current_layout.at(particle_counter);
-                            temp_part.setId(k);
-//                            stat_out_file << temp_part.getId() << "\t";
-//                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
-//                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
-                            new_current_layout.push_back(temp_part);
-                            break;
-                        }
-                        particle_counter++;
-                    }
-                }
-                else
-                {
-                    // UNIFORM RESAMPLER
-                    int temp_rand = floor(uniform_rand3(rng));
-                    Particle temp_part = current_layout.at(temp_rand);
-                    temp_part.setId(k);
-                    new_current_layout.push_back(temp_part);
-                }
-
-            }
-
-            // Save stats to file
-//            MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
-//            MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
-//            double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
-//            stat_out_file << var_mean << endl;
-
-            // copy resampled particle-set
-            current_layout.clear();
-            current_layout = new_current_layout;
-        }
-    }
-    // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
+    //// RESAMPLING --------------------------------------------------------------------------------------------------------------------------
+    //if(resampling_count++ == 4)
+    ////    if(0)
+    //{
+    //    ROS_DEBUG_STREAM("Resampling phase!");
+    //    resampling_count = 0;
+    //    vector<Particle> new_current_layout;
+    //    vector<double> particle_score_vect;
+    //    double cum_score_sum = 0;
+    //
+    //    // Build cumulative sum of the score and roulette vector
+    //    for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    //    {
+    //         cum_score_sum += (*particle_itr).getParticleScore();
+    //         particle_score_vect.push_back(cum_score_sum);
+    //    }
+    //
+    //
+    //    if(cum_score_sum != 0)
+    //    {
+    //        // Init uniform distribution
+    //        boost::uniform_real<double> uniform_rand(0, cum_score_sum);
+    //        boost::uniform_real<double> uniform_rand2(0, 100);
+    //        boost::uniform_real<double> uniform_rand3(0, current_layout.size());
+    //
+    //        // find weight that is at least num
+    //        vector<double>::iterator score_itr;
+    //
+    //        for(int k = 0; k<current_layout.size(); ++k)
+    //        {
+    //            if(uniform_rand2(rng) <= 95) //This percentage of weighted samples
+    //            {
+    //                // WEIGHTED RESAMPLER
+    //                int particle_counter = 0;
+    //                double num = uniform_rand(rng);
+    //
+    //                for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
+    //                {
+    //                    if( *score_itr >= num)
+    //                    {
+    //                        Particle temp_part = current_layout.at(particle_counter);
+    //                        temp_part.setId(k);
+//  //                          stat_out_file << temp_part.getId() << "\t";
+//  //                          particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
+//  //                          particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+    //                        new_current_layout.push_back(temp_part);
+    //                        break;
+    //                    }
+    //                    particle_counter++;
+    //                }
+    //            }
+    //            else
+    //            {
+    //                // UNIFORM RESAMPLER
+    //                int temp_rand = floor(uniform_rand3(rng));
+    //                Particle temp_part = current_layout.at(temp_rand);
+    //                temp_part.setId(k);
+    //                new_current_layout.push_back(temp_part);
+    //            }
+    //
+    //        }
+    //
+    //        // Save stats to file
+    //        //MatrixXd centered = particle_poses_statistics.rowwise() - particle_poses_statistics.colwise().mean();
+    //        //MatrixXd cov = (centered.adjoint() * centered) / double(particle_poses_statistics.rows() - 1);
+    //        //double var_mean = 3*sqrt(0.5 * cov(0,0) + 0.5 * cov(1,1));
+    //        //stat_out_file << var_mean << endl;
+    //
+    //        // copy resampled particle-set
+    //        current_layout.clear();
+    //        current_layout = new_current_layout;
+    //    }
+    //}
+    //// END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
     // -------------------------------------------------------------------------------------------------------------------------------------
     // BUILD POSEARRAY MSG
@@ -2982,6 +2982,75 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 //			(2) calculate score
 //			(3) resample all combination
         }
+
+        // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
+        if(resampling_count++ == 4)
+        //    if(0)
+        {
+            ROS_DEBUG_STREAM("Resampling phase!");
+            resampling_count = 0;
+            vector<Particle> new_current_layout;
+            vector<double> particle_score_vect;
+            double cum_score_sum = 0;
+
+            // Build cumulative sum of the score and roulette vector
+            for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+            {
+                 cum_score_sum += (*particle_itr).getParticleScore();
+                 particle_score_vect.push_back(cum_score_sum);
+            }
+
+
+            if(cum_score_sum != 0)
+            {
+                // Init uniform distribution
+                boost::uniform_real<double> uniform_rand(0, cum_score_sum);
+                boost::uniform_real<double> uniform_rand2(0, 100);
+                boost::uniform_real<double> uniform_rand3(0, current_layout.size());
+
+                // find weight that is at least num
+                vector<double>::iterator score_itr;
+
+                for(int k = 0; k<current_layout.size(); ++k)
+                {
+                    if(uniform_rand2(rng) <= 95) //This percentage of weighted samples
+                    {
+                        // WEIGHTED RESAMPLER
+                        int particle_counter = 0;
+                        double num = uniform_rand(rng);
+
+                        for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
+                        {
+                            if( *score_itr >= num)
+                            {
+                                Particle temp_part = current_layout.at(particle_counter);
+                                temp_part.setId(k);
+    //                            stat_out_file << temp_part.getId() << "\t";
+    //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
+    //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+                                new_current_layout.push_back(temp_part);
+                                break;
+                            }
+                            particle_counter++;
+                        }
+                    }
+                    else
+                    {
+                        // UNIFORM RESAMPLER
+                        int temp_rand = floor(uniform_rand3(rng));
+                        Particle temp_part = current_layout.at(temp_rand);
+                        temp_part.setId(k);
+                        new_current_layout.push_back(temp_part);
+                    }
+
+                }
+
+                // copy resampled particle-set
+                current_layout.clear();
+                current_layout = new_current_layout;
+            }
+        }
+        // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
         /// Other
         LayoutManager::publishMarkerArray();

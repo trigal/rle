@@ -118,7 +118,10 @@ public:
 
     //void setMeasureCov(MatrixXd& msrcov){ _msr_cov = msrcov; }
     //void setMeasureCov(double unc){ _msr_cov = MatrixXd::Identity(12,12) * (unc*unc); }
-    void setMeasureCov(double position_uncertainty, double orientation_uncertainty, double speed_linear_uncertainty, double speed_angular_uncertainty) {
+    void setMeasureCov(double position_uncertainty, double orientation_uncertainty, double speed_linear_uncertainty, double speed_angular_uncertainty)
+    {
+        ROS_ERROR_STREAM("setMeasureCov" << "\t" << position_uncertainty << "\t" << orientation_uncertainty << "\t" << speed_linear_uncertainty << "\t" << speed_angular_uncertainty);
+
         _msr_cov = MatrixXd::Zero(12,12);
         _msr_cov(0,0)   = position_uncertainty      * position_uncertainty;
         _msr_cov(1,1)   = position_uncertainty      * position_uncertainty;
