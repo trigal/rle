@@ -107,7 +107,8 @@ class LayoutManager
 public:
     MeasurementModel* measurement_model;    /// our Measurment Model [created in the CLASS CONSTRUCTOR]
     MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
-    static double delta_t;                  /// time between current message and last arrived message
+    static double delta_t;                  /// time between current message and last arrived message (static should be unnecessary here)
+    static double deltaTimer;
 
     // Publishers
     ros::Publisher array_pub;
@@ -153,13 +154,14 @@ public:
      * Genera una stima del layout al tempo t a partire dal currentLayout
      * @return particle set al tempo t
      */
-    vector<Particle> layoutEstimation();
+    void layoutEstimation(const ros::TimerEvent &timerEvent);
 
     /**
      * @brief odometryCallback
      * @param msg
      */
     void odometryCallback(const nav_msgs::Odometry& msg);
+    void odometryCallback2(const nav_msgs::Odometry& msg);
 
     /**
      * @brief reconfigureCallback
@@ -300,10 +302,10 @@ private:
      * uno score di valore basso per motivi di natura diversa.
      *
      */
-    void calculateScore();
+    void calculateScore(Particle *particle_itr);
 
 
-    void rleMainLoop(const ros::TimerEvent&);
+    ROS_DEPRECATED void rleMainLoop(const ros::TimerEvent&timerEvent);
 
 };
 

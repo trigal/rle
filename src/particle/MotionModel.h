@@ -71,6 +71,7 @@ public:
     State6DOF propagatePoseWithPercentage(State6DOF& p_state);                  //enhanced behavior, but we had troubles with this
     State6DOF propagatePoseWithControl(State6DOF& p_state, State6DOF &control); //used in ITSC 2015 submission
     State6DOF propagatePoseWithControlPercentage(State6DOF& p_state, State6DOF &control, double deltaTime); //decoupling branch
+    State6DOF propagatePoseWithPercentageAndDelta(State6DOF& p_state, double deltaTime);                  //enhanced behavior, but we had troubles with this
 
     /**
      * @brief motionJacobi
