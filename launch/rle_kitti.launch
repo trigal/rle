@@ -6,10 +6,11 @@
 
             <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
-            <arg name="publish_rate" default="0.2" />
+            <arg name="publish_rate" default="0.1" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <param name="/use_sim_time" value="true"/>
-            <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
+            <!-- <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" /> -->
+            <arg name="map" default="$(find ira_open_street_map)/maps/2011_10_03_drive_0042_sync.osm" />
 
             <arg name="play_from_VO" default="true" />      <!-- if you want to autoplay the bag file -->
             <arg name="enable_VO" default="true" />        <!-- if the VO BAGS are used, put FALSE here -->
