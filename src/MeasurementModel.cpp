@@ -34,7 +34,7 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
 
 void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
 {
-    ROS_DEBUG_STREAM("Entering MeasurementModel::setMsg");
+    ROS_DEBUG_STREAM("> Entering MeasurementModel::setMsg");
 
         /*  m is the OdometryCallback value (const nav_msgs::Odometry& msg)
          *  here we store the DELTA pose and the VELOCITY in the
@@ -161,7 +161,8 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tmp_rotational_velocity.angle() /= delta_time.toSec();
         _measure_Delta.setRotationalVelocity(tmp_rotational_velocity);
 
-        ROS_DEBUG_STREAM( "_measure: " << _measure_Delta.getTranslationalVelocity()[0] << "\t"<< _measure_Delta.getTranslationalVelocity()[1] << "\t"<< _measure_Delta.getTranslationalVelocity()[2] );
+        ROS_DEBUG_STREAM( "_measure (translationalVelocity m/s): " << _measure_Delta.getTranslationalVelocity()(0) << "\t"<< _measure_Delta.getTranslationalVelocity()(1) << "\t"<< _measure_Delta.getTranslationalVelocity()(2) );
+        ROS_DEBUG_STREAM( "_measure (rotationalVelocity  rad/s): " << _measure_Delta.getRotationalVelocity().angle() << "\tAxis: "<< _measure_Delta.getRotationalVelocity().axis()(0) << "\t"<< _measure_Delta.getRotationalVelocity().axis()(1) << "\t"<< _measure_Delta.getRotationalVelocity().axis()(2) );
 
         // Twist comparison
         //tf::Vector3 v1(frameSpeed.angular.x,frameSpeed.angular.y,frameSpeed.angular.z);
@@ -186,7 +187,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         _old_transform = new_transform;
         _old_msg = _msg;
 
-        ROS_DEBUG_STREAM("Exiting MeasurementModel::setMsg");
+        ROS_DEBUG_STREAM("< Exiting MeasurementModel::setMsg");
 }
 
 

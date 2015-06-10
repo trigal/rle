@@ -70,7 +70,7 @@ public:
     State6DOF propagatePoseWithAbsolute(State6DOF& p_state);                    //old behavior
     State6DOF propagatePoseWithPercentage(State6DOF& p_state);                  //enhanced behavior, but we had troubles with this
     State6DOF propagatePoseWithControl(State6DOF& p_state, State6DOF &control); //used in ITSC 2015 submission
-    State6DOF propagatePoseWithControlPercentageAndDelta(State6DOF& p_state, State6DOF &control, double deltaTime); //decoupling branch
+    State6DOF propagatePoseWithControlPercentageAndDeltatime(State6DOF& p_state, State6DOF &control, double deltaTime); //decoupling branch
     State6DOF propagatePoseWithPercentageAndDeltatime(State6DOF& p_state, double deltaTime);                  //enhanced behavior, but we had troubles with this
 
     /**

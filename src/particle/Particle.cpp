@@ -95,11 +95,11 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
 
     // 3. Tryin again with EKF
-    stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDeltatime(stato_t, deltaTimerTime);
+    //stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDeltatime(stato_t, deltaTimerTime);
 
     // 4. With odometry but Percentage
-    //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
-    //stato_ut_predetto = particle_mtn_model.propagatePoseWithControlPercentageAndDelta(stato_t, deltaFromLibviso, deltaTimerTime);
+    State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
+    stato_ut_predetto = particle_mtn_model.propagatePoseWithControlPercentageAndDeltatime(stato_t, deltaFromLibviso, deltaTimerTime);
 
     // Print
     stato_t.printState("[stato_t]");
