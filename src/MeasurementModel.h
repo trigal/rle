@@ -32,11 +32,12 @@ private:
     tf::TransformListener *_listener;
     tf::StampedTransform _old_transform;
     tf::StampedTransform fixed_transform; //fixed transform from ODOM(libviso) to VISUAL_ODOMETRY_X_FORWARD
-    bool _msg_valid;
+    ROS_DEPRECATED bool _msg_valid;
     nav_msgs::Odometry _msg, _old_msg; /// current msg arrived from Visual Odometry
 
     geometry_msgs::Twist frameSpeed;
     geometry_msgs::Twist oldFrameSpeed;
+    ros::Duration delta_time;
 
     class Tracker{
 
@@ -48,7 +49,7 @@ private:
 
 public:
 
-    bool _first_run;
+    bool measurementModelFirstRunNotExecuted;
     /**
      * @brief measurementJacobi
      * @param p_state_predicted
@@ -74,6 +75,17 @@ public:
         _measure_Delta.setRotation(mrs.getRotation());
         _measure_Delta.setTranslationalVelocity(mrs.getTranslationalVelocity());
         _measure_Delta.setRotationalVelocity(mrs.getRotationalVelocity());
+    }
+
+    State6DOF getOrthogonalMeasureDeltaState()
+    {
+        State6DOF orthogonalDelta;
+        orthogonalDelta = _measure_Delta;
+        orthogonalDelta.setOrthogonalPoseRotation();
+        orthogonalDelta.setOrthogonalSpeedRotation();
+        _measure_Delta.printState("Original delta state");
+        orthogonalDelta.printState("Orthogonal delta state");
+        return orthogonalDelta;
     }
 
     State6DOF getMeasureDeltaState()
@@ -139,7 +151,7 @@ public:
     MatrixXd getMeasureCov(){ return _msr_cov; }
 
 
-    bool getFirstRun() {return _first_run;}
+    bool getFirstRun() {return measurementModelFirstRunNotExecuted;}
     void setMsg(const nav_msgs::Odometry& m);
     bool isMeasureValid() { return _msg_valid; }
 
@@ -147,11 +159,12 @@ public:
     nav_msgs::Odometry getOldMsg() { return _old_msg; }
 
     // constructor & destructor -------------------------------------------------------------------
-    MeasurementModel(){
+    MeasurementModel()
+    {
         // Sets all values to zero
         _msr_cov = MatrixXd::Zero(12,12);
         _listener = new tf::TransformListener();
-        _first_run = true;
+        measurementModelFirstRunNotExecuted = true;
         _msg_valid = false;
     }
 
@@ -162,6 +175,8 @@ public:
     }
     tf::StampedTransform getFixed_transform() const;
     void setFixed_transform(const tf::StampedTransform &value);
+    ros::Duration getDelta_time() const;
+    void setDelta_time(const ros::Duration &value);
 };
 
 #endif /* ODOMETRY_H_ */

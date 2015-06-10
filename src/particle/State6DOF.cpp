@@ -145,3 +145,21 @@ void State6DOF::addNoise(double position_offset, double orientation_offset, doub
 
    this->_rotational_velocity.angle() += Utils::getNoise(angular_offset);
 }
+
+void State6DOF::setOrthogonalPoseRotation()
+{
+    if (this->_rotation.axis()(2)<0)
+        this->_rotation.inverse();
+    this->_rotation.axis()(0)=0;
+    this->_rotation.axis()(1)=0;
+    this->_rotation.axis()(2)=1;
+}
+
+void State6DOF::setOrthogonalSpeedRotation()
+{
+    if (this->_rotation.axis()(2)<0)
+        this->_rotation.inverse();
+    this->_rotational_velocity.axis()(0)=0;
+    this->_rotational_velocity.axis()(1)=0;
+    this->_rotational_velocity.axis()(2)=1;
+}

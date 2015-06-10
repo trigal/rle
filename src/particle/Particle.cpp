@@ -122,7 +122,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     if(true) // set to TRUE if using "With Odometry"
     //if(!odometry->isMeasureValid())
     {
-        ROS_WARN_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
+        ROS_DEBUG_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
 
         // TODO: smorzare il moto
         particle_state = stato_ut_predetto;

@@ -15,9 +15,9 @@
 bool LayoutManager::openstreetmap_enabled = true; /// check this flag if we want to initialize particle-set with OSM and GPS
 double LayoutManager::deltaOdomTime = 1;      /// Initialize static member value for C++ compilation
 double LayoutManager::deltaTimerTime = 0.1;   /// Initialize static member value for C++ compilation
-bool LayoutManager::first_run = true;   /// flag used for initiliazing particle-set with gps
+bool LayoutManager::layoutManagerFirstRun = true;   /// flag used for initiliazing particle-set with gps
 bool LayoutManager::first_msg = true;   /// first odometry msg flag
-int LayoutManager::step = 0;            /// filter step counter
+int LayoutManager::odometryMessageCounter = 0;            /// filter step counter
 
 visualization_msgs::Marker marker1;
 visualization_msgs::Marker marker2;
@@ -72,11 +72,11 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     }
 
     // Init values
-    step = 0;
+    odometryMessageCounter = 0;
     num_particles = 0;
     resampling_count = 0;
     LayoutManager::first_msg = true;
-    old_msg.header.stamp = ros::Time::now();    // init header timestamp
+    visualOdometryOldMsg.header.stamp = ros::Time::now();    // init header timestamp
     node_handle = n;                            // set this node_handle as the same of 'road_layout_manager'
     start_with_gps_message  = false;            // select RLE mode, hard-coded KITTI initializations, or GPS message
 
@@ -313,7 +313,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     // update particle-set number (only if this isn't the first run) ------------------------------------------------
-    if(!LayoutManager::first_run)
+    if(!LayoutManager::layoutManagerFirstRun)
     {
         if(config.particles_number > num_particles)
         {
@@ -408,7 +408,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    if(LayoutManager::first_run){
+    if(LayoutManager::layoutManagerFirstRun){
 
         if(LayoutManager::openstreetmap_enabled)
         {
@@ -828,7 +828,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         LayoutManager::num_particles = config.particles_number;
 
         // Update first_run flag
-        // LayoutManager::first_run = false; //moving this to RLE MAIN LOOP
+        // LayoutManager::layoutManagerFirstRun = false; //moving this to RLE MAIN LOOP
 
 
         // print particle poses
@@ -1046,28 +1046,28 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     marker_pub2.publish(marker2);
 
     ROS_INFO_STREAM("--------------------------------------------------------------------------------");
-    cout << "[step: " << step << "]" << endl; step++;
+    cout << "[step: " << odometryMessageCounter << "]" << endl; odometryMessageCounter++;
 
     // stampo misura arrivata
     std::cout << " ******* MSG ARRIVED. *******" << std::endl;
-//    Utils::printOdomAngleAxisToCout(msg);
+    //    Utils::printOdomAngleAxisToCout(msg);
 
     if(LayoutManager::first_msg)
     {
-        old_msg = msg;
+        visualOdometryOldMsg = msg;
     }
 
     // update flag
     LayoutManager::first_msg = false;
 
     // retrieve measurement from odometry
-//    State6DOF(measurement_model->getOldMsg()).printState("[old_msg]");
+    //    State6DOF(measurement_model->getOldMsg()).printState("[old_msg]");
     measurement_model->setMsg(msg);
 
     // calculate delta_t
-    deltaOdomTime = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
+    deltaOdomTime = msg.header.stamp.toSec() - visualOdometryOldMsg.header.stamp.toSec();
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Odometry Timestamp: " << msg.header.stamp);
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Previous Timestamp: " << old_msg.header.stamp);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Previous Timestamp: " << visualOdometryOldMsg.header.stamp);
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Delta Timestamp    : "<< deltaOdomTime);
 
     // Diff quaternions used for angle score
@@ -1402,7 +1402,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
 
     // Update old_msg with current one for next step delta_t calculation
-    old_msg = msg;
+    visualOdometryOldMsg = msg;
 
 
     // COLLECTING RESULTS && STATISTICS
@@ -1747,10 +1747,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 
 }
 
-void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
+void LayoutManager::odometryCallback2(const nav_msgs::Odometry& visualOdometryMsg)
 {
     ROS_INFO_STREAM("--------------------------------------------------------------------------------");
-    ROS_INFO_STREAM("Entering OdomCallBack v2");
+    ROS_INFO_STREAM("Entering OdomCallBackv2, [odometryMessageCounter: " << odometryMessageCounter++ << "]");
     vector<Particle>::iterator particle_itr;
 
     // Publish GPS init markers
@@ -1758,31 +1758,23 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     // marker_pub.publish(marker1);
     // marker_pub2.publish(marker2);
 
-    ROS_INFO_STREAM("[step: " << step << "]");
-    step++;
-
-    // stampo misura arrivata
-    ROS_INFO_STREAM(" ******* MSG ARRIVED. *******");
-
     if(LayoutManager::first_msg)
     {
-        old_msg = msg;        
-
-        //In the prev. version, with OdomCallBack-v1, this was disabled in the MeasurementModel.cpp
-        measurement_model->_first_run=0;
+        visualOdometryOldMsg = visualOdometryMsg; //used for timestamps only
+        // update flag
+        LayoutManager::first_msg = false;
+        ROS_WARN_STREAM("Setting LayoutManager::first_msg = false");
     }
 
-    // update flag
-    LayoutManager::first_msg = false;
 
     // calculate delta_t
-    deltaOdomTime = msg.header.stamp.toSec() - old_msg.header.stamp.toSec();
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Odometry Timestamp: " << msg.header.stamp);
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Previous Timestamp: " << old_msg.header.stamp);
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback Delta Timestamp    : "<< deltaOdomTime);
+    deltaOdomTime = visualOdometryMsg.header.stamp.toSec() - visualOdometryOldMsg.header.stamp.toSec();
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Odometry Timestamp: " << visualOdometryMsg.header.stamp);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Previous Timestamp: " << visualOdometryOldMsg.header.stamp);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Delta Timestamp    : "<< deltaOdomTime);
 
     // retrieve measurement from odometry
-    measurement_model->setMsg(msg);
+    measurement_model->setMsg(visualOdometryMsg);
 
 
     // % LINES
@@ -1883,7 +1875,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
     // -------------------------------------------------------------------------------------------------------------------------------------
 
     // Update old_msg with current one for next step delta_t calculation
-    old_msg = msg;
+    visualOdometryOldMsg = visualOdometryMsg;
 
 
     // COLLECTING RESULTS && STATISTICS
@@ -2053,8 +2045,8 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
         ifstream RTK;
         double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
         //TODO: find an alternative to this shit
-        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % msg.header.seq ) <<  ".txt" << endl;
-        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % msg.header.seq ) + ".txt")).c_str());
+        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
+        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -2066,7 +2058,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
 
         sensor_msgs::NavSatFix gps_fix;
         gps_fix.header.frame_id="/map";
-        gps_fix.header.stamp = msg.header.stamp;
+        gps_fix.header.stamp = visualOdometryMsg.header.stamp;
         gps_fix.latitude=from_latitude;
         gps_fix.longitude=from_longitude;
         gps_fix.altitude=from_altitude;
@@ -2104,7 +2096,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
             RTK_MARKER.header.frame_id = "local_map";
             RTK_MARKER.header.stamp = ros::Time();
             RTK_MARKER.ns = "RTK_MARKER";
-            RTK_MARKER.id = msg.header.seq; // same as image from kitti dataset
+            RTK_MARKER.id = visualOdometryMsg.header.seq; // same as image from kitti dataset
             RTK_MARKER.type = visualization_msgs::Marker::CYLINDER;
             RTK_MARKER.action = visualization_msgs::Marker::ADD;
             RTK_MARKER.pose.orientation.w = 1;
@@ -2124,7 +2116,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
             // Push back line_list
             publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-            RTK_GPS_out_file << msg.header.seq << " " << setprecision(16) <<
+            RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                                 RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                                 0 << " "<< 0 << " "<< 0 << " " <<
                                 0 << " " << 0 << " " << 0 << " " << 0 << " " <<
@@ -2180,7 +2172,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
-            RLE_out_file << msg.header.seq << " " << setprecision(16) <<
+            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                             average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
                             roll << " "<< pitch << " "<< yaw << " " <<
                             average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
@@ -2188,7 +2180,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
                             to_lat << " " << to_lon << " " <<
                             average_distance << "\n";
 
-            cout << msg.header.seq << " " << setprecision(16) <<
+            cout << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                     average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
                     roll << " "<< pitch << " "<< yaw << " " <<
                     average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
@@ -2215,7 +2207,7 @@ void LayoutManager::odometryCallback2(const nav_msgs::Odometry& msg)
 
             tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
 
-            LIBVISO_out_file << msg.header.seq << " " << setprecision(16) <<
+            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                                 VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
                                 roll << " "<< pitch << " "<< yaw << " " <<
                                 VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
@@ -2925,37 +2917,41 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                                                        << this->deltaTimerTime << "\t"
                      );
 
+
+
+    // This should be unnecessary with the EKF enabled since we integrate the measure into the reading, but now
+    // we're simply applying error as an odometry-model.
+    if (this->measurement_model->measurementModelFirstRunNotExecuted)
+    {
+        ROS_WARN_STREAM("Still no odometry messages received! ");
+        return;
+    }
+    else
+    {
+        if (layoutManagerFirstRun)
+        {
+            ROS_DEBUG_STREAM("measurementModelFirstRunNotExecuted: " << this->measurement_model->measurementModelFirstRunNotExecuted);
+            //In the very first iteration, use the delta_time from the measurementModel
+            this->deltaTimerTime=this->measurement_model->getDelta_time().toSec();
+            ROS_WARN_STREAM("FIRST run! Using measurementModel delta_time for this iteration only: " << this->deltaTimerTime);
+
+            vector<Particle>::iterator particle_itr;
+            for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+            {
+                ROS_DEBUG_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
+                //(*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());             //3D Initialization
+                (*particle_itr).setParticleVelocities(measurement_model->getOrthogonalMeasureDeltaState());     //do not use 3D rotations for initialization
+            }
+
+            this->layoutManagerFirstRun=false;
+        }
+    }
+
     if (this->deltaTimerTime>10)
     {
         ROS_WARN_STREAM("Warning, deltaTimer>10 seconds. Force deltatimer = 0.1 HARDCODED");
         this->deltaTimerTime = 0.1;
     }
-
-
-
-    // This should be unnecessary with the EKF enabled since we integrate the measure into the reading, but now
-    // we're simply applying error as an odometry-model.
-    if (this->first_run)
-    {
-        // The measurementModel return invalid measure in the FIRST iteration. If invalid, the delta is not
-        // stored in the measurement_model. In the particlePoseEstimation the odometry/libviso speeds are
-        // copied into the particle_state velocities(rot/trans).
-        if (!measurement_model->isMeasureValid())
-        {
-            ROS_WARN_STREAM("LayoutManager::layoutEstimation says: Invalid measure detected."  );
-            ROS_INFO_STREAM ("Exiting RLE layoutEstimation due to invalid measure");
-            return;
-        }
-
-        vector<Particle>::iterator particle_itr;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
-        {
-            ROS_WARN_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
-            (*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());
-        }
-        this->first_run=false;
-    }
-
 
     // Check if car has moved, if it has moved then estimate new layout
     if( checkHasMoved() )
@@ -2989,7 +2985,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         }
 
         // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-        if(resampling_count++ == 4)
+        if(resampling_count++ == 8)
         //    if(0)
         {
             ROS_DEBUG_STREAM("Resampling phase!");

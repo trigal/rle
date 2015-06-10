@@ -36,6 +36,8 @@ public:
 
     void addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset);
     void printState(std::string head_string);
+    void setOrthogonalPoseRotation();
+    void setOrthogonalSpeedRotation();
 
     // getters & setters --------------------------------------------------------------
     Vector3d getPose() { return _pose; }

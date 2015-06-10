@@ -70,10 +70,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    double timerInterval=0.1f;//0.05f; //(sec) 30Hz, 3xlibviso
+    double timerInterval=0.05f;//0.05f; //(sec) 30Hz, 3xlibviso
+
+    // Debug,
+    // Info,
+    // Warn,
+    // Error,
+    // Fatal,
 
     // init layout_manager
-    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Debug);
+    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Info);
 
     ros::spin();
 

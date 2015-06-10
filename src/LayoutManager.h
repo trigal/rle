@@ -141,7 +141,7 @@ public:
 
     int num_particles;
 
-    static int step;           /// stores the current layout_manager step
+    static int odometryMessageCounter;           /// stores the current layout_manager step
 
     // Dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
@@ -161,7 +161,7 @@ public:
      * @param msg
      */
     void odometryCallback(const nav_msgs::Odometry& msg);
-    void odometryCallback2(const nav_msgs::Odometry& msg);
+    void odometryCallback2(const nav_msgs::Odometry& visualOdometryMsg);
 
     /**
      * @brief reconfigureCallback
@@ -224,9 +224,9 @@ private:
     double angle_distribution_weight;           // Tells how does angle pdf weight on score calculation
 
     static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
-    static bool first_run;                      // flag used for initiliazing particle-set with gps
+    static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
     static bool first_msg;                      // flag used for init particle-set
-    nav_msgs::Odometry old_msg;                 // used for delta_t calculation
+    nav_msgs::Odometry visualOdometryOldMsg;                 // used for delta_t calculation
 
     bool new_detections;				        // indicates detectors found new detections (not used)
     vector<Particle> current_layout;	        // stores the current layout

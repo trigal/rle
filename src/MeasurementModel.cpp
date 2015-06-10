@@ -44,11 +44,16 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
          *             trans_velocity   rot_velocity
          *
          *  following #416, i'm not using anymore the provided covariance matrix
+         *
+         *  task #417
+         *  _msg_valid was used to handle LIBVISO2 gaps with the pre-decoupling version.
+         *  With the decoupled version, the particles are updated independently from the
+         *  odometry measures, only used to update de speeds.
+         *  So, msg_valid is *not used* anymore.
          */
 
-
         _msg = m;
-        _msg_valid = true;  //used in PARTICLE.cpp
+        //_msg_valid = true;  //used in PARTICLE.cpp
 
 //        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
 
@@ -62,17 +67,20 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         new_transform.setRotation(tf::Quaternion( _msg.pose.pose.orientation.x, _msg.pose.pose.orientation.y, _msg.pose.pose.orientation.z, _msg.pose.pose.orientation.w));
         new_transform.stamp_=m.header.stamp; //adding this little detail ...// Augusto sun.night
 
-        if(_first_run)
+        if(measurementModelFirstRunNotExecuted)
         {
-            ROS_DEBUG_STREAM("Setting message, but first run detected");
+            ROS_WARN_STREAM("Setting message, but first run detected");
             _old_transform = new_transform;
             _old_msg = _msg;
-            //_first_run = false; // not here anymore, i'll set this when the odometry2-callback is called.
-            _msg_valid = false;
-            ROS_DEBUG_STREAM("Exiting MeasurementModel::setMsg cause First_Run");
+            measurementModelFirstRunNotExecuted = false;
+            ROS_WARN_STREAM("Setting measurementModelFirstRunNotExecuted = " << measurementModelFirstRunNotExecuted);
+
+            //_msg_valid = false;                 //this could be false in different ways, now is useless since we use measurementModelFirstRun. related to #417
+            ROS_DEBUG_STREAM("< Exiting MeasurementModel::setMsg cause First_Run");
             return;
         }
 
+        ROS_INFO_STREAM_ONCE("Here we go.. the deltas will now be calculated. "<< " THIS MESSAGE WILL NOT APPEAR ANYMORE");
         ROS_INFO_STREAM_ONCE("Old transform " << _old_transform.stamp_ << " THIS MESSAGE WILL NOT APPEAR ANYMORE");
         ROS_INFO_STREAM_ONCE("New transform " << new_transform.stamp_  << " THIS MESSAGE WILL NOT APPEAR ANYMORE");
 
@@ -87,7 +95,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         Eigen::AngleAxisd tmp_rotational_velocity;
         tmp_rotational_velocity.Identity();
 
-        ros::Duration delta_time;
+
         delta_time = new_transform.stamp_-_old_transform.stamp_;// Augusto sun.night
         ROS_DEBUG_STREAM("void MeasurementModel::setMsg > calculated delta time:" << delta_time.toSec());
         ROS_ASSERT(delta_time==LayoutManager::delta_t); //TODO: check, if not assert [OK] we may use the LayoutManager::delta_t
@@ -201,6 +209,16 @@ void MeasurementModel::setFixed_transform(const tf::StampedTransform &value)
     fixed_transform = value;
 }
 
+
+ros::Duration MeasurementModel::getDelta_time() const
+{
+    return delta_time;
+}
+
+void MeasurementModel::setDelta_time(const ros::Duration &value)
+{
+    delta_time = value;
+}
 MatrixXd MeasurementModel::measurementJacobian(State6DOF& p_state_predicted){
     /**
      * H_t:
