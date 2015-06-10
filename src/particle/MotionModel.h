@@ -49,10 +49,10 @@ private:
     void decadencyMotionModel();
 
 public:
-    double propagate_translational_vel_error_x;
-    double propagate_translational_vel_error_y;
-    double propagate_translational_vel_error_z;
-    double propagate_rotational_vel_error;
+    double propagate_translational_absolute_vel_error_x;
+    double propagate_translational_absolute_vel_error_y;
+    double propagate_translational_absolute_vel_error_z;
+    double propagate_rotational_absolute_vel_error;
 
     /**
      * This function will propagate the particle component using the defined
@@ -109,10 +109,10 @@ public:
         propagate_translational_percentage_vel_error_z = translational_percentage_z;
         propagate_rotational_percentage_vel_error      = rotational_percentage;
 
-        propagate_translational_vel_error_x            = translational_x;
-        propagate_translational_vel_error_y            = translational_y;
-        propagate_translational_vel_error_z            = translational_z;
-        propagate_rotational_vel_error                 = rotational;
+        propagate_translational_absolute_vel_error_x            = translational_x;
+        propagate_translational_absolute_vel_error_y            = translational_y;
+        propagate_translational_absolute_vel_error_z            = translational_z;
+        propagate_rotational_absolute_vel_error                 = rotational;
     }
 
     // constructor & destructor ----------------------------------------------------------------

@@ -15,10 +15,10 @@ class State6DOF
 
 //private:  //TODO rimettere privato ed usare i getter/setter
 public:
-    Eigen::Vector3d _pose;                      // wrt world
-    Eigen::AngleAxisd _rotation;                // wrt world
-    Eigen::Vector3d _translational_velocity;    // wrt robot
-    Eigen::AngleAxisd _rotational_velocity;     // wrt robot
+    Eigen::Vector3d _pose;                      // POSE    wrt world
+    Eigen::AngleAxisd _rotation;                // POSE    wrt world
+    Eigen::Vector3d _translational_velocity;    // SPEED   wrt robot
+    Eigen::AngleAxisd _rotational_velocity;     // SPEED   wrt robot
 
 
 public:
@@ -36,8 +36,8 @@ public:
 
     void addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset);
     void printState(std::string head_string);
-    void setOrthogonalPoseRotation();
-    void setOrthogonalSpeedRotation();
+    void setOrthogonalPoseRotation();   // _rotation
+    void setOrthogonalSpeedRotation();  // _rotational_velocity
 
     // getters & setters --------------------------------------------------------------
     Vector3d getPose() { return _pose; }

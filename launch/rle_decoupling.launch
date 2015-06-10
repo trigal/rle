@@ -6,7 +6,7 @@
 
             <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
-            <arg name="publish_rate" default="0.1" />
+            <arg name="publish_rate" default="0.3" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <param name="/use_sim_time" value="true"/>
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />

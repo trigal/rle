@@ -2,7 +2,7 @@
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="kitti_00" />
+            <arg name="bagfile" default="kitti_01" />
 
             <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->

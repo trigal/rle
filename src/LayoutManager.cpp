@@ -268,10 +268,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     );
 
         motionModelPointer->setPropagationError(
-                    config.propagate_translational_vel_error_x,
-                    config.propagate_translational_vel_error_y,
-                    config.propagate_translational_vel_error_z,
-                    config.propagate_rotational_vel_error,
+                    config.propagate_translational_absolute_vel_error_x,
+                    config.propagate_translational_absolute_vel_error_y,
+                    config.propagate_translational_absolute_vel_error_z,
+                    config.propagate_rotational_absolute_vel_error,
                     config.propagate_translational_percentage_vel_error_x,
                     config.propagate_translational_percentage_vel_error_y,
                     config.propagate_translational_percentage_vel_error_z,
@@ -294,10 +294,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 );
 
     default_mtn_model.setPropagationError(
-                config.propagate_translational_vel_error_x,
-                config.propagate_translational_vel_error_y,
-                config.propagate_translational_vel_error_z,
-                config.propagate_rotational_vel_error,
+                config.propagate_translational_absolute_vel_error_x,
+                config.propagate_translational_absolute_vel_error_y,
+                config.propagate_translational_absolute_vel_error_z,
+                config.propagate_rotational_absolute_vel_error,
                 config.propagate_translational_percentage_vel_error_x,
                 config.propagate_translational_percentage_vel_error_y,
                 config.propagate_translational_percentage_vel_error_z,

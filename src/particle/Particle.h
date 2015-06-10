@@ -133,7 +133,7 @@ public:
         : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
     {
         ROS_DEBUG_STREAM("Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model)");
-        ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_vel_error_x << "\t" << mt_md.propagate_translational_vel_error_y << "\t" << mt_md.propagate_translational_vel_error_z);
+        ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_absolute_vel_error_x << "\t" << mt_md.propagate_translational_absolute_vel_error_y << "\t" << mt_md.propagate_translational_absolute_vel_error_z);
         ROS_DEBUG_STREAM("Motion Model    %     Translational Velocity errors:\t" << mt_md.getPropagate_translational_percentage_vel_error_x() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_y() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_z());
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
