@@ -12,21 +12,23 @@
  ***************************************************************************/
 #include "LayoutManager.h"
 
-bool LayoutManager::openstreetmap_enabled = true; /// check this flag if we want to initialize particle-set with OSM and GPS
-double LayoutManager::deltaOdomTime = 1;      /// Initialize static member value for C++ compilation
-double LayoutManager::deltaTimerTime = 0.1;   /// Initialize static member value for C++ compilation
-bool LayoutManager::layoutManagerFirstRun = true;   /// flag used for initiliazing particle-set with gps
-bool LayoutManager::first_msg = true;   /// first odometry msg flag
-int LayoutManager::odometryMessageCounter = 0;            /// filter step counter
+bool    LayoutManager::openstreetmap_enabled = true;     /// Check this flag if we want to initialize particle-set with OSM and GPS
+double  LayoutManager::deltaOdomTime = 1;                /// Initialize static member value for C++ compilation
+double  LayoutManager::deltaTimerTime = 0.1;             /// Initialize static member value for C++ compilation
+bool    LayoutManager::layoutManagerFirstRun = true;     /// Flag used for initiliazing particle-set with gps
+bool    LayoutManager::first_msg = true;                 /// First odometry msg flag
+int     LayoutManager::odometryMessageCounter = 0;       /// Filter step counter
 
 visualization_msgs::Marker marker1;
 visualization_msgs::Marker marker2;
 
-/**
- * @brief buildPoseArrayMsg
- * @param particles
- * @return
- */
+///
+/// \brief LayoutManager::buildPoseArrayMsg
+///        Creates a geometry message poseArray to visualize the particle pose into RVIZ
+///
+/// \param particles
+/// \return geometry_msgs::PoseArray
+///
 geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>& particles)
 {
     // init array_msg
@@ -53,32 +55,23 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
     return array_msg;
 }
 
-/**
- * Main LayoutManager constructor
- * @param n 'road_layout_manager' NodeHandle
- * @param l_components vector of layout components
- */
 LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
 {
 
-    // This sets the logger level; use this to disable all prints
+    /// This sets the logger level; use this to disable all ROS prints
     if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, loggingLevel) )
-    {
-       ros::console::notifyLoggerLevelsChanged();
-    }
+        ros::console::notifyLoggerLevelsChanged();
     else
-    {
         std::cout << "Error while setting the logger level!" << std::endl;
-    }
 
-    // Init values
+    /// Init values
     odometryMessageCounter = 0;
     num_particles = 0;
     resampling_count = 0;
     LayoutManager::first_msg = true;
     visualOdometryOldMsg.header.stamp = ros::Time::now();    // init header timestamp
-    node_handle = n;                            // set this node_handle as the same of 'road_layout_manager'
-    start_with_gps_message  = false;            // select RLE mode, hard-coded KITTI initializations, or GPS message
+    node_handle = n;                                         // set this node_handle as the same of 'road_layout_manager'
+    start_with_gps_message  = false;                         // select RLE mode, hard-coded KITTI initializations, or GPS message
 
     this->bagfile = bagfile;
 
@@ -89,31 +82,36 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 
     measurement_model = new MeasurementModel();
 
+
+    /// RETRIEVE THE FIXED TRANSFORM BETWEEN ODOM AND VISUAL_ODOMETRY_X_FORWARD
+    ///
+    /// TODO:  replace hard-coded fixed transform with the following lookuptransorm
+    /// Issue: #420
+
     tf::StampedTransform fixed_transform ;
     fixed_transform.setOrigin(tf::Vector3(0.0f,0.0f,0.0f));
     fixed_transform.setRotation(tf::createQuaternionFromRPY(-1.570796f, 0.0f, -1.570796f ));
-    measurement_model->setFixed_transform(fixed_transform);
+    measurement_model->setFixed_transform(fixed_transform);    
 
-//TODO: check this
-//    try
-//    {
-//        ROS_INFO_STREAM("LayoutManager.cpp Looking up the fixed transform between visual_odometry_odom_x_forward and odom");
-//        tf::StampedTransform fixed_transform;
-//        ros::Time now=ros::Time::now();
-////        tf_listener.waitForTransform("/visual_odometry_odom_x_forward","/odom",now,ros::Duration(10)); //this is fixed, do not lookup for it every time
-////        tf_listener.lookupTransform("/visual_odometry_odom_x_forward","/odom",now,fixed_transform);
-//        ROS_INFO_STREAM("OK VOXF to ODOM");
-//    }
-//    catch (tf::TransformException &ex)
-//    {
-//        ROS_ERROR_STREAM("LayoutManager.cpp FAILED to look up the fixed transform between visual_odometry_odom_x_forward and odom" << endl <<ex.what());
-//        this->~LayoutManager();
-//        return;
-//    }
+    //    try
+    //    {
+    //        ROS_INFO_STREAM("LayoutManager.cpp Looking up the fixed transform between visual_odometry_odom_x_forward and odom");
+    //        tf::StampedTransform fixed_transform;
+    //        ros::Time now=ros::Time::now();
+    ////        tf_listener.waitForTransform("/visual_odometry_odom_x_forward","/odom",now,ros::Duration(10)); //this is fixed, do not lookup for it every time
+    ////        tf_listener.lookupTransform("/visual_odometry_odom_x_forward","/odom",now,fixed_transform);
+    //        ROS_INFO_STREAM("OK VOXF to ODOM");
+    //    }
+    //    catch (tf::TransformException &ex)
+    //    {
+    //        ROS_ERROR_STREAM("LayoutManager.cpp FAILED to look up the fixed transform between visual_odometry_odom_x_forward and odom" << endl <<ex.what());
+    //        this->~LayoutManager();
+    //        return;
+    //    }
 
 
-    // Init publisher & subscribers
-    //LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+    /// Init publisher & subscribers
+    //LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this); //deprecated, old behavior
     LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback2, this);
     LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
 
@@ -134,30 +132,32 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     LayoutManager::publisher_GT_RTK                     = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
     LayoutManager::publisher_average_pose               = n.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose",1);
 
-    // Init ROS service clients
+    /// Init ROS service clients
     latlon_2_xy_client                  = n.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
     xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
     snap_particle_xy_client             = n.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
     get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
+    getHighwayInfo                      = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
+
+    /// Init ROS service server
+    server_getAllParticlesLatLon        = n.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
+
+
+    /// RLE system initialization
 
     latlon_2_xy_client.waitForExistence();      // WAIT FOR SERVICE -- the function prints some pretty comments
 
-    deltaTimerTime=timerInterval; //deltaTimer of the LayoutManager Class is initialy set as the requested interval
-    //RLE_timer_loop = n.createTimer(ros::Duration(deltaTimer), &LayoutManager::rleMainLoop, this,false, false);
+    deltaTimerTime = timerInterval;             //deltaTimer of the LayoutManager Class is initialy set as the requested interval
+    //RLE_timer_loop = n.createTimer(ros::Duration(deltaTimer), &LayoutManager::rleMainLoop, this,false, false);            //deprecated, first decoupling attempt
     RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this,false, false);
 
     // init dynamic reconfigure
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
 
-    //this->rleStart();
+    //this->rleStart();                                                                                                     //deprecated, first decoupling attempt
 }
 
-/**
- * Callback handling dyamic reconfigure
- * @param config
- * @param level
- */
 void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point)
 {
     uint32_t shape = visualization_msgs::Marker::SPHERE;
@@ -251,7 +251,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     street_distribution_weight = config.street_distribution_weight;
     angle_distribution_weight  = config.angle_distribution_weight;
 
-
     // update uncertainty values -----------------------------------------------------------------------------------
     for(int i=0; i<current_layout.size(); ++i)
     {        
@@ -312,7 +311,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 config.msr_model_angular_uncertainty
                 );
 
-    // update particle-set number (only if this isn't the first run) ------------------------------------------------
+    // update particle-set number (only if this IS NOT the first run) ------------------------------------------------
     if(!LayoutManager::layoutManagerFirstRun)
     {
         if(config.particles_number > num_particles)
@@ -407,8 +406,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         num_particles = config.particles_number;
     }
 
-    // ---------------------------------------------------------------------------------------------------------
-    if(LayoutManager::layoutManagerFirstRun){
+    // -----FIRST RUN-------------------------------------------------------------------------------------------
+    if(LayoutManager::layoutManagerFirstRun)
+    {
+        ROS_ASSERT(num_particles==0);
 
         if(LayoutManager::openstreetmap_enabled)
         {
@@ -421,6 +422,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             double cov1 = 0.0f;
             double cov2 = 0.0f;
 
+            // select RLE mode, hard-coded KITTI initializations, or GPS message
             if (start_with_gps_message)
             {
                 // -------- WAIT FOR GPS MESSAGE ----------------------------------------- //
@@ -435,13 +437,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 cov1 = gps_msg->position_covariance[0];
                 cov2 = gps_msg->position_covariance[4];
 
-                //            double cov1 = 15;
-                //            double cov2 = 15;
-                //            ROS_INFO_STREAM("Tutto ok");
+                ROS_DEBUG_STREAM("Received GPS lat/lon coordinates: " << lat << "\t" << lon);
+                ROS_DEBUG_STREAM("GPS variance in lat/lon " << cov1 << "\t" << cov2);
+
             }
             else
             {
-
 
                 // ------ simulated GPS msg ----------- //
                 // via Chiese
@@ -589,42 +590,41 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 //            fix.pose.position.y = latlon_2_xy_srv.response.y;
 //            fix.pose.orientation.w = 1;
 //            LayoutManager::gps_pub.publish(fix);
-            // ------------------------ END OF GPS MSG ---------------------------------- //
 
 
-            // ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- //
-//            cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
-//            geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
-
-//            // Get PoseStamped from Rviz msg
-//            geometry_msgs::PoseStamped pose_local_map_frame;
-//            pose_local_map_frame.pose = rviz_msg->pose.pose;
-//            pose_local_map_frame.header = rviz_msg->header;
-//            pose_local_map_frame.header.stamp = ros::Time::now(); // Rviz msg has no stamp
-
-//            // Create tf::Pose
-//            tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
-//            tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
-
-//            // Transform pose from "map" to "local_map"
-//            tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
-
-//            // convert UTM to LatLon
-//            ira_open_street_map::xy_2_latlon xy_2_latlon_srv;
-//            xy_2_latlon_srv.request.x = tf_pose_map_frame.getOrigin().getX();
-//            xy_2_latlon_srv.request.y = tf_pose_map_frame.getOrigin().getY();
-//            if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
-//                ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon' service");
-//                ros::shutdown(); //augusto debug
-//                return;
-//            }
-
-//            double alt = 0;
-//            double lat = xy_2_latlon_srv.response.latitude;
-//            double lon = xy_2_latlon_srv.response.longitude;
-//            double cov1 = 150;
-//            double cov2 = 150;
-            // ------------------------ END RVIZ INITIAL POSE  ------------------------- //
+            //// ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- //
+            //cout << "   Click on '2D pose estimation' in RViz for initialize particle set" << endl;
+            //geometry_msgs::PoseWithCovarianceStamped::ConstPtr rviz_msg = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/initialpose");
+            //
+            //// Get PoseStamped from Rviz msg
+            //geometry_msgs::PoseStamped pose_local_map_frame;
+            //pose_local_map_frame.pose = rviz_msg->pose.pose;
+            //pose_local_map_frame.header = rviz_msg->header;
+            //pose_local_map_frame.header.stamp = ros::Time::now(); // Rviz msg has no stamp
+            //
+            //// Create tf::Pose
+            //tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+            //tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+            //
+            //// Transform pose from "map" to "local_map"
+            //tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+            //
+            //// convert UTM to LatLon
+            //ira_open_street_map::xy_2_latlon xy_2_latlon_srv;
+            //xy_2_latlon_srv.request.x = tf_pose_map_frame.getOrigin().getX();
+            //xy_2_latlon_srv.request.y = tf_pose_map_frame.getOrigin().getY();
+            //if (!LayoutManager::xy_2_latlon_client.call(xy_2_latlon_srv)){
+            //    ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon' service");
+            //    ros::shutdown(); //augusto debug
+            //    return;
+            //}
+            //
+            //double alt = 0;
+            //double lat = xy_2_latlon_srv.response.latitude;
+            //double lon = xy_2_latlon_srv.response.longitude;
+            //double cov1 = 150;
+            //double cov2 = 150;
+            //// ------------------------ END RVIZ INITIAL POSE  ------------------------- //
 
             // Get XY values from GPS coords
             ira_open_street_map::latlon_2_xy latlon_2_xy_srv;
@@ -633,6 +633,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             ROS_INFO_STREAM("lat: " << lat << "\t" << "lon: " << lon);
 
+            /// Convert lat/lon to xy
             geometry_msgs::Point point;
             if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
             {
@@ -646,12 +647,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
               return;
             }
 
-            // Set mean
-            Eigen::Vector2d mean; //chosen mean for sampling
+            /// Set mean for sampling
+            Eigen::Vector2d mean;
             mean.setZero();
             mean << point.x, point.y;
 
-            // Set covariance
+            /// Set covariance for sampling
             Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
             covar(0,0) = cov1;
             covar(1,1) = cov2;
@@ -676,26 +677,27 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
-            Eigen::EigenMultivariateNormal<double, 2> normX(mean,covar);
+            Eigen::EigenMultivariateNormal<double, 2> normalSampler(mean,covar);
 
             // Reset current_layout
             LayoutManager::current_layout.clear();
 
-            // Populate current_layout with valid particles
+            // Populate current_layout with *ONLY* valid particles
             int particle_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
             while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
             {
-                if(while_ctr == 999){
+                if(while_ctr == 999)
+                {
                     ROS_ERROR_STREAM("Random particle set init: while ctr reached max limit" );
                     ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
                     /**
                      * TODO: max_radius_size * 2 and find again
                      */
                 }
-                // Generate a sample from the bivariate Gaussian distribution
-                Matrix<double,2,-1> sample = normX.samples(1);
 
+                // Generate a sample from the bivariate Gaussian distribution
+                Matrix<double,2,-1> sample = normalSampler.samples(1);
 
                 //-------------- SNAP PARTICLE v2  -------------------------------------- //
                 // Init OSM cartography service
@@ -752,11 +754,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     cout << "p_sigma" << endl << endl << p_sigma << endl;
 
-                    // Create particle and set its score
+                    /// Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
                     new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
                     // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                     // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
+                    ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
                     // Push particle into particle-set
                     current_layout.push_back(new_particle);
@@ -791,6 +794,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         opposite_part.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                         // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
+                        ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -811,7 +815,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // prevent infinite loop
                 while_ctr += 1;
             } // end while loop for particles generations
-        } // end if(gps_initialization)
+        } // end if(gps_initialization using OSM maps)
         else
         {
             // gps initialization disabled, just generate particles with all values set to zero
@@ -823,29 +827,26 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             }
         }
 
-
-        // Update particle_set size
-        LayoutManager::num_particles = config.particles_number;
+        /// Update particle_set size
+        LayoutManager::num_particles = config.particles_number + num_particles; // +num_particles because we can have more particles than expected since the driving direction
 
         // Update first_run flag
-        // LayoutManager::layoutManagerFirstRun = false; //moving this to RLE MAIN LOOP
-
+        // LayoutManager::layoutManagerFirstRun = false; //moving this to LayoutEstimation Loop
 
         // print particle poses
-        ROS_DEBUG_STREAM( "Random initialized particle set: " );
-        vector<Particle> particles = current_layout; //WARNING: this lines copy all the set?!
-        for(int i = 0; i<particles.size(); i++)
+        vector<Particle>::iterator particle_itr;
+        ROS_ERROR_STREAM("NUMERO DI LAYOUT: " << current_layout.size());
+        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
-            // build Pose from Particle
-            Particle p = particles.at(i);
             ostringstream tmp_convert;   // stream used for the conversion
-            tmp_convert << "Particle ID: " << p.getId();
-            p.getParticleState().printState(tmp_convert.str());
+            tmp_convert << "Particle ID: " << (*particle_itr).getId();
+            (*particle_itr).getParticleState().printState(tmp_convert.str());
         }
+
 
         // BUILD POSEARRAY MSG
         // Get particle-set
-        geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(particles);
+        geometry_msgs::PoseArray array_msg = LayoutManager::buildPoseArrayMsg(current_layout);
         array_msg.header.stamp = ros::Time::now();
         cout << "poses size: " << array_msg.poses.size() << endl;
         array_msg.header.frame_id = "local_map";
@@ -913,13 +914,6 @@ void LayoutManager::publishMarkerArray()
     publisher_marker_array.publish(marker_array);
 }
 
-/**
- * @brief LayoutManager::publishMarkerArrayDistances
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- */
 void LayoutManager::publishMarkerArrayDistances(int id, double x1, double y1, double x2, double y2, double z)
 {
     /// Distances between the poses and the closest road segment. For debuggin purposes.
@@ -954,13 +948,6 @@ void LayoutManager::publishMarkerArrayDistances(int id, double x1, double y1, do
     marker_array_distances.markers.push_back(line_list);
 }
 
-/**
- * @brief LayoutManager::publishMarkerArrayDistances
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- */
 void LayoutManager::publishZSnapped(int id, double x1, double y1, double x2, double y2, double z)
 {
     visualization_msgs::Marker line_list;
@@ -993,13 +980,6 @@ void LayoutManager::publishZSnapped(int id, double x1, double y1, double x2, dou
     marker_z_snapped.markers.push_back(line_list);
 }
 
-/**
- * @brief LayoutManager::publishMarkerArrayDistances
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- */
 void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, double y2, double z)
 {
     visualization_msgs::Marker line_list;
@@ -1032,7 +1012,7 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
     marker_z_particle.markers.push_back(line_list);
 }
 
-void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
+ROS_DEPRECATED void LayoutManager::odometryCallback(const nav_msgs::Odometry& msg)
 {
     return ; //TODO: return     from odomcallback v1
 
@@ -2902,6 +2882,23 @@ void LayoutManager::rleStart()
 void LayoutManager::rleStop()
 {
     LayoutManager::RLE_timer_loop.stop();
+}
+
+bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp)
+{
+
+    ROS_ERROR_STREAM("ZIOBO");
+
+    std::vector<double> latitudes;
+    std::vector<double> longitudes;
+    latitudes.push_back(2);
+    longitudes.push_back(2);
+
+    resp.lat=latitudes;
+    resp.lon=longitudes;
+    resp.particles=123;
+
+    return true;
 }
 
 

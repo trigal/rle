@@ -16,43 +16,51 @@
 
 
 #include "Utils.h"
-#include "eigenmultivariatenormal.hpp"
 #include "geometry_msgs/PoseArray.h"
+#include "MeasurementModel.h"
+#include "nav_msgs/Odometry.h"
+#include "visualization_msgs/Marker.h"
+#include <dynamic_reconfigure/server.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <ros/package.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <ros/console.h>
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include "eigenmultivariatenormal.hpp"
+
+#include <boost/math/distributions/normal.hpp>
+#include <boost/random/uniform_real.hpp>
+
+#include <road_layout_estimation/road_layout_estimationConfig.h>
+#include <road_layout_estimation/getAllParticlesLatLon.h>
+
 #include "ira_open_street_map/get_closest_way_distance_utm.h"
 #include "ira_open_street_map/latlon_2_xy.h"
 #include "ira_open_street_map/snap_particle_xy.h"
 #include "ira_open_street_map/xy_2_latlon.h"
-#include "MeasurementModel.h"
-#include "nav_msgs/Odometry.h"
+#include "ira_open_street_map/getHighwayInfo.h"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
 #include "particle/LayoutComponent.h"
 #include "particle/Particle.h"
 #include "road_lane_detection/road_lane_array.h"
 #include "road_lane_detection/road_lane.h"
-#include "visualization_msgs/Marker.h"
-#include <boost/math/distributions/normal.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <dynamic_reconfigure/server.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <fstream>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
+
+
 #include <iomanip>
 #include <iostream>
-#include <math.h>
-#include <road_layout_estimation/road_layout_estimationConfig.h>
-#include <ros/package.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <tf/transform_listener.h>
 #include <vector>
-#include <visualization_msgs/MarkerArray.h>
-#include <ros/console.h>
-
-
 #include <numeric>
 #include <functional>
+#include <math.h>
+#include <fstream>
+
+
 
 using boost::math::normal;
 using namespace Eigen;
@@ -138,6 +146,10 @@ public:
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
+    ros::ServiceClient getHighwayInfo;
+
+    // Services from this node
+    ros::ServiceServer server_getAllParticlesLatLon;
 
     int num_particles;
 
@@ -211,11 +223,17 @@ public:
 
 
     // Timers
-    ros::Timer RLE_timer_loop;                       //main loop pointer
+    ros::Timer RLE_timer_loop;                  //main loop timer
     void rleStart();
     void rleStop();
 
+    /// Service Callback
+    bool getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp);
+
 private:
+
+
+
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                         // The uniform pseudo-random algorithm
     double street_distribution_sigma;           // Street gaussian distribution sigma
@@ -226,7 +244,7 @@ private:
     static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
     static bool first_msg;                      // flag used for init particle-set
-    nav_msgs::Odometry visualOdometryOldMsg;                 // used for delta_t calculation
+    nav_msgs::Odometry visualOdometryOldMsg;    // used for delta_t calculation
 
     bool new_detections;				        // indicates detectors found new detections (not used)
     vector<Particle> current_layout;	        // stores the current layout

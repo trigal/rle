@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
+#SET (CMAKE_BUILD_TYPE Debug)
+#SET (ROS_BUILD_TYPE Debug)
+SET (CMAKE_BUILD_TYPE Release)
+SET (ROS_BUILD_TYPE Release)
+
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules)
+find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules message_generation std_msgs)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -25,11 +31,16 @@ generate_dynamic_reconfigure_options(
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-#SET (CMAKE_BUILD_TYPE Debug)
-#SET (ROS_BUILD_TYPE Debug)
-SET (CMAKE_BUILD_TYPE Release)
-SET (ROS_BUILD_TYPE Release)
 
+add_service_files(
+  FILES
+  getAllParticlesLatLon.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
 #  INCLUDE_DIRS include
@@ -37,6 +48,7 @@ catkin_package(
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
+
 
 ###########
 ## Build ##
