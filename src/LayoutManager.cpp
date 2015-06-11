@@ -137,7 +137,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
     snap_particle_xy_client             = n.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
     get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
-    getHighwayInfo                      = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
+    getHighwayInfo_client                      = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
 
     /// Init ROS service server
     server_getAllParticlesLatLon        = n.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
@@ -701,24 +701,26 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                 //-------------- SNAP PARTICLE v2  -------------------------------------- //
                 // Init OSM cartography service
-                ira_open_street_map::snap_particle_xy srv;
-                srv.request.x = sample(0);
-                srv.request.y = sample(1);
-                srv.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
+                ira_open_street_map::snap_particle_xy snapParticleXYService;
+                snapParticleXYService.request.x = sample(0);
+                snapParticleXYService.request.y = sample(1);
+                snapParticleXYService.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
                 boost::math::normal street_normal_dist(0, street_distribution_sigma);
                 boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
 
                 // Call snap particle service
-                if (LayoutManager::snap_particle_xy_client.call(srv))
+                if (LayoutManager::snap_particle_xy_client.call(snapParticleXYService))
                 {
                     geometry_msgs::PoseStamped pose_map_frame;
                     pose_map_frame.header.frame_id = "map";
                     pose_map_frame.header.stamp = ros::Time::now();
-                    pose_map_frame.pose.position.x = srv.response.snapped_x;
-                    pose_map_frame.pose.position.y = srv.response.snapped_y;
+                    pose_map_frame.pose.position.x = snapParticleXYService.response.snapped_x;
+                    pose_map_frame.pose.position.y = snapParticleXYService.response.snapped_y;
                     pose_map_frame.pose.position.z = 0.0;
 
-                    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(srv.response.way_dir_rad), pose_map_frame.pose.orientation);
+                    snapParticleXYService.response.way_id;
+
+                    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(snapParticleXYService.response.way_dir_rad), pose_map_frame.pose.orientation);
                     tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
                     tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
 
@@ -761,14 +763,36 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
+
+                    //////////// CREATE COMPONENT ROAD_STATE ////////////
+                    ira_open_street_map::getHighwayInfo getHighwayService;
+                    getHighwayService.request.way_id = snapParticleXYService.response.way_id;
+                    if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
+                    {
+                        ROS_INFO_STREAM("Adding roadState component!");
+                        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(snapParticleXYService.response.way_id,
+                                                                                             1,
+                                                                                             snapParticleXYService.response.way_id,
+                                                                                             getHighwayService.response.number_of_lanes,
+                                                                                             -1,
+                                                                                             getHighwayService.response.width,
+                                                                                             ros::Time::now()
+                                                                                             );
+                        new_particle.addComponent(roadState);
+
+                        vector<LayoutComponent*>* componentVector = new_particle.getLayoutComponentsPtr();
+                        ROS_INFO_STREAM("how many? " << componentVector->size());
+                    }
+
                     // Push particle into particle-set
                     current_layout.push_back(new_particle);
+
 
                     // Update particles id counter
                     particle_id += 1;
 
                     // Check if we should create 2 particles with opposite direction
-                    if(srv.response.way_dir_opposite_particles)
+                    if(snapParticleXYService.response.way_dir_opposite_particles)
                     {
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
                         tf_pose_local_map_frame_opposite_direction = tf_pose_local_map_frame;
@@ -795,6 +819,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                         // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                         ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
+
+
+                        //////////// CREATE COMPONENT ROAD_STATE ////////////
+                        ira_open_street_map::getHighwayInfo getHighwayService;
+                        getHighwayService.request.way_id = snapParticleXYService.response.way_id;
+                        if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
+                        {
+                            LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(snapParticleXYService.response.way_id,
+                                                                                                 1,
+                                                                                                 snapParticleXYService.response.way_id,
+                                                                                                 getHighwayService.response.number_of_lanes,
+                                                                                                 -1,
+                                                                                                 getHighwayService.response.width,
+                                                                                                 ros::Time::now()
+                                                                                                 );
+                            new_particle.addComponent(roadState);
+                        }
 
                         // Push particle inside particle-set
                         current_layout.push_back(opposite_part);
@@ -2886,18 +2927,76 @@ void LayoutManager::rleStop()
 
 bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp)
 {
+    ROS_INFO_STREAM("Answering to getAllParticlesLatLonService");
+    ROS_DEBUG_STREAM("> Entering getAllParticlesLatLonService");
 
-    ROS_ERROR_STREAM("ZIOBO");
-
+    vector<Particle>::iterator particle_itr;
     std::vector<double> latitudes;
     std::vector<double> longitudes;
-    latitudes.push_back(2);
-    longitudes.push_back(2);
+    std::vector<long int> way_ids;
+    unsigned int particle_counter=0;
 
-    resp.lat=latitudes;
-    resp.lon=longitudes;
-    resp.particles=123;
+    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    {
+        vector<LayoutComponent*> componentVector = (*particle_itr).getLayoutComponents();
+        int components = componentVector.size();
 
+        ROS_DEBUG_STREAM("PARTICLE " << particle_counter++ << "\tComponents Vector Size: " << components);
+
+        for (int i=0;i<components;i++)
+        {
+            LayoutComponent *component = componentVector.at(i);
+            if(LayoutComponent_RoadState* roadState = dynamic_cast<LayoutComponent_RoadState* >(component))
+            {
+                ROS_DEBUG_STREAM("ParticleId: " << (*particle_itr).getId() << "\twayId: " << roadState->getWay_id());
+                way_ids.push_back(roadState->getWay_id());
+
+                // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
+                tf::Stamped<tf::Pose> particle_map_frame, particle_local_frame;
+                particle_local_frame.frame_id_="local_map";
+                particle_local_frame.setOrigin(tf::Vector3((*particle_itr).getParticleState().getPose()(0),(*particle_itr).getParticleState().getPose()(1),(*particle_itr).getParticleState().getPose()(2)));
+                particle_local_frame.setRotation(tf::createIdentityQuaternion());
+                // Transform pose from "local_map" to "map"
+                try
+                {
+                    tf_listener.transformPose("map", ros::Time(0), particle_local_frame, "local_map", particle_map_frame);
+                    ira_open_street_map::xy_2_latlon xy2latlon;
+                    xy2latlon.request.x=particle_map_frame.getOrigin().getX();
+                    xy2latlon.request.y=particle_map_frame.getOrigin().getY();
+                    if (LayoutManager::xy_2_latlon_client.call(xy2latlon))
+                    {
+                        latitudes.push_back(xy2latlon.response.latitude);
+                        longitudes.push_back(xy2latlon.response.longitude);
+                    }
+                    else
+                    {
+                        ROS_ERROR_STREAM("getAllParticlesLatLonService: Failed to call 'xy_2_latlon_2_srv' service");
+                        return false;
+                    }
+                }
+                catch (tf::TransformException &ex)
+                {
+                    ROS_ERROR_STREAM("getAllParticlesLatLonService failed to trasform needed poses %s"<<ex.what());
+                    ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
+                    return false;
+                }
+
+            }
+            else
+            {
+                ROS_DEBUG_STREAM("getAllParticlesLatLonService Can't Cast");
+                ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
+                return false;
+            }
+        }
+
+    }
+    resp.particles=current_layout.size();
+    resp.latitudes=latitudes;
+    resp.longitudes=longitudes;
+    resp.way_ids=way_ids;
+
+    ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
     return true;
 }
 

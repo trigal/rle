@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 	// init ROS and NodeHandle
     ros::init(argc, argv, "road_layout_estimation");
     ros::NodeHandle node_handle;
+    ros::AsyncSpinner spinner(2);
 
     std::cout << "Detected " << argc << " arguments (argc), printing values:" << endl;
     for (int i=0; i< argc; i++)
@@ -79,9 +80,11 @@ int main(int argc, char *argv[])
     // Fatal,
 
     // init layout_manager
-    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Debug);
+    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Info);
 
-    ros::spin();
+    //ros::spin();
+    spinner.start();
+    ros::waitForShutdown();
 
 	return 0;
 }

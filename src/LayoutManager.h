@@ -51,6 +51,8 @@
 #include "road_lane_detection/road_lane_array.h"
 #include "road_lane_detection/road_lane.h"
 
+#include "particle/LayoutComponent_RoadState.h"
+
 
 #include <iomanip>
 #include <iostream>
@@ -146,7 +148,7 @@ public:
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
-    ros::ServiceClient getHighwayInfo;
+    ros::ServiceClient getHighwayInfo_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;
