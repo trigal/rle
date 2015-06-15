@@ -51,7 +51,9 @@
 #include "road_lane_detection/road_lane_array.h"
 #include "road_lane_detection/road_lane.h"
 
+
 #include "particle/LayoutComponent_RoadState.h"
+#include "road_layout_estimation/msg_roadState.h"
 
 
 #include <iomanip>
@@ -140,6 +142,7 @@ public:
     // Subscriber
     ros::Subscriber odometry_sub;
     ros::Subscriber road_lane_sub;
+    ros::Subscriber roadState_sub;
 
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
@@ -189,6 +192,8 @@ public:
      * @param msg
      */
     void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
+
+    void roadStateCallback(const road_layout_estimation::msg_roadState& msg);
 
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }

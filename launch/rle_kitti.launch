@@ -60,9 +60,9 @@
             />
 
 
-        <!-- Launch ROAD LAYOUT ESTIMATION node -->
+        <!-- Launch ROAD LAYOUT ESTIMATION node-->
 	<node
-		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
+                pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
@@ -76,6 +76,14 @@
                     output="screen"
             />
 
+        <!-- Launch FAKE ROADSTATE DETECTOR
+        <node
+            pkg="road_layout_estimation" type="roadStateComponent_fake" name="roadStateComponent_fake"
+            required="true"
+            output="screen"
+            clear_params="true"
+        />-->
+
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 
@@ -86,4 +94,5 @@
                     output="screen"
                     clear_params="true"
             />-->
+
 </launch>

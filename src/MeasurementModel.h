@@ -98,8 +98,8 @@ public:
         /// Here the _measure_delta is scaled by the fraction of time between the last libviso2 delta and the elapsed time from the last iteration of RLE
 
         double scaling_factor=deltaOdomTime/deltaTimerTime;
-        ROS_ASSERT(scaling_factor>0);
-        ROS_ASSERT(std::isnormal(scaling_factor));  //a normal value: i.e., whether it is neither infinity, NaN, zero or subnormal.
+        //ROS_ASSERT(scaling_factor>0);
+        //ROS_ASSERT(std::isnormal(scaling_factor));  //a normal value: i.e., whether it is neither infinity, NaN, zero or subnormal.
 
         State6DOF scaled;
         Vector3d tmpVector3d;
@@ -121,8 +121,8 @@ public:
         //_measure_Delta.printState("ORIGINAL");
         //scaled.printState("SCALED");
 
-        ROS_ASSERT(scaled.getRotation().isUnitary());
-        ROS_ASSERT(scaled.getRotationalVelocity().isUnitary());
+        //ROS_ASSERT(scaled.getRotation().isUnitary());
+        //ROS_ASSERT(scaled.getRotationalVelocity().isUnitary());
 
         return scaled;
     }

@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     std::cout << endl;
 
     string visual_odometry_topic = "/stereo_odometer/odometry";
-    string bagfile = "kitti_00";
+    string bagfile = "kitti_01";
 
     if(argc > 3)
     {
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
         if(argc == 3){
             visual_odometry_topic = argv[1];
             bagfile = argv[2];
+            ROS_INFO_STREAM ("BAGFILE = " << bagfile);
         }
     }
 
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     // Fatal,
 
     // init layout_manager
-    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Info);
+    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Debug);
 
     //ros::spin();
     spinner.start();

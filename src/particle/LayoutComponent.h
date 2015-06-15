@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <Eigen/Eigen>
+#include <ros/ros.h>
 using namespace Eigen;
 using std::vector;
 
@@ -25,6 +26,7 @@ public:
 
     /**
      * This function is the implementation of pose propagation of layout component
+     * Can be a POSE to be moved or a STATE like RoadState
      */
     virtual void componentPoseEstimation() = 0;
 
@@ -45,10 +47,10 @@ public:
     void setComponentWeight(double w){component_weight=w;}
 
     VectorXd getComponentState(){return component_state;}
-    void setComponentState(VectorXd& pose){ component_state = pose; }
+    void setComponentState(VectorXd pose){ ROS_DEBUG_STREAM(">>>setComponentState called"); component_state = pose; }
 
     MatrixXd getComponentCov(){return component_cov;}
-    void setComponentCov(MatrixXd& cov){component_cov=cov;}
+    void setComponentCov(MatrixXd cov){component_cov=cov;}
     // ---------------------------------------------------------------------------------------------------
 
     // destructor

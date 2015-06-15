@@ -113,7 +113,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     /// Init publisher & subscribers
     //LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this); //deprecated, old behavior
     LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback2, this);
-    LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback, this);
+    LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback , this);
+    LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
@@ -409,7 +410,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     // -----FIRST RUN-------------------------------------------------------------------------------------------
     if(LayoutManager::layoutManagerFirstRun)
     {
-        ROS_ASSERT(num_particles==0);
+        //ROS_ASSERT(num_particles==0);
 
         if(LayoutManager::openstreetmap_enabled)
         {
@@ -770,21 +771,24 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
                     {
                         ROS_INFO_STREAM("Adding roadState component!");
-                        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(snapParticleXYService.response.way_id,
+                        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                                                                                              1,
                                                                                              snapParticleXYService.response.way_id,
                                                                                              getHighwayService.response.number_of_lanes,
                                                                                              -1,
                                                                                              getHighwayService.response.width,
-                                                                                             ros::Time::now()
+                                                                                             ros::Time::now(),
+                                                                                             &this->getHighwayInfo_client
                                                                                              );
+
+                        VectorXd state=new_particle.getParticleState().getPose();
+                        roadState->setComponentState(state);
+                        ROS_ERROR_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
                         new_particle.addComponent(roadState);
-
-                        vector<LayoutComponent*>* componentVector = new_particle.getLayoutComponentsPtr();
-                        ROS_INFO_STREAM("how many? " << componentVector->size());
                     }
+                    //////////// CREATE COMPONENT ROAD_STATE ////////////
 
-                    // Push particle into particle-set
+                    /// Push particle into particle-set
                     current_layout.push_back(new_particle);
 
 
@@ -814,8 +818,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         p_pose.setRotation(rotation_opposite);
 
                         // Create particle and set its score
-                        Particle opposite_part(particle_id, p_pose, p_sigma, default_mtn_model);
-                        opposite_part.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
+                        Particle new_particle_opposite(particle_id, p_pose, p_sigma, default_mtn_model);
+                        new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                         // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                         ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
@@ -826,19 +830,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         getHighwayService.request.way_id = snapParticleXYService.response.way_id;
                         if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
                         {
-                            LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(snapParticleXYService.response.way_id,
+                            LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                                                                                                  1,
                                                                                                  snapParticleXYService.response.way_id,
                                                                                                  getHighwayService.response.number_of_lanes,
                                                                                                  -1,
                                                                                                  getHighwayService.response.width,
-                                                                                                 ros::Time::now()
+                                                                                                 ros::Time::now(),
+                                                                                                 &this->getHighwayInfo_client
                                                                                                  );
-                            new_particle.addComponent(roadState);
+                            VectorXd state=new_particle_opposite.getParticleState().getPose();
+                            (*roadState).setComponentState(state);
+                            new_particle_opposite.addComponent(roadState);
                         }
+                        //////////// CREATE COMPONENT ROAD_STATE ////////////
 
-                        // Push particle inside particle-set
-                        current_layout.push_back(opposite_part);
+                        /// Push particle inside particle-set
+                        current_layout.push_back(new_particle_opposite);
 
                         // Update particles id counter
                         particle_id += 1;
@@ -2264,7 +2272,12 @@ bool LayoutManager::checkHasMoved(){
  * @brief LayoutManager::roadLaneCallback
  * @param msg
  */
-void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg){
+void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg)
+{
+    ROS_ERROR_STREAM("> Entering roadLaneCallback");
+
+    ROS_ERROR_STREAM("WHY ARE YOU CALLING THIS ROUTINE?!");
+
     // Add it to all particles
     for(int i=0; i<current_layout.size(); ++i){
 
@@ -2293,6 +2306,45 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
             layout_components->push_back(road_lane);
         }
     }
+
+    ROS_ERROR_STREAM("< Exiting roadLaneCallback");
+}
+
+void LayoutManager::roadStateCallback(const road_layout_estimation::msg_roadState &msg)
+{
+    ROS_DEBUG_STREAM("> Entering roadStateCallback");
+
+
+    for(int i=0; i<current_layout.size(); ++i)
+    {
+        // Get all layout components of particle
+        Particle* particle = &current_layout.at(i);
+        vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
+
+        // Clear old layout_components
+        layout_components->clear(); //this should be replaced with some more clever idea... (maybe update the component instead of deleting them)
+
+        ROS_DEBUG_STREAM("Adding roadState component! WayID: " << msg.way_id);
+
+        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle->getId(),
+                                                                             1,                             //component Id
+                                                                             msg.way_id,
+                                                                             msg.number_of_lanes,
+                                                                             -1,                            //curren lane
+                                                                             msg.width,
+                                                                             ros::Time::now(),
+                                                                             &this->getHighwayInfo_client
+                                                                             );
+
+        VectorXd state=particle->getParticleState().getPose();
+        roadState->setComponentState(state);
+        ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2));
+
+        // Add lane to layout components
+        particle->addComponent(roadState);
+    }
+
+    ROS_DEBUG_STREAM("< Exiting roadStateCallback");
 }
 
 
@@ -2303,14 +2355,18 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
  */
 void LayoutManager::componentsEstimation()
 {
-    // STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+    ROS_DEBUG("> Entering componentsEstimation");
+
+    /// STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
     sampling();
 
-    // STEP 2: PERTURBATE COMPONENT POSES
+    //// STEP 2: PERTURBATE COMPONENT POSES
     componentsPerturbation();
 
-    // STEP 3: WEIGHT LAYOUT-COMPONENTS
+    //// STEP 3: WEIGHT LAYOUT-COMPONENTS
     calculateLayoutComponentsWeight();
+
+    ROS_DEBUG("< Exiting componentsEstimation");
 }
 
 /**
@@ -2318,11 +2374,13 @@ void LayoutManager::componentsEstimation()
  * cicle through all the particles, and call their function "propagate-components"
  */
 void LayoutManager::sampling(){
+    ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<Particle>::iterator itr;
     for( itr = current_layout.begin(); itr != current_layout.end(); itr++ ){
-        cout << "--- Propagating components of particle, ID: " << itr->getId() << " ---"<< endl;
+        ROS_INFO_STREAM("--- Propagating components of particle, ID: " << itr->getId() << " ---");
         itr->propagateLayoutComponents();
     }
+    ROS_DEBUG_STREAM("< Exiting Sampling of all components");
 }
 
 /**
@@ -2354,6 +2412,7 @@ void LayoutManager::componentsPerturbation()
  */
 void LayoutManager::calculateLayoutComponentsWeight()
 {
+    ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore");
     // first, iterate over all particles of 'current_layout'
     for(int i=0; i<current_layout.size(); i++){
         Particle p = current_layout.at(i);
@@ -2365,6 +2424,7 @@ void LayoutManager::calculateLayoutComponentsWeight()
             lc->calculateComponentScore();
         }
     }
+    ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore");
 }
 /** **************************************************************************************************************/
 
@@ -2531,7 +2591,7 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
                 //                            tf_pose_local_map_frame.getOrigin().getZ());
 
                 //      get PDF score FOR DISTANCE
-                boost::math::normal normal_dist(0, street_distribution_sigma);
+                boost::math::normal normal_dist(0, street_distribution_sigma);                
                 double pose_diff_score_component = pdf(normal_dist, distance);
                 //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out, maybe works .. this line isn't tested yet
 
@@ -2984,7 +3044,7 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
             }
             else
             {
-                ROS_DEBUG_STREAM("getAllParticlesLatLonService Can't Cast");
+                ROS_ERROR_STREAM("getAllParticlesLatLonService Can't Cast");
                 ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
                 return false;
             }
@@ -3061,7 +3121,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         }        
 
         // -------------- sampling + perturbation + weight layout-components ------------- //
-        //this->componentsEstimation();
+        this->componentsEstimation();
         // ------------------------------------------------------------------------------- //
 
         // ------------------------------ calculate score -------------------------------- //

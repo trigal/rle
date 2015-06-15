@@ -2,6 +2,16 @@
 #define LAYOUTCOMPONENT_ROADSTATE_H
 
 #include "LayoutComponent.h"
+
+#include <boost/math/distributions/normal.hpp>
+#include <boost/math/distributions/poisson.hpp>
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
+#include "../Utils.h"
+
+#include "ira_open_street_map/getHighwayInfo.h"
+
 #include <iostream>
 #include <ros/ros.h>
 
@@ -11,29 +21,35 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
-    unsigned char   lanes_number;
+    int   lanes_number;
     char            current_lane;     // -1 don't know
     double          road_width;
     bool            oneway;
     int             way_id;
 
+    ros::ServiceClient *getHighwayInfo_client;
+
+    // Particle info
+    double          latitude;
+    double          longitude;
+
     ros::Time timestamp;
 
 public:
 
+    void componentPoseEstimation();
     void calculateComponentScore();
     void componentPerturbation();
-    void componentPoseEstimation();
 
     // Getters and setters ----------------------------------------------------------------------
-    void setTimestamp(ros::Time time) { timestamp = time; }
-    ros::Time getTimestamp() { return timestamp; }
-    double        getRoad_width()   const;
-    char          getCurrent_lane() const;
-    unsigned char getLanes_number() const;
-    void          setLanes_number   (unsigned char value);
-    void          setRoad_width     (double value);
-    void          setCurrent_lane   (char value);
+    void          setTimestamp(ros::Time time)  { timestamp = time; }
+    ros::Time     getTimestamp()                { return timestamp; }
+    double        getRoad_width()               const;
+    char          getCurrent_lane()             const;
+    int           getLanes_number()             const;
+    void          setLanes_number               (int  value);
+    void          setRoad_width                 (double value);
+    void          setCurrent_lane               (char value);
 
     // Constructors and destructors -------------------------------------------------------------
     LayoutComponent_RoadState(){
@@ -46,8 +62,10 @@ public:
         current_lane = 0;
         road_width = 0.0f;
         timestamp = ros::Time(0);
+
+        getHighwayInfo_client=NULL;
     }
-    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, int way_id, const unsigned char lanes_number, const unsigned char current_lane, double road_width, ros::Time timestamp)
+    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, int way_id, int lanes_number, const unsigned char current_lane, double road_width, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager)
     {
         this->particle_id = particle_id;
         this->component_id = component_id;
@@ -60,6 +78,8 @@ public:
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12,12);
+
+        getHighwayInfo_client=serviceClientFromLayoutManager;
     }
 
     ~LayoutComponent_RoadState()

@@ -24,12 +24,12 @@ void LayoutComponent_RoadState::setCurrent_lane(char value)
     current_lane = value;
 }
 
-unsigned char LayoutComponent_RoadState::getLanes_number() const
+int LayoutComponent_RoadState::getLanes_number() const
 {
     return lanes_number;
 }
 
-void LayoutComponent_RoadState::setLanes_number(unsigned char value)
+void LayoutComponent_RoadState::setLanes_number(int value)
 {
     lanes_number = value;
 }
@@ -43,22 +43,93 @@ void LayoutComponent_RoadState::setWay_id(const int &value)
 {
     way_id = value;
 }
-void LayoutComponent_RoadState::calculateComponentScore(){
-    cout << "Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+
+///
+/// \brief Implementation of pure virtual method LayoutComponent_RoadState::calculateComponentScore
+/// using the component_state evaluate the OSM keys and give a score to the component
+/// values to evaluate
+///                   lanes_number (discrete) pdf > poisson
+///                   road_with    (continue) pdf > gaussian
+///
+void LayoutComponent_RoadState::calculateComponentScore()
+{
+    ROS_DEBUG_STREAM("> Entering calculateComponentScore, component ID: " << component_id << " of particle ID: " <<particle_id);
+
+    ira_open_street_map::getHighwayInfo getHighwayInfo;
+    getHighwayInfo.request.way_id = this->getWay_id();
+
+    if (getHighwayInfo_client->call(getHighwayInfo))
+    {
+        ROS_DEBUG_STREAM("calculateComponentScore says   wayId: " << this->getWay_id());
+        ROS_DEBUG_STREAM("calculateComponentScore says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
+        ROS_DEBUG_STREAM("calculateComponentScore says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
+
+        boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
+        double scoreWidth = pdf(normal_distribution, this->getRoad_width());
+        ROS_INFO_STREAM("Width  Score (normal ): " << scoreWidth);
+
+        if (getHighwayInfo.response.number_of_lanes)
+        {
+            boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: mean must be > 0
+            double scoreLanes = pdf(poisson_distribution,this->getLanes_number());
+            ROS_INFO_STREAM("Lanes  Score (poisson): " << scoreLanes);
+        }
+
+        this->setComponentWeight(scoreWidth);
+        //https://en.wikipedia.org/wiki/Scoring_rule
+
+    }
+
+
+    ROS_DEBUG_STREAM("< Exiting calculateComponentScore, component ID: " << component_id << " of particle ID: " <<particle_id);
 }
 
 /**
  * Implementation of pure virtual method 'componentPerturbation'
+ *
+ *      roadState:  road  width >> add little % noise
+ *                  n# of lanes >> ??? leave unchanged
  */
-void LayoutComponent_RoadState::componentPerturbation(){
-    cout << "Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+void LayoutComponent_RoadState::componentPerturbation()
+{
+    ROS_INFO_STREAM("componentPerturbation, component ID: " << component_id << " of particle ID: " << particle_id);    
+
+    //boost::mt19937 rng; // I don't seed it on purpouse (it's not relevant)
+    //rng.seed(static_cast<unsigned int>(std::time(NULL) + getpid()));
+    //boost::normal_distribution<> nd(1.0, 0.03333);
+    //boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
+    //double road_width = this->getRoad_width() * var_nor();
+
+    double road_width = this->getRoad_width() * Utils::box_muller(1,0.001);
+
+    ROS_DEBUG_STREAM("roadWith: " << this->getRoad_width() << "\tPerturbed: " << road_width);
+
 }
 
 /**
- * Implementation of pure virtual method 'componentPerturbation'
+ * Implementation of pure virtual method 'componentPoseEstimation'
+ * In roadStateComponent this routine does the following, to 'predict' the new component 'state':
+ *      1. given the particle position call snap_particle_xy, this return the way_id
+ *      2. call getHighwayInfo(way_id)
+ *      3. set new values to into the component
+ *
+ *      @now <<<do not update the values>>>
  */
-void LayoutComponent_RoadState::componentPoseEstimation(){
-    cout << "Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+void LayoutComponent_RoadState::componentPoseEstimation()
+{
+    ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " <<particle_id << " componentState: " << getComponentState()(0)<< ";" <<getComponentState()(1)<< ";" << getComponentState()(2));
+
+    /*
+     * il componente ha come <VectorXd component_state> lo stato (position) della particella .
+     * come stimare il nuovo stato (è sbagliato componentPOSE dovrebbe essere componentSTATE estimation):
+     *     this***          1- teniamo uguali quelli che ci sono
+     *                      2- guardiamo cosa c'è nella strada più vicina dove l'ipotesi vive
+     */
+
+    this->lanes_number = this->lanes_number;
+    this->road_width   = this->road_width;
+    this->way_id       = this->way_id;
+
 }
 
 

@@ -27,16 +27,33 @@ using std::vector;
  * Update every particle's components pose using motion model equations
  */
 void Particle::propagateLayoutComponents(){
+    ROS_DEBUG_STREAM("> Entering propagateLayoutComponents");
+
     vector<LayoutComponent*>::iterator itr;
-    for (itr = particle_components.begin(); itr != particle_components.end(); itr++){
+    unsigned char component_counter = 0; // preferred over (it - vec.begin())
+    for (itr = particle_components.begin(); itr != particle_components.end(); itr++)
+    {
+        ROS_DEBUG_STREAM("Cycling through component id: " << (int)(component_counter++) << " of " << (*itr)->getComponentId());
+
+        if(dynamic_cast<LayoutComponent_RoadState* >(*itr))
+        {
+            ROS_DEBUG_STREAM("roadStateComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+        }
+        else
+        {
+            ROS_WARN_STREAM("Unkown component");
+        }
 
         // propagate component pose with motion model equations
-        VectorXd pc_state = (*itr)->getComponentState();
-        VectorXd new_pose = particle_mtn_model.propagateComponent(pc_state);
+        // VectorXd pc_state = (*itr)->getComponentState();
+        // VectorXd new_pose = particle_mtn_model.propagateComponent(pc_state);
 
         // update pose with predicted one
-        (*itr)->setComponentState(new_pose);
+        //(*itr)->setComponentState(new_pose);
     }
+
+    ROS_DEBUG_STREAM("< Exiting propagateLayoutComponents");
 }
 
 /** **************************************************************************************************************/
@@ -134,6 +151,22 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
         //cout << "--------------------------------------------------------------------------------" << endl;
 
+        /// set roadStateComponent state
+        ///
+        vector<LayoutComponent*>::iterator itr;
+        unsigned char component_counter = 0; // preferred over (it - vec.begin())
+        for (itr = particle_components.begin(); itr != particle_components.end(); itr++)
+        {
+
+            {
+                VectorXd state; state=stato_ut_predetto.getPose();
+                ROS_DEBUG_STREAM("UPDATING roadStateComponent within particlePoseEstimation:" << state(0)<<"\t"<< state(1)<<"\t"<< state(2));
+
+                (*itr)->setComponentState(state); //virtual call
+            }
+        }
+
+
         return;
     }
 
@@ -142,7 +175,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     //State6DOF delta_measure = odometry->getMeasureDeltaState();                                            // differenza tra odometria arrivata, usata per calcolare misura zt
     State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);    // here the measurement is scaled with the timestamps. Needed in decoupling.
-    ROS_ASSERT (delta_measure.getRotation().isUnitary());
+    //ROS_ASSERT (delta_measure.getRotation().isUnitary());
 
 //    delta_measure.setRotation(AngleAxisd::Identity());
 //    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
@@ -156,10 +189,10 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     State6DOF predicted_measure_zt;
     predicted_measure_zt.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
     predicted_measure_zt.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
-    ROS_ASSERT (predicted_measure_zt.getRotation().isUnitary());
+    //ROS_ASSERT (predicted_measure_zt.getRotation().isUnitary());
     predicted_measure_zt.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
     predicted_measure_zt.setRotationalVelocity(delta_measure.getRotationalVelocity());
-    ROS_ASSERT (predicted_measure_zt.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT (predicted_measure_zt.getRotationalVelocity().isUnitary());
 
     State6DOF measure_h = odometry->measurePose(stato_ut_predetto);
 

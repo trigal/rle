@@ -14,13 +14,18 @@
 #define PARTICLE_H_
 
 #include <boost/ptr_container/ptr_vector.hpp>
+
+#include "LayoutComponent_RoadState.h"
 #include "LayoutComponent.h"
 #include "MotionModel.h"
 #include "../MeasurementModel.h"
 #include "../Utils.h"
-#include <vector>
+
 #include <Eigen/Dense>	//used for pose matrix
 #include <Eigen/Core>
+
+#include <vector>
+#include <typeinfo>
 
 using namespace Eigen;
 using std::vector;
@@ -52,8 +57,13 @@ public:
      * Add new component to the particle
      * @param component
      */
-    void addComponent(LayoutComponent* component){
-        this->particle_components.push_back(component);
+    void addComponent(LayoutComponent* component)
+    {
+        if(dynamic_cast<LayoutComponent_RoadState* >(component))
+        {
+            ROS_DEBUG_STREAM("Adding Component roadStateComponent with componentID: " << component->getComponentId());
+            this->particle_components.push_back(component);
+        }
     }
 
     /**

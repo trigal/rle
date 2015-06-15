@@ -113,8 +113,8 @@ State6DOF MotionModel::propagatePoseWithControl(State6DOF& p_state,State6DOF& co
     // s_t+1 = s_t + v_t * Delta_t + R
     // v_t+1 = v_t + R
 
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     ROS_DEBUG_STREAM("State6DOF MotionModel::propagatePoseWithControl");
     ROS_DEBUG_STREAM("LIBVISO Speeds (xyz,rpy): "   <<  control.getTranslationalVelocity()[0]  << ";" <<
@@ -186,8 +186,8 @@ State6DOF MotionModel::propagatePoseWithControl(State6DOF& p_state,State6DOF& co
 State6DOF MotionModel::propagatePoseWithPercentage(State6DOF& p_state)
 {
 
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * Delta_t + R
@@ -216,7 +216,7 @@ State6DOF MotionModel::propagatePoseWithPercentage(State6DOF& p_state)
     ROS_DEBUG_STREAM("Angle (deg): " << p_state.getRotationalVelocity().angle() << "\tVector: " << p_state.getRotationalVelocity().axis()(0) <<"\t"<< p_state.getRotationalVelocity().axis()(1) << "\t"<< p_state.getRotationalVelocity().axis()(2) );
     tmp_angle_axis.angle() = tmp_angle_axis.angle() * Utils::box_muller(1,propagate_rotational_percentage_vel_error) * LayoutManager::deltaOdomTime;
     p_state_propagated._rotation = tmp_angle_axis * p_state._rotation ;
-    ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
 
     // Generate random error with box_muller function
     p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * percentageVelError(0);
@@ -230,7 +230,7 @@ State6DOF MotionModel::propagatePoseWithPercentage(State6DOF& p_state)
     p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
     //p_state_propagated._rotational_velocity.axis()(2) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
     p_state_propagated._rotational_velocity.axis().normalize();
-    ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
 
     return p_state_propagated;
 }
@@ -239,17 +239,17 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
 {
 
     ROS_DEBUG_STREAM("> entering propagatePoseWithControlPercentageAndDeltatime with delta=" << deltaTime);
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
-    ROS_ASSERT(control.getRotation().isUnitary());
-    ROS_ASSERT(control.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(control.getRotation().isUnitary());
+    //ROS_ASSERT(control.getRotationalVelocity().isUnitary());
 
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * %v_t*  dt
     // v_t+1 = v_t + R
 
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     ROS_DEBUG_STREAM("State6DOF MotionModel::propagatePoseWithControlPercentage");
     ROS_DEBUG_STREAM("LIBVISO Speeds (xyz,Ang+Ax): "          <<  control.getTranslationalVelocity()(0)  << ";" <<
@@ -264,8 +264,8 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
     //p_state.setOrthogonalPoseRotation();
     //p_state.setOrthogonalSpeedRotation();
 
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     // initialize values
     State6DOF p_state_propagated;
@@ -301,7 +301,7 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
     tmp_angle_axis.angle() = tmp_angle_axis.angle() * (percentageRotationError * deltaTime) + absoluteRotationError;
     p_state_propagated._rotation = tmp_angle_axis * p_state.getRotation();
 
-    ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
 
     // propagate translational speed
     p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * percentageVelError(0);
@@ -314,7 +314,7 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
     //p_state_propagated._rotational_velocity.axis()(0) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
     //p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
     //p_state_propagated._rotational_velocity.axis().normalize();
-    ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
 
     ROS_DEBUG_STREAM("> exiting propagatePoseWithControlPercentageAndDeltatime");
     return p_state_propagated;
@@ -324,8 +324,8 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
 State6DOF MotionModel::propagatePoseWithPercentageAndDeltatime(State6DOF& p_state, double deltaTime)
 {
     ROS_DEBUG_STREAM("> entering propagatePoseWithPercentageAndDeltatime with delta=" << deltaTime);
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * Delta_t + R
@@ -371,7 +371,7 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDeltatime(State6DOF& p_stat
     //tmpAngleAxisd.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
     //tmpAngleAxisd.axis().normalize();
     p_state_propagated._rotation = tmpAngleAxisd * p_state._rotation ;
-    ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
 
     // Generate random error with box_muller function
     p_state_propagated._translational_velocity(0) = p_state._translational_velocity(0) * percentageVelError(0);
@@ -386,7 +386,7 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDeltatime(State6DOF& p_stat
     //p_state_propagated._rotational_velocity.axis()(1) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error)*0.01;
     //p_state_propagated._rotational_velocity.axis()(2) *= Utils::box_muller(1,propagate_rotational_percentage_vel_error);
     //p_state_propagated._rotational_velocity.axis().normalize();
-    ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
+   // ROS_ASSERT(p_state_propagated.getRotationalVelocity().isUnitary());
 
     ROS_DEBUG_STREAM("< exiting propagatePoseWithPercentageAndDelta");
     return p_state_propagated;
@@ -401,8 +401,8 @@ State6DOF MotionModel::propagatePoseWithPercentageAndDeltatime(State6DOF& p_stat
 State6DOF MotionModel::propagatePoseWithAbsolute(State6DOF& p_state)
 {
 
-    ROS_ASSERT(p_state.getRotation().isUnitary());
-    ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
+    //ROS_ASSERT(p_state.getRotation().isUnitary());
+    //ROS_ASSERT(p_state.getRotationalVelocity().isUnitary());
 
     // MOTION EQUATION:
     // s_t+1 = s_t + v_t * Delta_t + R
@@ -431,8 +431,8 @@ State6DOF MotionModel::propagatePoseWithAbsolute(State6DOF& p_state)
     p_state_propagated._rotational_velocity = p_state._rotational_velocity;
     p_state_propagated._rotational_velocity.angle() = p_state_propagated._rotational_velocity.angle() + Utils::box_muller(0,propagate_rotational_absolute_vel_error);
 
-    ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
-    ROS_ASSERT(p_state_propagated.getRotationalVelocity()isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotation().isUnitary());
+    //ROS_ASSERT(p_state_propagated.getRotationalVelocity()isUnitary());
 
     return p_state_propagated;
 }
