@@ -175,11 +175,10 @@ public:
     void layoutEstimation(const ros::TimerEvent &timerEvent);
 
     /**
-     * @brief odometryCallback
+     * @brief odometryCallback (was the temp odometryCallback2);
      * @param msg
      */
-    void odometryCallback(const nav_msgs::Odometry& msg);
-    void odometryCallback2(const nav_msgs::Odometry& visualOdometryMsg);
+    void odometryCallback(const nav_msgs::Odometry& visualOdometryMsg);
 
     /**
      * @brief reconfigureCallback
@@ -330,9 +329,6 @@ private:
      */
     void calculateScore(Particle *particle_itr);
     void calculateGeometricScores(Particle *particle_itr); //helper function, while the distance (metric+angular) aren't components.
-
-
-    ROS_DEPRECATED void rleMainLoop(const ros::TimerEvent&timerEvent);
 
 };
 

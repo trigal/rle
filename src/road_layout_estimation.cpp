@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     // Fatal,
 
     // init layout_manager
-    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Debug);
+    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Info);
 
     //ros::spin();
     spinner.start();

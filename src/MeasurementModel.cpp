@@ -32,7 +32,7 @@ State6DOF MeasurementModel::measurePose(State6DOF& p_state){
     return tmp;
 }
 
-void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
+void MeasurementModel::setMsg(const nav_msgs::Odometry &odometryMessage)
 {
     ROS_DEBUG_STREAM("> Entering MeasurementModel::setMsg");
 
@@ -52,7 +52,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
          *  So, msg_valid is *not used* anymore.
          */
 
-        _msg = m;
+        _msg = odometryMessage;
         //_msg_valid = true;  //used in PARTICLE.cpp
 
 //        std::cout << "=================================== " << std::endl << m << std::endl << Utils::getCovFromOdom(m) << std::endl;
@@ -65,7 +65,7 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &m)
         tf::StampedTransform new_transform;
         new_transform.setOrigin(tf::Vector3(_msg.pose.pose.position.x, _msg.pose.pose.position.y, _msg.pose.pose.position.z));
         new_transform.setRotation(tf::Quaternion( _msg.pose.pose.orientation.x, _msg.pose.pose.orientation.y, _msg.pose.pose.orientation.z, _msg.pose.pose.orientation.w));
-        new_transform.stamp_=m.header.stamp; //adding this little detail ...// Augusto sun.night
+        new_transform.stamp_=odometryMessage.header.stamp; //adding this little detail ...// Augusto sun.night
 
         if(measurementModelFirstRunNotExecuted)
         {

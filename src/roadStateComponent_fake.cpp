@@ -103,8 +103,8 @@ int main(int argc, char **argv)
 
                 particleUsed = i+1;
 
-                //ROS_INFO_STREAM("Particle Lat:\t" << service_call_getAllParticles.response.latitudes.at(i));
-                //ROS_INFO_STREAM("Particle Lon:\t" << service_call_getAllParticles.response.longitudes.at(i));
+                ROS_DEBUG_STREAM("Particle Lat:\t" << service_call_getAllParticles.response.latitudes.at(i));
+                ROS_DEBUG_STREAM("Particle Lon:\t" << service_call_getAllParticles.response.longitudes.at(i));
 
                 /// SNAP PARTICLE LAT LON
                 ///     1. convert lat lon to XY
@@ -126,10 +126,10 @@ int main(int argc, char **argv)
                         service_call_highway.request.way_id = snapParticle.response.way_id;
                         if(callHighwayInfo.call(service_call_highway))
                         {
-                            //ROS_INFO_STREAM("wayID       \t" << snapParticle.response.way_id);
-                            //ROS_INFO_STREAM("Oneway:     \t" << service_call_highway.response.oneway);
-                            //ROS_INFO_STREAM("N# Lanes:   \t" << service_call_highway.response.number_of_lanes);
-                            //ROS_INFO_STREAM("Road Width: \t" << service_call_highway.response.width);
+                            ROS_DEBUG_STREAM("wayID       \t" << snapParticle.response.way_id);
+                            ROS_DEBUG_STREAM("Oneway:     \t" << service_call_highway.response.oneway);
+                            ROS_DEBUG_STREAM("N# Lanes:   \t" << service_call_highway.response.number_of_lanes);
+                            ROS_DEBUG_STREAM("Road Width: \t" << service_call_highway.response.width);
 
                             roadState_message.oneway          = service_call_highway.response.oneway;
                             roadState_message.number_of_lanes = service_call_highway.response.number_of_lanes + (int)(Utils::box_muller(0,0.5));

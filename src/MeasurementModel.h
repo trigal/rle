@@ -32,7 +32,6 @@ private:
     tf::TransformListener *_listener;
     tf::StampedTransform _old_transform;
     tf::StampedTransform fixed_transform; //fixed transform from ODOM(libviso) to VISUAL_ODOMETRY_X_FORWARD
-    ROS_DEPRECATED bool _msg_valid;
     nav_msgs::Odometry _msg, _old_msg; /// current msg arrived from Visual Odometry
 
     geometry_msgs::Twist frameSpeed;
@@ -152,8 +151,7 @@ public:
 
 
     bool getFirstRun() {return measurementModelFirstRunNotExecuted;}
-    void setMsg(const nav_msgs::Odometry& m);
-    bool isMeasureValid() { return _msg_valid; }
+    void setMsg(const nav_msgs::Odometry& odometryMessage);
 
     nav_msgs::Odometry getMsg() { return _msg; }
     nav_msgs::Odometry getOldMsg() { return _old_msg; }
@@ -165,7 +163,6 @@ public:
         _msr_cov = MatrixXd::Zero(12,12);
         _listener = new tf::TransformListener();
         measurementModelFirstRunNotExecuted = true;
-        _msg_valid = false;
     }
 
     ~MeasurementModel(){

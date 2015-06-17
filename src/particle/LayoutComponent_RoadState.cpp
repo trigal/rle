@@ -70,13 +70,13 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
         scoreWidth = pdf(normal_distribution, this->getRoad_width()) / pdf(normal_distribution, getHighwayInfo.response.width);
-        ROS_INFO_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
+        ROS_DEBUG_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
 
         if (getHighwayInfo.response.number_of_lanes)
         {
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
             scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
-            ROS_INFO_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
+            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
 
         totalComponentScore = scoreLanes * scoreWidth;
@@ -98,7 +98,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
  */
 void LayoutComponent_RoadState::componentPerturbation()
 {
-    ROS_INFO_STREAM("componentPerturbation, component ID: " << component_id << " of particle ID: " << particle_id);    
+    ROS_INFO_STREAM_ONCE("componentPerturbation, component ID: " << component_id << " of particle ID: " << particle_id);
 
     //boost::mt19937 rng; // I don't seed it on purpouse (it's not relevant)
     //rng.seed(static_cast<unsigned int>(std::time(NULL) + getpid()));
