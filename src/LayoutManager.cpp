@@ -2161,7 +2161,6 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 //			(2) calculate score
 //			(3) resample all combination
         }
-
         // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
         if(resampling_count++ == resampling_interval)
         //    if(0)
