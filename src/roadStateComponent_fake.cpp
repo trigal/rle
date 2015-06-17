@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
                             roadState_message.oneway          = service_call_highway.response.oneway;
                             roadState_message.number_of_lanes = service_call_highway.response.number_of_lanes + (int)(Utils::box_muller(0,0.5));
-                            roadState_message.width           = service_call_highway.response.width           +       Utils::box_muller(0,0.3);
+                            roadState_message.width           = service_call_highway.response.width           +       Utils::box_muller(0,0.4);
                             roadState_message.way_id          = snapParticle.response.way_id;
 
                             if (roadState_message.number_of_lanes<0)    roadState_message.number_of_lanes   = 0;

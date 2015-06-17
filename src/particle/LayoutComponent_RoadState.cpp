@@ -53,7 +53,7 @@ void LayoutComponent_RoadState::setWay_id(const int &value)
 ///
 void LayoutComponent_RoadState::calculateComponentScore()
 {
-    ROS_DEBUG_STREAM("> Entering calculateComponentScore, component ID: " << component_id << " of particle ID: " <<particle_id);
+    ROS_DEBUG_STREAM("> Entering calculateComponentScore, component ID: " << component_id << " of particle ID: " << particle_id);
 
     ira_open_street_map::getHighwayInfo getHighwayInfo;
     getHighwayInfo.request.way_id = this->getWay_id();
@@ -64,19 +64,19 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
-        ROS_ERROR_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
-        ROS_ERROR_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
-        ROS_ERROR_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
         scoreWidth = pdf(normal_distribution, this->getRoad_width()) / pdf(normal_distribution, getHighwayInfo.response.width);
-        ROS_ERROR_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
+        ROS_DEBUG_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
 
         if (getHighwayInfo.response.number_of_lanes)
         {
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
             scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
-            ROS_ERROR_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
+            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
 
         totalComponentScore = scoreLanes * scoreWidth;
@@ -108,10 +108,10 @@ void LayoutComponent_RoadState::componentPerturbation()
 
     double road_width = this->getRoad_width() * Utils::box_muller(1,0.001);
 
-    this->setRoad_width(road_width);
 
     ROS_DEBUG_STREAM("roadWith: " << this->getRoad_width() << "\tPerturbed: " << road_width);
 
+    this->setRoad_width(road_width);
 }
 
 /**

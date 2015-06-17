@@ -247,6 +247,8 @@ private:
     double angle_distribution_sigma;            // Angle difference gaussian distribution sigma
     double street_distribution_weight;          // Tells how does street pdf weight on score calculation
     double angle_distribution_weight;           // Tells how does angle pdf weight on score calculation
+    double roadState_distribution_weight;       // Tells how does roadStateComponents weight on the score calculation
+    int    resampling_interval;                 // The resampling interval of the main Particle Filter
 
     static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
