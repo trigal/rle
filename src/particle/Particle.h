@@ -43,10 +43,14 @@ private:
     double particle_score;   /// score got with particle-score formula
     MotionModel particle_mtn_model;	 /// particle motion model
 
+
 public:
 
     int in_cluster;
     double distance_to_closest_segment;
+
+    double pose_diff_score_component;
+    double final_angle_diff_score;
 
     /**
      * This function will use "motion-model" class to propagate all particle's components

@@ -63,6 +63,7 @@
 #include <functional>
 #include <math.h>
 #include <fstream>
+#include <limits>
 
 
 
@@ -193,7 +194,7 @@ public:
      */
     void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
 
-    void roadStateCallback(const road_layout_estimation::msg_roadState& msg);
+    void roadStateCallback(const road_layout_estimation::msg_roadState& roadStateMessage);
 
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }
@@ -328,6 +329,7 @@ private:
      *
      */
     void calculateScore(Particle *particle_itr);
+    void calculateGeometricScores(Particle *particle_itr); //helper function, while the distance (metric+angular) aren't components.
 
 
     ROS_DEPRECATED void rleMainLoop(const ros::TimerEvent&timerEvent);

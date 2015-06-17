@@ -22,7 +22,10 @@
 #include <Eigen/Geometry>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+
 #include <boost/assign.hpp>
+#include <boost/math/distributions/poisson.hpp>
+
 #include <vector>
 #include <stdlib.h>
 #include <ctime>
@@ -74,22 +77,35 @@ int main(int argc, char **argv)
     callLatLonToXY.waitForExistence();
     callSnapParticleXy.waitForExistence();
 
+    double maxScore = -1; //dummy method to send the fake-detection using the most weighted particle
+    int    particleUsed=1;
+
     while(ros::ok())
     {
         ROS_INFO_STREAM("> START cycly, fake detector...");
+
+        // reset dummy variables;
+        maxScore = -1;
+        particleUsed=1;
 
         road_layout_estimation::msg_roadState roadState_message;
         road_layout_estimation::getAllParticlesLatLon service_call_getAllParticles;
 
         if(callAllParticleLatLon.call(service_call_getAllParticles))
         {
-            ROS_INFO_STREAM("N# of particles: " << service_call_getAllParticles.response.particles);
-            for (int i=0;i<service_call_getAllParticles.response.particles;i++)
+            ROS_INFO_STREAM("N# of particles: " << service_call_getAllParticles.response.particleNumber);
+            for (int i=0;i<service_call_getAllParticles.response.particleNumber;i++)
             {
-                ROS_INFO_STREAM("Particle Lat:\t" << service_call_getAllParticles.response.latitudes.at(i));
-                ROS_INFO_STREAM("Particle Lon:\t" << service_call_getAllParticles.response.longitudes.at(i));
+                if (service_call_getAllParticles.response.particleScores.at(i)>maxScore)
+                    maxScore=service_call_getAllParticles.response.particleScores.at(i);
+                else
+                    continue;
 
-                ///
+                particleUsed = i+1;
+
+                //ROS_INFO_STREAM("Particle Lat:\t" << service_call_getAllParticles.response.latitudes.at(i));
+                //ROS_INFO_STREAM("Particle Lon:\t" << service_call_getAllParticles.response.longitudes.at(i));
+
                 /// SNAP PARTICLE LAT LON
                 ///     1. convert lat lon to XY
                 ///     2. snap_particle_xy
@@ -110,17 +126,18 @@ int main(int argc, char **argv)
                         service_call_highway.request.way_id = snapParticle.response.way_id;
                         if(callHighwayInfo.call(service_call_highway))
                         {
-                            ROS_INFO_STREAM("wayID       \t" << snapParticle.response.way_id);
-                            ROS_INFO_STREAM("Oneway:     \t" << service_call_highway.response.oneway);
-                            ROS_INFO_STREAM("N# Lanes:   \t" << service_call_highway.response.number_of_lanes);
-                            ROS_INFO_STREAM("Road Width: \t" << service_call_highway.response.width);
+                            //ROS_INFO_STREAM("wayID       \t" << snapParticle.response.way_id);
+                            //ROS_INFO_STREAM("Oneway:     \t" << service_call_highway.response.oneway);
+                            //ROS_INFO_STREAM("N# Lanes:   \t" << service_call_highway.response.number_of_lanes);
+                            //ROS_INFO_STREAM("Road Width: \t" << service_call_highway.response.width);
 
                             roadState_message.oneway          = service_call_highway.response.oneway;
-                            roadState_message.number_of_lanes = service_call_highway.response.number_of_lanes;
-                            roadState_message.width           = service_call_highway.response.width;
+                            roadState_message.number_of_lanes = service_call_highway.response.number_of_lanes + (int)(Utils::box_muller(0,0.5));
+                            roadState_message.width           = service_call_highway.response.width           +       Utils::box_muller(0,0.3);
                             roadState_message.way_id          = snapParticle.response.way_id;
 
-                            roadState_pub.publish(roadState_message);
+                            if (roadState_message.number_of_lanes<0)    roadState_message.number_of_lanes   = 0;
+                            if (roadState_message.width<0)              roadState_message.width             = abs(roadState_message.width);
                         }
                         else
                             ROS_ERROR_STREAM("ERROR FAKE COMPONENT @ callHighwayInfo");
@@ -132,15 +149,23 @@ int main(int argc, char **argv)
                     ROS_ERROR("ERROR FAKE COMPONENT @ convertLatLon2XY");
             }
 
+            // This should publish only the fake-measure from the most scored particle!
+            ROS_INFO_STREAM("wayID       \t" << roadState_message.way_id);
+            ROS_INFO_STREAM("Oneway:     \t" << roadState_message.oneway);
+            ROS_INFO_STREAM("N# Lanes:   \t" << roadState_message.number_of_lanes);
+            ROS_INFO_STREAM("Road Width: \t" << roadState_message.width);
+            ROS_INFO_STREAM("Using " << particleUsed << "/" << service_call_getAllParticles.response.particleNumber << " particle");
+            roadState_pub.publish(roadState_message);
+
         }
         else
         {
-            ROS_WARN("nope");
+            ROS_WARN("Can't call Layoutmanager service callAllParticleLatLon ");
         }
 
         ros::spinOnce();
 
-        ROS_INFO_STREAM("< END cycly, fake detector...");
+        ROS_INFO_STREAM("< END cycly, fake detector...\n");
         loop_rate.sleep();
     }
 }

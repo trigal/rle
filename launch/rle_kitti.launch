@@ -60,7 +60,7 @@
             />
 
 
-        <!-- Launch ROAD LAYOUT ESTIMATION node-->
+        <!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
                 pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"

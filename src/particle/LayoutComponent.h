@@ -47,7 +47,9 @@ public:
     void setComponentWeight(double w){component_weight=w;}
 
     VectorXd getComponentState(){return component_state;}
-    void setComponentState(VectorXd pose){ ROS_DEBUG_STREAM(">>>setComponentState called"); component_state = pose; }
+    void setComponentState(VectorXd pose){ ROS_DEBUG_STREAM(">>>setComponentState called");
+                                           component_state = pose;
+                                           ROS_DEBUG_STREAM("<<<setComponentState called");}
 
     MatrixXd getComponentCov(){return component_cov;}
     void setComponentCov(MatrixXd cov){component_cov=cov;}

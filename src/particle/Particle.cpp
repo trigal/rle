@@ -160,7 +160,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
             {
                 VectorXd state; state=stato_ut_predetto.getPose();
-                ROS_DEBUG_STREAM("UPDATING roadStateComponent within particlePoseEstimation:" << state(0)<<"\t"<< state(1)<<"\t"<< state(2));
+                ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0)<<"\t"<< state(1)<<"\t"<< state(2));
 
                 (*itr)->setComponentState(state); //virtual call
             }

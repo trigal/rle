@@ -58,25 +58,31 @@ void LayoutComponent_RoadState::calculateComponentScore()
     ira_open_street_map::getHighwayInfo getHighwayInfo;
     getHighwayInfo.request.way_id = this->getWay_id();
 
+    double scoreLanes = 1.0f;
+    double scoreWidth = 1.0f;
+    double totalComponentScore = 0.0f;
+
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
-        ROS_DEBUG_STREAM("calculateComponentScore says   wayId: " << this->getWay_id());
-        ROS_DEBUG_STREAM("calculateComponentScore says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
-        ROS_DEBUG_STREAM("calculateComponentScore says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
-        double scoreWidth = pdf(normal_distribution, this->getRoad_width());
-        ROS_INFO_STREAM("Width  Score (normal ): " << scoreWidth);
+        scoreWidth = pdf(normal_distribution, this->getRoad_width()) / pdf(normal_distribution, getHighwayInfo.response.width);
+        ROS_INFO_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
 
         if (getHighwayInfo.response.number_of_lanes)
         {
-            boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: mean must be > 0
-            double scoreLanes = pdf(poisson_distribution,this->getLanes_number());
-            ROS_INFO_STREAM("Lanes  Score (poisson): " << scoreLanes);
+            boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
+            scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
+            ROS_INFO_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
 
-        this->setComponentWeight(scoreWidth);
-        //https://en.wikipedia.org/wiki/Scoring_rule
+        totalComponentScore = scoreLanes * scoreWidth;
+
+        this->setComponentWeight(totalComponentScore);
+        //have a look here: https://en.wikipedia.org/wiki/Scoring_rule
 
     }
 
@@ -126,8 +132,11 @@ void LayoutComponent_RoadState::componentPoseEstimation()
      *                      2- guardiamo cosa c'è nella strada più vicina dove l'ipotesi vive
      */
 
+    // this measures are 'sensed', can't estimate
     this->lanes_number = this->lanes_number;
     this->road_width   = this->road_width;
+
+    // this info ??? check
     this->way_id       = this->way_id;
 
 }
