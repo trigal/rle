@@ -64,19 +64,19 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
+        ROS_ERROR_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
+        ROS_ERROR_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says: " << this->getRoad_width()  );
+        ROS_ERROR_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says: " << this->getLanes_number());
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
         scoreWidth = pdf(normal_distribution, this->getRoad_width()) / pdf(normal_distribution, getHighwayInfo.response.width);
-        ROS_DEBUG_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
+        ROS_ERROR_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
 
         if (getHighwayInfo.response.number_of_lanes)
         {
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
             scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
-            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
+            ROS_ERROR_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
 
         totalComponentScore = scoreLanes * scoreWidth;
@@ -107,6 +107,8 @@ void LayoutComponent_RoadState::componentPerturbation()
     //double road_width = this->getRoad_width() * var_nor();
 
     double road_width = this->getRoad_width() * Utils::box_muller(1,0.001);
+
+    this->setRoad_width(road_width);
 
     ROS_DEBUG_STREAM("roadWith: " << this->getRoad_width() << "\tPerturbed: " << road_width);
 
