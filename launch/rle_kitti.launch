@@ -1,5 +1,14 @@
 <launch>
 
+        <!-- RLE Parameters -->
+        <param name="/road_layout_estimation/resampling_interval"               value="3"/>
+        <param name="/road_layout_estimation/particles_number"                  value="10"/>
+
+        <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
+        <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
+        <param name="/road_layout_estimation/roadState_distribution_weight"     value="1.5"/>
+
+
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
             <arg name="bagfile" default="kitti_01" />
