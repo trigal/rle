@@ -260,6 +260,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         MotionModel* motionModelPointer = particle_ptr->getMotionModelPtr();
 
+        //unused
         motionModelPointer->setErrorCovariance(
                     config.mtn_model_position_uncertainty,
                     config.mtn_model_orientation_uncertainty,

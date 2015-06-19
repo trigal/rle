@@ -101,20 +101,20 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     MatrixXd K_t = MatrixXd::Zero(12,12);	                                    /// Kalman gain
 
     // ------- PREDICTION STEP -------
-    // 1. Absolute
-    // stato_ut_predetto = particle_mtn_model.propagatePose(stato_t);
+    /// 1. Absolute
+    //stato_ut_predetto = particle_mtn_model.propagatePoseWithAbsolute(stato_t);
 
-    // 2. Percentage
+    /// 2. Percentage
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentage(stato_t); //percentage
 
-    // 3. With odometry
+    /// 3. With odometry
     //State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithControl(stato_t, deltaFromLibviso);
 
-    // 3. Tryin again with EKF
+    /// 3. Tryin again with EKF
     //stato_ut_predetto = particle_mtn_model.propagatePoseWithPercentageAndDeltatime(stato_t, deltaTimerTime);
 
-    // 4. With odometry but Percentage
+    /// 4. With odometry but Percentage
     State6DOF deltaFromLibviso = odometry->getMeasureDeltaState();              // _measure from MeasurementModel, the DELTA + speeds
     stato_ut_predetto = particle_mtn_model.propagatePoseWithControlPercentageAndDeltatime(stato_t, deltaFromLibviso, deltaTimerTime);
 

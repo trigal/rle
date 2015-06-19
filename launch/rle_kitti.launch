@@ -8,6 +8,18 @@
         <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
         <param name="/road_layout_estimation/roadState_distribution_weight"     value="1.5"/>
 
+        <!--State6DOF ***ABSOLUTE***-->
+        <param name="propagate_translational_absolute_vel_error_x"              value="0.300" />
+        <param name="propagate_translational_absolute_vel_error_y"              value="0.020" />
+        <param name="propagate_translational_absolute_vel_error_z"              value="0.010" />
+        <param name="propagate_rotational_absolute_vel_error"                   value="0.035" />
+
+        <!--#State6DOF ***PERCENTAGE***-->
+        <param name="propagate_translational_percentage_vel_error_x"            value="0.400" />
+        <param name="propagate_translational_percentage_vel_error_y"            value="0.350" />
+        <param name="propagate_translational_percentage_vel_error_z"            value="0.310" />
+        <param name="propagate_rotational_percentage_vel_error"                 value="0.100" />
+
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
