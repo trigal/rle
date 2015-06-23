@@ -72,7 +72,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    double timerInterval=0.05f;//0.05f; //(sec) 30Hz, 3xlibviso
+    double rle_frequency = 1.0f;
+    node_handle.param("rle_frequency"  ,rle_frequency, 1.0);
+    ROS_INFO_STREAM("RLE framework main loop frequency (Hz): " << rle_frequency);
+    double timerInterval = 1.0f / rle_frequency; //0.05f;//0.05f; //(sec) 30Hz, 3xlibviso
 
     // Debug,
     // Info,
