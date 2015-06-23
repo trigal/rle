@@ -1,7 +1,7 @@
 <launch>
 
         <!-- RLE Parameters -->
-        <param name="/road_layout_estimation/resampling_interval"               value="3"/>
+        <param name="/road_layout_estimation/resampling_interval"               value="8"/>
         <param name="/road_layout_estimation/particles_number"                  value="10"/>
 
         <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
@@ -9,16 +9,16 @@
         <param name="/road_layout_estimation/roadState_distribution_weight"     value="1.5"/>
 
         <!--State6DOF ***ABSOLUTE***-->
-        <param name="propagate_translational_absolute_vel_error_x"              value="0.300" />
-        <param name="propagate_translational_absolute_vel_error_y"              value="0.020" />
-        <param name="propagate_translational_absolute_vel_error_z"              value="0.010" />
-        <param name="propagate_rotational_absolute_vel_error"                   value="0.035" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.0" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.0" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.0" />
+        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.0" />
 
         <!--#State6DOF ***PERCENTAGE***-->
-        <param name="propagate_translational_percentage_vel_error_x"            value="0.400" />
-        <param name="propagate_translational_percentage_vel_error_y"            value="0.350" />
-        <param name="propagate_translational_percentage_vel_error_z"            value="0.310" />
-        <param name="propagate_rotational_percentage_vel_error"                 value="0.100" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.01" />
 
 
         <!-- ARGUMENTS -->
