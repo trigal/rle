@@ -150,11 +150,27 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     deltaTimerTime = timerInterval;             //deltaTimer of the LayoutManager Class is initialy set as the requested interval
     RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this,false, false);
 
-    // init dynamic reconfigure
+    /// For debug purposes, print default paramenters (from .launch or .cfg file)
+    road_layout_estimation::road_layout_estimationConfig defaultConfigFromLaunchFile;
+    this->node_handle.param("propagate_translational_absolute_vel_error_x"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_x   , 0.0);
+    this->node_handle.param("propagate_translational_absolute_vel_error_y"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_y   , 0.0);
+    this->node_handle.param("propagate_translational_absolute_vel_error_z"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_z   , 0.0);
+    this->node_handle.param("propagate_rotational_absolute_vel_error"       ,            defaultConfigFromLaunchFile.propagate_rotational_absolute_vel_error        , 0.0);
+    this->node_handle.param("propagate_translational_percentage_vel_error_x",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_x , 0.0);
+    this->node_handle.param("propagate_translational_percentage_vel_error_y",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_y , 0.0);
+    this->node_handle.param("propagate_translational_percentage_vel_error_z",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z , 0.0);
+    this->node_handle.param("propagate_rotational_percentage_vel_error"     ,            defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error      , 0.0);
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_x  );
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_y  );
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_z  );
+    ROS_DEBUG_STREAM("propagate_rotational_absolute_vel_error         ------------  " << defaultConfigFromLaunchFile.propagate_rotational_absolute_vel_error       );
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_x  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_x);
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_y  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_y);
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_z  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z);
+    ROS_DEBUG_STREAM("propagate_rotational_percentage_vel_error       ------------  " << defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error     );
+
     f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     server.setCallback(f);
-
-    //this->rleStart();                                                                                                     //deprecated, first decoupling attempt
 }
 
 void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point)
@@ -260,13 +276,13 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         MotionModel* motionModelPointer = particle_ptr->getMotionModelPtr();
 
-        //unused
-        motionModelPointer->setErrorCovariance(
-                    config.mtn_model_position_uncertainty,
-                    config.mtn_model_orientation_uncertainty,
-                    config.mtn_model_linear_uncertainty,
-                    config.mtn_model_angular_uncertainty
-                    );
+        ///disabling
+        //motionModelPointer->setErrorCovariance(
+        //            config.mtn_model_position_uncertainty,
+        //            config.mtn_model_orientation_uncertainty,
+        //            config.mtn_model_linear_uncertainty,
+        //            config.mtn_model_angular_uncertainty
+        //            );
 
         motionModelPointer->setPropagationError(
                     config.propagate_translational_absolute_vel_error_x,
@@ -287,12 +303,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
     // WARNING: this routine is called even by default constructor, may contain OLD values from a older ROSCORE/ROSPARAM
     //          i.e. the values may not be the .cfg/default parameters!
-    default_mtn_model.setErrorCovariance(
-                config.mtn_model_position_uncertainty,
-                config.mtn_model_orientation_uncertainty,
-                config.mtn_model_linear_uncertainty,
-                config.mtn_model_angular_uncertainty
-                );
+
+    ///disabling
+    //default_mtn_model.setErrorCovariance(
+    //            config.mtn_model_position_uncertainty,
+    //            config.mtn_model_orientation_uncertainty,
+    //            config.mtn_model_linear_uncertainty,
+    //            config.mtn_model_angular_uncertainty
+    //            );
 
     default_mtn_model.setPropagationError(
                 config.propagate_translational_absolute_vel_error_x,
@@ -305,13 +323,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 config.propagate_rotational_percentage_vel_error
                 );       
 
+    ///disabling
     // TODO: verificare. perché c'è questa cosa? Non dovrebbe essere letta dal messaggio di odometria? Questa è Q in EKF.
-    measurement_model->setMeasureCov(
-                config.msr_model_position_uncertainty,
-                config.msr_model_orientation_uncertainty,
-                config.msr_model_linear_uncertainty,
-                config.msr_model_angular_uncertainty
-                );
+    //measurement_model->setMeasureCov(
+    //            config.msr_model_position_uncertainty,
+    //            config.msr_model_orientation_uncertainty,
+    //            config.msr_model_linear_uncertainty,
+    //            config.msr_model_angular_uncertainty
+    //            );
 
     // update particle-set number (only if this IS NOT the first run) ------------------------------------------------
     if(!LayoutManager::layoutManagerFirstRun)
@@ -756,7 +775,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's sigma
                     MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
 
-                    cout << "p_sigma" << endl << endl << p_sigma << endl;
+                    ROS_DEBUG_STREAM("p_sigma" << endl << endl << p_sigma << endl);
 
                     /// Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
@@ -784,7 +803,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         VectorXd state=new_particle.getParticleState().getPose();
                         roadState->setComponentState(state);
-                        ROS_ERROR_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
+                        ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
                         new_particle.addComponent(roadState);
                     }
                     //////////// CREATE COMPONENT ROAD_STATE ////////////

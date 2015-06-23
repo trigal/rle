@@ -100,19 +100,21 @@ public:
         error_covariance(11,11) = ang_unc*ang_unc;
     }
 
-    void setPropagationError(double translational_x, double translational_y, double translational_z, double rotational,
+    void setPropagationError(double translational_absolute_x, double translational_absolute_y, double translational_absolute_z, double rotational_absolute,
                              double translational_percentage_x, double translational_percentage_y, double translational_percentage_z, double rotational_percentage)
     {
-        ROS_DEBUG_STREAM("setPropagationError:" << translational_x << "\t"<< translational_y << "\t"<< translational_z<< rotational );
-        propagate_translational_percentage_vel_error_x = translational_percentage_x;
-        propagate_translational_percentage_vel_error_y = translational_percentage_y;
-        propagate_translational_percentage_vel_error_z = translational_percentage_z;
-        propagate_rotational_percentage_vel_error      = rotational_percentage;
+        propagate_translational_percentage_vel_error_x          = translational_percentage_x;
+        propagate_translational_percentage_vel_error_y          = translational_percentage_y;
+        propagate_translational_percentage_vel_error_z          = translational_percentage_z;
+        propagate_rotational_percentage_vel_error               = rotational_percentage;
 
-        propagate_translational_absolute_vel_error_x            = translational_x;
-        propagate_translational_absolute_vel_error_y            = translational_y;
-        propagate_translational_absolute_vel_error_z            = translational_z;
-        propagate_rotational_absolute_vel_error                 = rotational;
+        propagate_translational_absolute_vel_error_x            = translational_absolute_x;
+        propagate_translational_absolute_vel_error_y            = translational_absolute_y;
+        propagate_translational_absolute_vel_error_z            = translational_absolute_z;
+        propagate_rotational_absolute_vel_error                 = rotational_absolute;
+
+        ROS_WARN_STREAM("Calling setPropagationError, *ABSOLUTE* :" << translational_absolute_x << "\t"<< translational_absolute_y << "\t"<< translational_absolute_z<< rotational_absolute );
+        ROS_WARN_STREAM("Calling setPropagationError, *PERC.  %* :" << translational_percentage_x << "\t"<< translational_percentage_y << "\t"<< translational_percentage_z<< rotational_percentage );
     }
 
     // constructor & destructor ----------------------------------------------------------------
