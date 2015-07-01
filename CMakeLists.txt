@@ -34,6 +34,8 @@ generate_dynamic_reconfigure_options(
 add_message_files(
   FILES
   msg_roadState.msg
+  msg_lanes.msg
+  msg_laneInfo.msg
 )
 
 add_service_files(
