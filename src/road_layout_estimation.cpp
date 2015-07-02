@@ -46,14 +46,17 @@ int main(int argc, char *argv[])
 {
 	// init ROS and NodeHandle
     ros::init(argc, argv, "road_layout_estimation");
-    ros::NodeHandle node_handle;
+    ros::NodeHandle node_handle("/road_layout_estimation");
+    ros::AsyncSpinner spinner(1);
 
     std::cout << "Detected " << argc << " arguments (argc), printing values:" << endl;
     for (int i=0; i< argc; i++)
         std::cout << "Argument " << i << ":" << argv[i] << endl;
 
+    std::cout << endl;
+
     string visual_odometry_topic = "/stereo_odometer/odometry";
-    string bagfile = "kitti_00";
+    string bagfile = "kitti_01";
 
     if(argc > 3)
     {
@@ -65,13 +68,27 @@ int main(int argc, char *argv[])
         if(argc == 3){
             visual_odometry_topic = argv[1];
             bagfile = argv[2];
+            ROS_INFO_STREAM ("BAGFILE = " << bagfile);
         }
     }
 
-    // init layout_manager
-    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile);
+    double rle_frequency = 1.0f;
+    node_handle.param("rle_frequency"  ,rle_frequency, 1.0);
+    ROS_INFO_STREAM("RLE framework main loop frequency (Hz): " << rle_frequency);
+    double timerInterval = 1.0f / rle_frequency; //0.05f;//0.05f; //(sec) 30Hz, 3xlibviso
 
-    ros::spin();
+    // Debug,
+    // Info,
+    // Warn,
+    // Error,
+    // Fatal,
+
+    // init layout_manager
+    LayoutManager layout_manager(node_handle, visual_odometry_topic, bagfile, timerInterval, ros::console::levels::Warn);
+
+    //ros::spin();
+    spinner.start();
+    ros::waitForShutdown();
 
 	return 0;
 }

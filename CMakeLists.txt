@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
+#SET (CMAKE_BUILD_TYPE Debug)
+#SET (ROS_BUILD_TYPE Debug)
+SET (CMAKE_BUILD_TYPE Release)
+SET (ROS_BUILD_TYPE Release)
+
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules)
+find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules message_generation std_msgs)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -25,18 +31,32 @@ generate_dynamic_reconfigure_options(
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-#SET (CMAKE_BUILD_TYPE Debug)
-#SET (ROS_BUILD_TYPE Debug)
-SET (CMAKE_BUILD_TYPE Release)
-SET (ROS_BUILD_TYPE Release)
+add_message_files(
+  FILES
+  msg_roadState.msg
+  msg_lanes.msg
+  msg_laneInfo.msg
+)
 
+add_service_files(
+  FILES
+  getAllParticlesLatLon.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+
+)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES road_layout_estimation
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
+   CATKIN_DEPENDS message_runtime
 )
+
 
 ###########
 ## Build ##
@@ -54,6 +74,12 @@ catkin_package(
 ## Declare cpp executables
 add_executable(visual_odometry_fake 
 	src/visual_odometry_fake.cpp 
+        src/particle/State6DOF.cpp
+        src/Utils.cpp
+)
+
+add_executable(roadStateComponent_fake
+        src/roadStateComponent_fake.cpp
         src/particle/State6DOF.cpp
         src/Utils.cpp
 )
@@ -77,6 +103,7 @@ add_executable(road_layout_estimation
         src/particle/LayoutComponent_RoadLane.cpp
         src/particle/State6DOF.cpp
         src/eigenmultivariatenormal.hpp
+        src/particle/LayoutComponent_RoadState.cpp
 )
 
 add_executable(visual_odometry_nvm
@@ -93,6 +120,7 @@ add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_fake ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_nvm ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_test ${PROJECT_NAME}_gencfgf)
+add_dependencies(roadStateComponent_fake ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(road_layout_estimation
@@ -103,9 +131,15 @@ target_link_libraries(visual_odometry_fake
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(roadStateComponent_fake
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(visual_odometry_test
   ${catkin_LIBRARIES}
 )
+
+
 
 target_link_libraries(visual_odometry_nvm
 #   ${PCL_LIBRARIES}

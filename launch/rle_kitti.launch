@@ -1,15 +1,38 @@
 <launch>
 
+        <!-- RLE Parameters -->
+        <param name="/road_layout_estimation/resampling_interval"               value="8"/>
+        <param name="/road_layout_estimation/particles_number"                  value="1"/>
+        <param name="/road_layout_estimation/rle_frequency"                     value="20"/>  <!-- RLE loop frequency HZ -->
+
+        <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
+        <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
+        <param name="/road_layout_estimation/roadState_distribution_weight"     value="1.5"/>
+
+        <!--State6DOF ***ABSOLUTE***-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.01" />
+        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.025" />
+
+        <!--#State6DOF ***PERCENTAGE***-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.05" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.01" />
+
+
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="kitti_00" />
+            <arg name="bagfile" default="kitti_01" />
 
-            <arg name="bagfilewithpath" default="/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
+            <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
-            <arg name="publish_rate" default="1.0" />
+            <arg name="publish_rate" default="0.1" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <param name="/use_sim_time" value="true"/>
-            <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
+            <!-- <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" /> -->
+            <arg name="map" default="$(find ira_open_street_map)/maps/2011_10_03_drive_0042_sync.osm" />
 
             <arg name="play_from_VO" default="true" />      <!-- if you want to autoplay the bag file -->
             <arg name="enable_VO" default="true" />        <!-- if the VO BAGS are used, put FALSE here -->
@@ -55,25 +78,35 @@
                     name="osm_query_node"
                     output="screen"
                     args="$(arg map)"
+                    clear_params="true"
             />
 
 
-	<!-- Launch ROAD LAYOUT ESTIMATION node -->
+        <!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
-		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
+                pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
-	/>  
+                clear_params="true"
+        />
 
         <!-- VISUALIZATION STUFF -->
             <!-- Launch RViz-->
-            <node pkg="rviz" type="rviz" name="rviz" respawn="true"
+            <node pkg="rviz" type="rviz" name="rviz"
                     args="-d $(arg rviz)"
                     output="screen"
             />
 
-	<!-- Launch RQT reconfigure 
+        <!-- Launch FAKE ROADSTATE DETECTOR-->
+        <node
+            pkg="road_layout_estimation" type="roadStateComponent_fake" name="roadStateComponent_fake"
+            required="true"
+            output="screen"
+            clear_params="true"
+        />
+
+        <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 
         <!-- Launch ROAD LANE DETECTOR
@@ -81,5 +114,7 @@
                     pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
                     required="true"
                     output="screen"
-            /> -->
+                    clear_params="true"
+            />-->
+
 </launch>

@@ -9,10 +9,14 @@ State6DOF::State6DOF()
 
 Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
 {
+    //std::cout << "this->toVectorXd()\n" << this->toVectorXd() << std::endl;
+    //std::cout << "to_be_subtracted.toVectorXd()\n" << to_be_subtracted.toVectorXd() << std::endl<<std::endl;
+
     Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
-//    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
-//    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
-//    tmp_matrix.block(6,0,3,1) = tmp_matrix.block(6,0,3,1) - to_be_subtracted.toVectorXd().block(6,0,3,1);
+
+    //    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
+    //    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
+    //    tmp_matrix.block(6,0,3,1) = tmp_matrix.block(6,0,3,1) - to_be_subtracted.toVectorXd().block(6,0,3,1);
     return tmp_matrix;
 }
 
@@ -29,10 +33,12 @@ State6DOF State6DOF::subtract_state6DOF(State6DOF &to_be_subtracted)
 
 void State6DOF::printState(std::string head_string)
 {
-    std::cout << head_string << std::endl;
-    std::cout << "       pose: " << this->_pose.transpose() << std::endl << "orientation: " << this->_rotation.angle() << " @ " << this->_rotation.axis().transpose() << std::endl;
-    std::cout << "     linear: " << this->_translational_velocity.transpose() << std::endl << "    angular: " << this->_rotational_velocity.angle() << " @ " << this->_rotational_velocity.axis().transpose() << std::endl << std::endl;
-
+    ROS_DEBUG_STREAM ( head_string );
+    ROS_DEBUG_STREAM ( "       pose: " << this->_pose.transpose());
+    ROS_DEBUG_STREAM ( "orientation: " << this->_rotation.angle() << " @ " << this->_rotation.axis().transpose() );
+    ROS_DEBUG_STREAM ( "     linear: " << this->_translational_velocity.transpose() );
+    ROS_DEBUG_STREAM ( "    angular: " << this->_rotational_velocity.angle() << " @ " << this->_rotational_velocity.axis().transpose() );
+    ROS_DEBUG_STREAM ( "" );
 }
 
 State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)
@@ -138,4 +144,22 @@ void State6DOF::addNoise(double position_offset, double orientation_offset, doub
    this->_translational_velocity(2) += Utils::getNoise(linear_offset);
 
    this->_rotational_velocity.angle() += Utils::getNoise(angular_offset);
+}
+
+void State6DOF::setOrthogonalPoseRotation()
+{
+    if (this->_rotation.axis()(2)<0)
+        this->_rotation.inverse();
+    this->_rotation.axis()(0)=0;
+    this->_rotation.axis()(1)=0;
+    this->_rotation.axis()(2)=1;
+}
+
+void State6DOF::setOrthogonalSpeedRotation()
+{
+    if (this->_rotation.axis()(2)<0)
+        this->_rotation.inverse();
+    this->_rotational_velocity.axis()(0)=0;
+    this->_rotational_velocity.axis()(1)=0;
+    this->_rotational_velocity.axis()(2)=1;
 }

@@ -374,8 +374,8 @@ void Utils::printOdomAngleAxisToCout(const nav_msgs::Odometry& msg)
     State6DOF tmp(msg);
 
     std::cout << "[measure_t ]" << std::endl;
-    std::cout << "       pose: " << tmp._pose.transpose() << std::endl << "orientation: " << tmp._rotation.angle() << " " << tmp._rotation.axis().transpose() << std::endl;
-    std::cout << "     linear: " << tmp._translational_velocity.transpose() << std::endl << "    angular: " << tmp._rotational_velocity.angle() << " " << tmp._rotational_velocity.axis().transpose() << std::endl << std::endl;
+    std::cout << "       pose: " << tmp.getPose().transpose() << std::endl << "orientation: " << tmp.getRotation().angle() << " " << tmp.getRotation().axis().transpose() << std::endl;
+    std::cout << "     linear: " << tmp.getTranslationalVelocity().transpose() << std::endl << "    angular: " << tmp.getRotationalVelocity().angle() << " " << tmp.getRotationalVelocity().axis().transpose() << std::endl << std::endl;
 
     std::cout << std::endl;
 }
@@ -454,7 +454,8 @@ VectorXd Utils::getPoseVectorFromOdom(const nav_msgs::Odometry& msg)
     return pose;
 }
 
-MatrixXd Utils::getCovFromOdom(const nav_msgs::Odometry& msg){
+MatrixXd Utils::getCovFromOdom(const nav_msgs::Odometry& msg)
+{
     MatrixXd pose_cov = MatrixXd::Zero(6,6);
     MatrixXd twist_cov = MatrixXd::Zero(6,6);
     MatrixXd cov = MatrixXd::Zero(12,12);

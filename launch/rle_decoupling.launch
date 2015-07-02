@@ -2,11 +2,17 @@
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="2011_10_03_drive_0042_sync" />
+            <arg name="bagfile" default="kitti_00" />
+
+            <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
-            <arg name="publish_rate" default="0.1" />
+            <arg name="publish_rate" default="0.3" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
+            <param name="/use_sim_time" value="true"/>
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
+
+            <arg name="play_from_VO" default="true" />      <!-- if you want to autoplay the bag file -->
+            <arg name="enable_VO" default="true" />        <!-- if the VO BAGS are used, put FALSE here -->
 
             <include file="$(find ira_open_street_map)/launch/$(arg bagfile).launch" />
 
@@ -21,9 +27,10 @@
                 <!-- Transform from local_map (osm package) to road_layout_estimation fixed frame -->
                 <node pkg="tf" type="static_transform_publisher" name="local_map_to_odom"
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
-                <node pkg="tf" type="static_transform_publisher" name="dummy_transform"
-                        args="0 0 0 0 0 0 base_link visual_odometry_camera_frame 50" />
-			
+
+        <!-- ROSBAG PLAY ===== do NOT use the clock option with VO bags! -->
+            <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3 --clock" if="$(arg play_from_VO)" required="true"/>
+
         <!-- OSM QUERY NODE -->
             <node
                     pkg="ira_open_street_map"
@@ -34,7 +41,7 @@
             />
 
 
-        <!-- Launch ROAD LAYOUT ESTIMATION node-->
+        <!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
@@ -44,22 +51,12 @@
 
         <!-- VISUALIZATION STUFF -->
             <!-- Launch RViz-->
-            <node pkg="rviz" type="rviz" name="rviz" respawn="true"
+            <node pkg="rviz" type="rviz" name="rviz"
                     args="-d $(arg rviz)"
                     output="screen"
             />
 
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
-
-        <!-- Launch ROAD LANE DETECTOR
-            <node
-                    pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
-                    required="true"
-                    output="screen"
-            />
-         -->
-
-        <include file="$(find kitti_player)/launch/kittiplayer_libviso2.launch" />
 
 </launch>

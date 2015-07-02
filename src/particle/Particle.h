@@ -14,13 +14,18 @@
 #define PARTICLE_H_
 
 #include <boost/ptr_container/ptr_vector.hpp>
+
+#include "LayoutComponent_RoadState.h"
 #include "LayoutComponent.h"
 #include "MotionModel.h"
 #include "../MeasurementModel.h"
 #include "../Utils.h"
-#include <vector>
+
 #include <Eigen/Dense>	//used for pose matrix
 #include <Eigen/Core>
+
+#include <vector>
+#include <typeinfo>
 
 using namespace Eigen;
 using std::vector;
@@ -38,10 +43,14 @@ private:
     double particle_score;   /// score got with particle-score formula
     MotionModel particle_mtn_model;	 /// particle motion model
 
+
 public:
 
     int in_cluster;
     double distance_to_closest_segment;
+
+    double pose_diff_score_component;
+    double final_angle_diff_score_component;
 
     /**
      * This function will use "motion-model" class to propagate all particle's components
@@ -52,8 +61,13 @@ public:
      * Add new component to the particle
      * @param component
      */
-    void addComponent(LayoutComponent* component){
-        this->particle_components.push_back(component);
+    void addComponent(LayoutComponent* component)
+    {
+        if(dynamic_cast<LayoutComponent_RoadState* >(component))
+        {
+            ROS_DEBUG_STREAM("Adding Component roadStateComponent with componentID: " << component->getComponentId());
+            this->particle_components.push_back(component);
+        }
     }
 
     /**
@@ -75,7 +89,7 @@ public:
     int getId() const { return particle_id; }
     void setId(int id) { particle_id = id; }
 
-    void particlePoseEstimation(MeasurementModel *odometry);
+    void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime=0.0f, double deltaOdomTime=0.0f);
 
     vector<LayoutComponent*> getLayoutComponents(){ return particle_components;}
     vector<LayoutComponent*>* getLayoutComponentsPtr(){ return &particle_components;}
@@ -83,6 +97,9 @@ public:
 
     State6DOF getParticleState(){ return particle_state; }
     void setParticleState(const State6DOF& p_state){ particle_state = p_state;}
+    void setParticleVelocities(const State6DOF& p_state){ particle_state._rotational_velocity    = p_state._rotational_velocity;
+                                                          particle_state._translational_velocity = p_state._translational_velocity;
+                                                        }
 
     MatrixXd getParticleSigma(){ return particle_sigma; }
     void setParticleSigma(MatrixXd& p_sigma){ particle_sigma = p_sigma; }
@@ -115,7 +132,8 @@ public:
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
-    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md) {
+    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md)
+    {
         kalman_gain = MatrixXd::Zero(12,12);
         particle_sigma = MatrixXd::Zero(12,12);
         particle_score = 0;
@@ -126,7 +144,11 @@ public:
         particle_score = 0;
     }
     Particle(unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
-        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md) {
+        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
+    {
+        ROS_DEBUG_STREAM("Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model)");
+        ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_absolute_vel_error_x << "\t" << mt_md.propagate_translational_absolute_vel_error_y << "\t" << mt_md.propagate_translational_absolute_vel_error_z);
+        ROS_DEBUG_STREAM("Motion Model    %     Translational Velocity errors:\t" << mt_md.getPropagate_translational_percentage_vel_error_x() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_y() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_z());
         kalman_gain = MatrixXd::Zero(12,12);
         particle_score = 0;
     }
