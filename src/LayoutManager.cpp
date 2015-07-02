@@ -137,7 +137,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
     snap_particle_xy_client             = n.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
     get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
-    getHighwayInfo_client                      = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
+    getHighwayInfo_client               = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
+    getDistanceFromLaneCenter_client    = n.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
 
     /// Init ROS service server
     server_getAllParticlesLatLon        = n.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
@@ -1725,26 +1726,38 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
 
         // Build request for getting snapped XY values + orientation of the road
-        ira_open_street_map::snap_particle_xy srv;
-        srv.request.x = tf_pose_map_frame.getOrigin().getX();
-        srv.request.y = tf_pose_map_frame.getOrigin().getY();
-        srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
+        ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
+        snapParticle_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
+        snapParticle_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
+        snapParticle_serviceMessage.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
+        ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
+        getDistanceFromLaneCenter_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
+        getDistanceFromLaneCenter_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
+        getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIXME: find the right component (check also the cast)
+        getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
+
+
+        if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
+        {
+            ROS_ERROR_STREAM ("STICA!   " << getDistanceFromLaneCenter_serviceMessage.request.way_id << "\t " << getDistanceFromLaneCenter_serviceMessage.response.distance_from_lane_center << "\t" << getDistanceFromLaneCenter_serviceMessage.response.distance_from_way_center);
+
+        }
 
         // Get distance from snapped particle pose and set it as particle score
-        if (LayoutManager::snap_particle_xy_client.call(srv))
+        if (LayoutManager::snap_particle_xy_client.call(snapParticle_serviceMessage))
         {
             // Snapped pose is is map frame, convert from MSG to TF first.
             geometry_msgs::PoseStamped snapped_map_frame;
             snapped_map_frame.header.frame_id = "map";
             snapped_map_frame.header.stamp = ros::Time::now();
-            snapped_map_frame.pose.position.x = srv.response.snapped_x;
-            snapped_map_frame.pose.position.y =  srv.response.snapped_y;
+            snapped_map_frame.pose.position.x = snapParticle_serviceMessage.response.snapped_x;
+            snapped_map_frame.pose.position.y =  snapParticle_serviceMessage.response.snapped_y;
             snapped_map_frame.pose.position.z =  0;
-            snapped_map_frame.pose.orientation.x = srv.response.way_dir_quat_x;
-            snapped_map_frame.pose.orientation.y = srv.response.way_dir_quat_y;
-            snapped_map_frame.pose.orientation.z = srv.response.way_dir_quat_z;
-            snapped_map_frame.pose.orientation.w = srv.response.way_dir_quat_w;
+            snapped_map_frame.pose.orientation.x = snapParticle_serviceMessage.response.way_dir_quat_x;
+            snapped_map_frame.pose.orientation.y = snapParticle_serviceMessage.response.way_dir_quat_y;
+            snapped_map_frame.pose.orientation.z = snapParticle_serviceMessage.response.way_dir_quat_z;
+            snapped_map_frame.pose.orientation.w = snapParticle_serviceMessage.response.way_dir_quat_w;
 
             tf::Stamped<tf::Pose> tf_snapped_map_frame, tf_snapped_local_map_frame, tf_snapped_local_map_frame_opposite_direction ;
             tf::poseStampedMsgToTF(snapped_map_frame, tf_snapped_map_frame);
@@ -1794,7 +1807,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
             // calculate distance from original particle positin and snapped particle position ---------------------------------
             // use it for score calculation with normal distribution PDF
-            double dx = tf_pose_local_map_frame.getOrigin().getX() -    tf_snapped_local_map_frame.getOrigin().getX();
+            double dx = tf_pose_local_map_frame.getOrigin().getX() - tf_snapped_local_map_frame.getOrigin().getX();
             double dy = tf_pose_local_map_frame.getOrigin().getY() - tf_snapped_local_map_frame.getOrigin().getY();
             double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0; // particle Z axis is forced to be next to zero
             double distance = sqrt(dx*dx + dy*dy + dz*dz);
@@ -1822,12 +1835,12 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
             double first_angle_difference = Utils::normalize_angle(first_quaternion_diff.getAngle());
             double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference) / pdf(angle_normal_dist,0.0f);
 
-            (*particle_itr).final_angle_diff_score  = 0.0f;
+            (*particle_itr).final_angle_diff_score_component  = 0.0f;
             double second_angle_diff_score = 0.0f;
             double second_angle_difference = 0.0f;
 
             //      if street have 2 directions check angle diff with opposite angle
-            if(srv.response.way_dir_opposite_particles)
+            if(snapParticle_serviceMessage.response.way_dir_opposite_particles)
             {
                 tf_snapped_local_map_frame_opposite_direction=tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
                 tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
@@ -1839,16 +1852,16 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
                 //      set score
                 if(second_angle_diff_score > first_angle_diff_score)
-                    (*particle_itr).final_angle_diff_score = second_angle_diff_score;
+                    (*particle_itr).final_angle_diff_score_component = second_angle_diff_score;
                 else
-                    (*particle_itr).final_angle_diff_score = first_angle_diff_score;
+                    (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
 
                 ROS_DEBUG_STREAM("ONEWAY-No \tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference << "\tANGLE_2: " << second_angle_difference);
             }
             else
             {
                 ROS_DEBUG_STREAM("ONEWAY-Yes\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference);
-                (*particle_itr).final_angle_diff_score = first_angle_diff_score;
+                (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
             }
 
             ///Augusto: TEST FINAL. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
@@ -1936,13 +1949,13 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
     (*particle_itr).setParticleScore( exp(
                                             ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
-                                            ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score    ))) +
+                                            ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
                                             ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
                                          )
                                     );
 
     ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << (*particle_itr).pose_diff_score_component << "\texp(log): " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
-    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << (*particle_itr).final_angle_diff_score    << "\texp(log): " << exp(log(abs((*particle_itr).final_angle_diff_score   )))) ;
+    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << (*particle_itr).final_angle_diff_score_component    << "\texp(log): " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
     ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << lc->getComponentWeight()                  << "\texp(log): " << exp(log(abs(lc->getComponentWeight())))                 ) ;
     ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << (*particle_itr).getParticleScore());
 
@@ -2135,7 +2148,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             this->calculateGeometricScores(&(*particle_itr));
 
-        /// COMPUTE NORMALIZATON
+        /// COMPUTE NORMALIZATON (disabled, I just print some values here)
         double minDistance = std::numeric_limits<double>::max();
         double minAngle    = std::numeric_limits<double>::max();
         double maxDistance = std::numeric_limits<double>::min();
@@ -2143,7 +2156,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ROS_INFO_STREAM("#distance: " << (*particle_itr).pose_diff_score_component <<
-                            "  \tangle (rad): " << (*particle_itr).final_angle_diff_score <<
+                            "  \tangle (rad): " << (*particle_itr).final_angle_diff_score_component <<
                             "  \tcomponent(0): " << (*particle_itr).getLayoutComponents().at(0)->getComponentWeight()
                             );
 
@@ -2151,10 +2164,10 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 maxDistance=(*particle_itr).pose_diff_score_component ;
             if ((*particle_itr).pose_diff_score_component < minDistance)
                 minDistance=(*particle_itr).pose_diff_score_component ;
-            if ((*particle_itr).final_angle_diff_score > maxAngle)
-                maxAngle=(*particle_itr).final_angle_diff_score;
-            if ((*particle_itr).final_angle_diff_score < minAngle)
-                minAngle=(*particle_itr).final_angle_diff_score;
+            if ((*particle_itr).final_angle_diff_score_component > maxAngle)
+                maxAngle=(*particle_itr).final_angle_diff_score_component;
+            if ((*particle_itr).final_angle_diff_score_component < minAngle)
+                minAngle=(*particle_itr).final_angle_diff_score_component;
         }
         ROS_DEBUG_STREAM("**********************************************************************************");
         ROS_DEBUG_STREAM("minDistance: " << minDistance << "\tmaxDistance: " << maxDistance);
@@ -2162,10 +2175,10 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         ROS_DEBUG_STREAM("**********************************************************************************");
         //for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         //{
-        //    ROS_INFO_STREAM("Before normalization\t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score);
+        //    ROS_INFO_STREAM("Before normalization\t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score_component);
         //    (*particle_itr).pose_diff_score_component = ((*particle_itr).pose_diff_score_component - minDistance )/(maxDistance-minDistance);
-        //    (*particle_itr).final_angle_diff_score    = ((*particle_itr).final_angle_diff_score    - minAngle    )/(maxAngle   -minAngle   );
-        //    ROS_INFO_STREAM("Normalized distance \t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score << endl);
+        //    (*particle_itr).final_angle_diff_score_component    = ((*particle_itr).final_angle_diff_score_component    - minAngle    )/(maxAngle   -minAngle   );
+        //    ROS_INFO_STREAM("Normalized distance \t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score_component << endl);
         //}
 
         /// CALCULATE SCORE

@@ -2,7 +2,7 @@
 
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="10"/>
+        <param name="/road_layout_estimation/particles_number"                  value="1"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="20"/>  <!-- RLE loop frequency HZ -->
 
         <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
@@ -28,7 +28,7 @@
 
             <arg name="bagfilewithpath" default="/home/ballardini/Desktop/road_layout_estimation/$(arg bagfile).bag"/>    <!-- Your bagfilewithpath here -->
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
-            <arg name="publish_rate" default="0.3" />
+            <arg name="publish_rate" default="0.1" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <param name="/use_sim_time" value="true"/>
             <!-- <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" /> -->

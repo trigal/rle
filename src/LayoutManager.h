@@ -44,6 +44,7 @@
 #include "ira_open_street_map/snap_particle_xy.h"
 #include "ira_open_street_map/xy_2_latlon.h"
 #include "ira_open_street_map/getHighwayInfo.h"
+#include "ira_open_street_map/getDistanceFromLaneCenter.h"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
 #include "particle/LayoutComponent.h"
@@ -153,6 +154,7 @@ public:
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
     ros::ServiceClient getHighwayInfo_client;
+    ros::ServiceClient getDistanceFromLaneCenter_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;

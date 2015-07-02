@@ -50,7 +50,7 @@ public:
     double distance_to_closest_segment;
 
     double pose_diff_score_component;
-    double final_angle_diff_score;
+    double final_angle_diff_score_component;
 
     /**
      * This function will use "motion-model" class to propagate all particle's components
