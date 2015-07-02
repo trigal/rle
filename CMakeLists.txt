@@ -35,7 +35,7 @@ add_message_files(
   FILES
   msg_roadState.msg
   msg_lanes.msg
-  msg_laneInfo.msg
+  msg_lineInfo.msg
 )
 
 add_service_files(
