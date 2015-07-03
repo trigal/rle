@@ -55,10 +55,15 @@
             <node pkg="rosbag" type="play" name="rosbag" args=" $(arg bagfilewithpath) -r $(arg publish_rate) --delay=3 --clock" if="$(arg play_from_VO)" required="true"/>
 
         <!-- VISUAL ODOMETRY STUFF -->
-            <!-- Run the ROS package stereo_image_proc -->
+
+            <!-- I can't figure out why stereo_image_proc node is executed
+                 since it doesn't seem to be used by viso2_ros package!
+            -->
+            <!-- Run the ROS package stereo_image_proc
             <group ns="$(arg camera)" >
                     <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" if="$(arg enable_VO)"/>
-            </group>
+            </group>-->
+
             <!-- Run the viso2_ros package -->
             <node pkg="viso2_ros" type="stereo_odometer" name="stereo_odometer" output="screen" if="$(arg enable_VO)" required="true">
                     <rosparam param="base_link_frame_id">visual_odometry_camera_frame</rosparam>

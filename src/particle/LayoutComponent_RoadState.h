@@ -11,6 +11,7 @@
 #include "../Utils.h"
 
 #include "ira_open_street_map/getHighwayInfo.h"
+#include "road_layout_estimation/msg_lines.h"
 
 #include <iostream>
 #include <ros/ros.h>
@@ -21,11 +22,14 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
-    int   lanes_number;
     char            current_lane;     // -1 don't know
-    double          road_width;
-    bool            oneway;
-    int             way_id;
+
+    //int             lanes_number;
+    //double          road_width;
+    //bool            oneway;
+    //int64_t         way_id;
+
+    road_layout_estimation::msg_lines msg_lines;
 
     ros::ServiceClient *getHighwayInfo_client;
 
@@ -33,7 +37,10 @@ private:
     double          latitude;
     double          longitude;
 
-    ros::Time timestamp;
+    ros::Time       timestamp;
+
+    int linesFromLanes(int number_of_lanes);
+    int lanesFromLines(int goodLines);
 
 public:
 
@@ -58,22 +65,43 @@ public:
         component_weight = 0;
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12,12);
-        lanes_number = 0;
-        current_lane = 0;
-        road_width = 0.0f;
+        //lanes_number = 0;
+        //current_lane = 0;
+        //road_width = 0.0f;
+        //way_id = 0;
         timestamp = ros::Time(0);
 
         getHighwayInfo_client=NULL;
     }
-    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, int way_id, int lanes_number, const unsigned char current_lane, double road_width, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager)
+
+    /// This constructor should be used only in the initialization phase
+    ROS_DEPRECATED LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, int way_id, int lanes_number, const unsigned char current_lane, double road_width, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager)
     {
         this->particle_id = particle_id;
         this->component_id = component_id;
-        this->lanes_number= lanes_number;
-        this->current_lane = current_lane;
-        this->road_width = road_width;
         this->timestamp = timestamp;
-        this->way_id=way_id;
+        this->current_lane = current_lane;
+
+        //this->lanes_number= lanes_number;
+        //this->road_width = road_width;
+        //this->way_id=way_id;
+
+
+        this->component_weight = 0;
+        this->component_state = VectorXd::Zero(12);
+        this->component_cov = MatrixXd::Zero(12,12);
+
+        getHighwayInfo_client=serviceClientFromLayoutManager;
+    }
+
+    /// This constructor should be used during the normal filter iteration
+    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager, const road_layout_estimation::msg_lines &msg_lines)
+    {
+        this->particle_id   = particle_id;
+        this->component_id  = component_id;
+        this->timestamp     = timestamp;
+        this->current_lane  = 0;                // current lane is not set.
+        this->msg_lines     = msg_lines;
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
@@ -91,8 +119,8 @@ public:
         component_cov.resize(0,0);
         timestamp = ros::Time(0);
     }
-    int getWay_id() const;
-    void setWay_id(const int &value);
+    int64_t getWay_id() const;
+    void setWay_id(const int64_t &value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H

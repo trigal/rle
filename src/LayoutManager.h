@@ -54,7 +54,8 @@
 
 
 #include "particle/LayoutComponent_RoadState.h"
-#include "road_layout_estimation/msg_roadState.h"
+//#include "road_layout_estimation/msg_roadState.h"  //ROADSTATECOMPONENT FAKE
+#include "road_layout_estimation/msg_lines.h"
 
 
 #include <iomanip>
@@ -149,7 +150,6 @@ public:
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
     ros::ServiceClient latlon_2_xy_client;
-    ros::ServiceClient latlon_2_xy_client_2;
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
@@ -195,7 +195,7 @@ public:
      */
     void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
 
-    void roadStateCallback(const road_layout_estimation::msg_roadState& roadStateMessage);
+    void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }
@@ -239,9 +239,9 @@ public:
     /// Service Callback
     bool getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp);
 
+    tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
+
 private:
-
-
 
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                         // The uniform pseudo-random algorithm

@@ -6,12 +6,14 @@
 
 double LayoutComponent_RoadState::getRoad_width() const
 {
-    return road_width;
+    return msg_lines.width;
+//    return road_width;
 }
 
 void LayoutComponent_RoadState::setRoad_width(double value)
 {
-    road_width = value;
+    msg_lines.width=value;
+//    road_width = value;
 }
 
 char LayoutComponent_RoadState::getCurrent_lane() const
@@ -26,22 +28,26 @@ void LayoutComponent_RoadState::setCurrent_lane(char value)
 
 int LayoutComponent_RoadState::getLanes_number() const
 {
-    return lanes_number;
+    return msg_lines.number_of_lines;
+//    return lanes_number;
 }
 
 void LayoutComponent_RoadState::setLanes_number(int value)
 {
-    lanes_number = value;
+    msg_lines.number_of_lines=value;
+//    lanes_number = value;
 }
 
-int LayoutComponent_RoadState::getWay_id() const
+int64_t LayoutComponent_RoadState::getWay_id() const
 {
-    return way_id;
+    return msg_lines.way_id;
+//    return way_id;
 }
 
-void LayoutComponent_RoadState::setWay_id(const int &value)
+void LayoutComponent_RoadState::setWay_id(const int64_t &value)
 {
-    way_id = value;
+    msg_lines.way_id=value;
+//    way_id = value;
 }
 
 ///
@@ -70,14 +76,23 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
         scoreWidth = pdf(normal_distribution, this->getRoad_width()) / pdf(normal_distribution, getHighwayInfo.response.width);
-        ROS_DEBUG_STREAM("Width  Score (normalized-to-1 normal pdf): " << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
+        ROS_DEBUG_STREAM("Width  Score (normalized-to-1 normal pdf): " << std::fixed << scoreWidth << "\t notNorm: " << pdf(normal_distribution, this->getRoad_width()));
 
         if (getHighwayInfo.response.number_of_lanes)
         {
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
             scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
-            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
+            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << std::fixed << scoreLanes << "\t notNorm: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
+
+        char expected_lines = 0;
+        if (this->msg_lines.number_of_lines>0)
+        {
+            expected_lines = this->msg_lines.number_of_lines + 1;
+        }
+
+
+        scoreWidth *= 1 - (this->msg_lines.goodLines / expected_lines);
 
         totalComponentScore = scoreLanes * scoreWidth;
 
@@ -114,6 +129,30 @@ void LayoutComponent_RoadState::componentPerturbation()
     this->setRoad_width(road_width);
 }
 
+int LayoutComponent_RoadState::linesFromLanes(int number_of_lanes)
+{
+    ROS_ASSERT(number_of_lanes>=0);
+
+    if (number_of_lanes == 0)
+        return 0;
+    else
+        return number_of_lanes + 1;
+
+}
+
+int LayoutComponent_RoadState::lanesFromLines(int goodLines)
+{
+    ROS_ASSERT(goodLines>=0);
+
+    if ( (goodLines == 0) ||
+         (goodLines == 1) ||
+         (goodLines == 2)
+       )
+        return 1;
+    else
+        return (goodLines-1);
+}
+
 /**
  * Implementation of pure virtual method 'componentPoseEstimation'
  * In roadStateComponent this routine does the following, to 'predict' the new component 'state':
@@ -135,11 +174,14 @@ void LayoutComponent_RoadState::componentPoseEstimation()
      */
 
     // this measures are 'sensed', can't estimate
-    this->lanes_number = this->lanes_number;
-    this->road_width   = this->road_width;
 
-    // this info ??? check
-    this->way_id       = this->way_id;
+    //    this->lanes_number = this->lanes_number;
+    //    this->road_width   = this->road_width;
+    //    this->way_id       = this->way_id;
+
+    this->setRoad_width     (this->getRoad_width());
+    this->setLanes_number   (this->getLanes_number());
+    this->setWay_id         (this->getWay_id());
 
 }
 
