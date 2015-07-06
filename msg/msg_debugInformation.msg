@@ -1,0 +1,6 @@
+float64 scoreRoadLane_Lanes
+float64 scoreRoadLane_Width
+float64 scoreRoadLane_Total
+float64 distance_Euclidean
+float64 distance_Angular
+float64 overaAllParticleScore

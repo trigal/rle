@@ -36,6 +36,7 @@ add_message_files(
   msg_roadState.msg
   msg_lineInfo.msg
   msg_lines.msg
+  msg_debugInformation.msg
 )
 
 add_service_files(

@@ -134,6 +134,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     LayoutManager::publisher_GT_RTK                     = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
     LayoutManager::publisher_average_pose               = n.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose",1);
 
+    LayoutManager::publisher_debugInformation           = n.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation",1);
+
     /// Init ROS service clients
     latlon_2_xy_client                  = n.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
     xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
@@ -813,7 +815,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         lines.way_id          = snapParticleXYService.response.way_id;
                         lines.width           = getHighwayService.response.width;
                         lines.goodLines       = 0;
-                        lines.number_of_lines = getHighwayService.response.number_of_lanes; //BUG
+                        lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
                         for (int i = 0; i< getHighwayService.response.number_of_lanes; i++)
                             lines.lines.push_back(lineInfo);
 
@@ -896,7 +898,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             lines.way_id          = snapParticleXYService.response.way_id;
                             lines.width           = getHighwayService.response.width;
                             lines.goodLines       = 0;
-                            lines.number_of_lines = getHighwayService.response.number_of_lanes; //BUG
+                            lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
                             for (int i = 0; i< getHighwayService.response.number_of_lanes; i++)
                                 lines.lines.push_back(lineInfo);
 
@@ -1623,7 +1625,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         tf::Stamped<tf::Pose> tf_pose_map_frame=toGlobalFrame(particle->getParticleState().getPose());
         snapParticle.request.x = tf_pose_map_frame.getOrigin().getX();
         snapParticle.request.y = tf_pose_map_frame.getOrigin().getY();
-        snapParticle.request.max_distance_radius = 10;  // TODO: parametrize this value
+        snapParticle.request.max_distance_radius = 20;  // TODO: parametrize this value
 
         if (snap_particle_xy_client.call(snapParticle))
         {
@@ -1758,7 +1760,7 @@ void LayoutManager::calculateLayoutComponentsWeight()
             lc->calculateComponentScore();
         }
     }
-    ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore\n");
+    ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore");
 }
 /** **************************************************************************************************************/
 
@@ -2282,8 +2284,40 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         //}
 
         /// CALCULATE SCORE
+        Particle *bestParticle=0;
+        double bestParticleScore=0.0f;
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
-            this->calculateScore(&(*particle_itr));             //address of the particle (indicated by the vector pointer)
+        {
+            this->calculateScore(&(*particle_itr));                             //address of the particle (indicated by the vector pointer)
+
+            if ((*particle_itr).getParticleScore()>bestParticleScore)
+            {
+                bestParticleScore=(*particle_itr).getParticleScore();
+                bestParticle = &(*(particle_itr));
+            }
+        }
+
+        try
+        {
+            road_layout_estimation::msg_debugInformation debugInfoMessage;
+            vector<LayoutComponent*> vec = (*bestParticle).getLayoutComponents();
+            LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec.at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
+            debugInfoMessage.scoreRoadLane_Lanes  = lc->scoreLanes;
+            debugInfoMessage.scoreRoadLane_Width  = lc->scoreWidth;
+            debugInfoMessage.scoreRoadLane_Total  = lc->totalComponentScore;
+            debugInfoMessage.distance_Euclidean   = (*bestParticle).pose_diff_score_component;
+            debugInfoMessage.distance_Angular     = (*bestParticle).final_angle_diff_score_component;
+            debugInfoMessage.overaAllParticleScore= (*bestParticle).getParticleScore();
+
+            this->publisher_debugInformation.publish(debugInfoMessage);
+        }
+        catch (...)
+        {
+            ROS_ERROR_STREAM("Something went wrong");
+        }
+
+
+
         // ------------------------------------------------------------------------------- //
 
         // ------------------------------ resampling ------------------------------------- //
@@ -2365,6 +2399,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
         /// Other
         LayoutManager::publishMarkerArray();
+
     }
     else
     {

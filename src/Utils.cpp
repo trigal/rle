@@ -393,6 +393,32 @@ void Utils::printPoseMsgToCout(const geometry_msgs::PoseStamped &pose){
     std::cout << "  z: " << boost::lexical_cast<std::string>(pose.pose.orientation.z) << std::endl;
 }
 
+
+int Utils::linesFromLanes(int number_of_lanes)
+{
+    ROS_ASSERT(number_of_lanes>=0);
+
+    if (number_of_lanes == 0)
+        return 0;
+    else
+        return number_of_lanes + 1;
+
+}
+
+int Utils::lanesFromLines(int goodLines)
+{
+    ROS_ASSERT(goodLines>=0);
+
+    if ( (goodLines == 0) ||
+         (goodLines == 1) ||
+         (goodLines == 2)
+       )
+        return 1;
+    else
+        return (goodLines-1);
+}
+
+
 /**
  * @param pose
  * @param position_offset
@@ -688,3 +714,4 @@ double Utils::box_muller(double m, double s)
 
     return( m + y1 * s );
 }
+

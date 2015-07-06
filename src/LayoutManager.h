@@ -56,6 +56,7 @@
 #include "particle/LayoutComponent_RoadState.h"
 //#include "road_layout_estimation/msg_roadState.h"  //ROADSTATECOMPONENT FAKE
 #include "road_layout_estimation/msg_lines.h"
+#include "road_layout_estimation/msg_debugInformation.h"
 
 
 #include <iomanip>
@@ -141,6 +142,7 @@ public:
     ros::Publisher publisher_GT_RTK;
 
     ros::Publisher publisher_average_pose;
+    ros::Publisher publisher_debugInformation;
 
     // Subscriber
     ros::Subscriber odometry_sub;

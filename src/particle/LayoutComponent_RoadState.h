@@ -39,10 +39,12 @@ private:
 
     ros::Time       timestamp;
 
-    int linesFromLanes(int number_of_lanes);
-    int lanesFromLines(int goodLines);
 
 public:
+
+    double scoreLanes;
+    double scoreWidth;
+    double totalComponentScore;
 
     void componentPoseEstimation();
     void calculateComponentScore();
@@ -52,10 +54,12 @@ public:
     void          setTimestamp(ros::Time time)  { timestamp = time; }
     ros::Time     getTimestamp()                { return timestamp; }
     double        getRoad_width()               const;
+    double        getRoad_naiveWidth()          const;
     char          getCurrent_lane()             const;
     int           getLanes_number()             const;
     void          setLanes_number               (int  value);
     void          setRoad_width                 (double value);
+    void          setRoad_naiveWidth            (double value);
     void          setCurrent_lane               (char value);
 
     // Constructors and destructors -------------------------------------------------------------

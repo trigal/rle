@@ -57,6 +57,10 @@ public:
 
     static void printPoseMsgToCout(const geometry_msgs::PoseStamped &pose);
 
+    static int linesFromLanes(int number_of_lanes);
+
+    static int lanesFromLines(int goodLines);
+
 
     /**
      * @param pose
