@@ -794,7 +794,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     /// Create particle and set its score
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
-                    new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
+                    //new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
+                    new_particle.setParticleScore(1); // dont' calculate score with distance because particle is snapped
                     // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                     // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
@@ -876,7 +877,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         // Create particle and set its score
                         Particle new_particle_opposite(particle_id, p_pose, p_sigma, default_mtn_model);
-                        new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
+                        //new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
+                        new_particle_opposite.setParticleScore(1); // don't calculate score with distance because particle is snapped
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                         // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                         ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
@@ -971,6 +973,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             ostringstream tmp_convert;   // stream used for the conversion
             tmp_convert << "Particle ID: " << (*particle_itr).getId();
             (*particle_itr).getParticleState().printState(tmp_convert.str());
+
+
+            // Normalize weights
+            // refs #445
+            (*particle_itr).setParticleScore((*particle_itr).getParticleScore()/current_layout.size());
+            ROS_DEBUG_STREAM("Updating score of Particle " << (*particle_itr).getId() << "\t with new value: " << (*particle_itr).getParticleScore());
         }
 
 
@@ -2043,6 +2051,8 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
     //
     //}
 
+    ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr).getParticleScore());
+
     double debug=(  ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
                     ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
                     ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
@@ -2355,7 +2365,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                  particle_score_vect.push_back(cum_score_sum);
             }
 
-            ROS_DEBUG_STREAM("Sum of all particles scores: " << cum_score_sum);
+            ROS_ERROR_STREAM("Sum of all particles scores: " << cum_score_sum);
 
 
             if(cum_score_sum != 0)
