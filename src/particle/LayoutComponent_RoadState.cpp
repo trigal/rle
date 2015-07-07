@@ -110,8 +110,8 @@ void LayoutComponent_RoadState::calculateComponentScore()
         }
         else
         {
-            ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth);
             scoreWidth = scoreNaiveWidth;
+            ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth);
         }
 
         totalComponentScore = (scoreLanes + scoreWidth) / 2.0f;

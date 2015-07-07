@@ -3,7 +3,7 @@
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
         <param name="/road_layout_estimation/particles_number"                  value="10"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="6"/>     <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
