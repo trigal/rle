@@ -1945,7 +1945,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
                 //      get PDF score
                 second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
-                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference);
+                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist,0.0f); //TODO: check if this normalization is correct or I used the opposite angle
 
                 //      set score
                 if(second_angle_diff_score > first_angle_diff_score)
