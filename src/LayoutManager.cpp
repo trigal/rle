@@ -2284,13 +2284,15 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         //}
 
         /// CALCULATE SCORE
-        Particle *bestParticle=0;
-        double bestParticleScore=0.0f;
+        Particle *bestParticle   = NULL;
+        double bestParticleScore = 0.0f;
+        double currentScore      = 0.0f;
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             this->calculateScore(&(*particle_itr));                             //address of the particle (indicated by the vector pointer)
+            currentScore = (*particle_itr).getParticleScore();
 
-            if ((*particle_itr).getParticleScore()>bestParticleScore)
+            if (currentScore>bestParticleScore)
             {
                 bestParticleScore=(*particle_itr).getParticleScore();
                 bestParticle = &(*(particle_itr));
@@ -2299,17 +2301,20 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
         try
         {
-            road_layout_estimation::msg_debugInformation debugInfoMessage;
-            vector<LayoutComponent*> vec = (*bestParticle).getLayoutComponents();
-            LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec.at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-            debugInfoMessage.scoreRoadLane_Lanes  = lc->scoreLanes;
-            debugInfoMessage.scoreRoadLane_Width  = lc->scoreWidth;
-            debugInfoMessage.scoreRoadLane_Total  = lc->totalComponentScore;
-            debugInfoMessage.distance_Euclidean   = (*bestParticle).pose_diff_score_component;
-            debugInfoMessage.distance_Angular     = (*bestParticle).final_angle_diff_score_component;
-            debugInfoMessage.overaAllParticleScore= (*bestParticle).getParticleScore();
+            if (bestParticle != NULL)
+            {
+                road_layout_estimation::msg_debugInformation debugInfoMessage;
+                vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
+                LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
+                debugInfoMessage.scoreRoadLane_Lanes  = lc->scoreLanes;
+                debugInfoMessage.scoreRoadLane_Width  = lc->scoreWidth;
+                debugInfoMessage.scoreRoadLane_Total  = lc->totalComponentScore;
+                debugInfoMessage.distance_Euclidean   = (*bestParticle).pose_diff_score_component;
+                debugInfoMessage.distance_Angular     = (*bestParticle).final_angle_diff_score_component;
+                debugInfoMessage.overaAllParticleScore= (*bestParticle).getParticleScore();
 
-            this->publisher_debugInformation.publish(debugInfoMessage);
+                this->publisher_debugInformation.publish(debugInfoMessage);
+            }
         }
         catch (...)
         {
@@ -2328,6 +2333,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 //			(2) calculate score
 //			(3) resample all combination
         }
+
+
         // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
         if(resampling_count++ == resampling_interval)
         //    if(0)

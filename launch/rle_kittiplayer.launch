@@ -3,11 +3,11 @@
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
         <param name="/road_layout_estimation/particles_number"                  value="10"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="6"/>  <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/rle_frequency"                     value="6"/>     <!-- RLE loop frequency HZ -->
 
-        <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
+        <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
-        <param name="/road_layout_estimation/roadState_distribution_weight"     value="0.0"/>
+        <param name="/road_layout_estimation/roadState_distribution_weight"     value="0.5"/>
 
         <!--State6DOF ***ABSOLUTE***-->
         <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />
@@ -56,7 +56,7 @@
             />
 
 
-        <!-- Launch ROAD LAYOUT ESTIMATION node-->
+        <!-- Launch ROAD LAYOUT ESTIMATION node -->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
