@@ -2283,14 +2283,16 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         //    ROS_INFO_STREAM("Normalized distance \t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score_component << endl);
         //}
 
-        /// CALCULATE SCORE
+
+        /// EVALUATE PARTICLE SCORES AND SAVE BEST PARTICLE POINTER
         Particle *bestParticle   = NULL;
         double bestParticleScore = 0.0f;
         double currentScore      = 0.0f;
         for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
-            this->calculateScore(&(*particle_itr));                             //address of the particle (indicated by the vector pointer)
-            currentScore = (*particle_itr).getParticleScore();
+            this->calculateScore(&(*particle_itr));             /// Evaluate the SCORE of the particle
+
+            currentScore = (*particle_itr).getParticleScore();  /// Get the score of the current particle
 
             if (currentScore>bestParticleScore)
             {
@@ -2298,6 +2300,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 bestParticle = &(*(particle_itr));
             }
         }
+
 
         try
         {
@@ -2351,6 +2354,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                  cum_score_sum += (*particle_itr).getParticleScore();
                  particle_score_vect.push_back(cum_score_sum);
             }
+
+            ROS_DEBUG_STREAM("Sum of all particles scores: " << cum_score_sum);
 
 
             if(cum_score_sum != 0)
