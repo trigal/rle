@@ -960,7 +960,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         }
 
         /// Update particle_set size
-        LayoutManager::num_particles = config.particles_number + num_particles; // +num_particles because we can have more particles than expected since the driving direction
+        LayoutManager::num_particles = config.particles_number + num_particles; // + num_particles because we can have more particles than expected, since the driving direction checks
 
         // Update first_run flag
         // LayoutManager::layoutManagerFirstRun = false; //moving this to LayoutEstimation Loop
@@ -1626,6 +1626,9 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         Particle* particle = &current_layout.at(i);
         vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
 
+        // Clear old layout_components
+        layout_components->clear(); //this should be replaced with some more clever idea... (maybe update the component instead of deleting them)
+
         /// Need the way_id for component evaluation
         /// Since it is not "detected" retrieve it from the particle state.
         /// TODO: handle this, maybe we can add this in the propagateComponent etc
@@ -1646,8 +1649,6 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
             snapParticle.response.way_id=0;
         }
 
-        // Clear old layout_components
-        layout_components->clear(); //this should be replaced with some more clever idea... (maybe update the component instead of deleting them)
 
         ROS_DEBUG_STREAM("Adding roadState component! way_id: " << modified_msg_lines.way_id << "\tDetected lanes: " << modified_msg_lines.number_of_lines << "\tDetected width: " << modified_msg_lines.width);
 
@@ -1953,7 +1954,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
                 //      get PDF score
                 second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
-                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist,0.0f); //TODO: check if this normalization is correct or I used the opposite angle
+                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist,0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
 
                 //      set score
                 if(second_angle_diff_score > first_angle_diff_score)
@@ -2319,9 +2320,9 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 road_layout_estimation::msg_debugInformation debugInfoMessage;
                 vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
                 LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-                debugInfoMessage.scoreRoadLane_Lanes  = lc->scoreLanes;
-                debugInfoMessage.scoreRoadLane_Width  = lc->scoreWidth;
-                debugInfoMessage.scoreRoadLane_Total  = lc->totalComponentScore;
+                debugInfoMessage.scoreRoadLane_Lanes  = lc->getScoreLanes();
+                debugInfoMessage.scoreRoadLane_Width  = lc->getScoreWidth();
+                debugInfoMessage.scoreRoadLane_Total  = lc->getTotalComponentScore();
                 debugInfoMessage.distance_Euclidean   = (*bestParticle).pose_diff_score_component;
                 debugInfoMessage.distance_Angular     = (*bestParticle).final_angle_diff_score_component;
                 debugInfoMessage.overaAllParticleScore= (*bestParticle).getParticleScore();
@@ -2356,7 +2357,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
             resampling_count = 0;
             vector<Particle> new_current_layout;
             vector<double> particle_score_vect;
-            double cum_score_sum = 0;
+            double cum_score_sum = 0.0f;
 
             // Build cumulative sum of the score and roulette vector
             for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )

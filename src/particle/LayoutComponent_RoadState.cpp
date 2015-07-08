@@ -76,8 +76,9 @@ void LayoutComponent_RoadState::calculateComponentScore()
     double scoreWidth            = 1.0f;
     double scoreNaiveWidth       = 1.0f;
     double totalComponentScore   = 0.0f;
-    double scaling_factor        = 0.0f;
-    double OSM_lines_reliability = 0.95;
+
+    double scaling_factor        = 1.0f;
+    double OSM_lines_reliability = 1.0f;
 
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
@@ -114,6 +115,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
             ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth);
         }
 
+        // totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1-scaling_factor)); TODO: try this
         totalComponentScore = (scoreLanes + scoreWidth) / 2.0f;
 
         ROS_DEBUG_STREAM("SCORE WIDTH: " << scoreWidth << "\tSCORE LANES: " << scoreLanes << "\tTOTAL SCORE: " << totalComponentScore);
@@ -174,6 +176,36 @@ void LayoutComponent_RoadState::componentPerturbation()
  *
  *      @now <<<do not update the values>>>
  */
+
+double LayoutComponent_RoadState::getScoreLanes() const
+{
+    return scoreLanes;
+}
+
+void LayoutComponent_RoadState::setScoreLanes(double value)
+{
+    scoreLanes = value;
+}
+
+double LayoutComponent_RoadState::getScoreWidth() const
+{
+    return scoreWidth;
+}
+
+void LayoutComponent_RoadState::setScoreWidth(double value)
+{
+    scoreWidth = value;
+}
+
+double LayoutComponent_RoadState::getTotalComponentScore() const
+{
+    return totalComponentScore;
+}
+
+void LayoutComponent_RoadState::setTotalComponentScore(double value)
+{
+    totalComponentScore = value;
+}
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " <<particle_id << " componentState: " << getComponentState()(0)<< ";" <<getComponentState()(1)<< ";" << getComponentState()(2));

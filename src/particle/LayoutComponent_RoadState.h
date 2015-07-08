@@ -39,12 +39,12 @@ private:
 
     ros::Time       timestamp;
 
-
-public:
-
     double scoreLanes;
     double scoreWidth;
     double totalComponentScore;
+
+public:
+
 
     void componentPoseEstimation();
     void calculateComponentScore();
@@ -125,6 +125,12 @@ public:
     }
     int64_t getWay_id() const;
     void setWay_id(const int64_t &value);
+    double getScoreLanes() const;
+    void setScoreLanes(double value);
+    double getScoreWidth() const;
+    void setScoreWidth(double value);
+    double getTotalComponentScore() const;
+    void setTotalComponentScore(double value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H
