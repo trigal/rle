@@ -57,7 +57,6 @@ public:
     double        getRoad_naiveWidth()          const;
     char          getCurrent_lane()             const;
     int           getLanes_number()             const;
-    void          setLanes_number               (int  value);
     void          setRoad_width                 (double value);
     void          setRoad_naiveWidth            (double value);
     void          setCurrent_lane               (char value);
@@ -131,6 +130,8 @@ public:
     void setScoreWidth(double value);
     double getTotalComponentScore() const;
     void setTotalComponentScore(double value);
+    road_layout_estimation::msg_lines getMsg_lines() const;
+    void setMsg_lines(const road_layout_estimation::msg_lines &value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H

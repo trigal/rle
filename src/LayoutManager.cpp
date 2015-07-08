@@ -1630,7 +1630,6 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
     road_layout_estimation::msg_lines modified_msg_lines;
     modified_msg_lines=msg_lines;
 
-
     for(int i=0; i<current_layout.size(); ++i)
     {
         // Get all layout components of particle

@@ -41,11 +41,6 @@ int LayoutComponent_RoadState::getLanes_number() const
         return 0;// or ? Utils::lanesFromLines(msg_lines.number_of_lines);
 }
 
-void LayoutComponent_RoadState::setLanes_number(int value)
-{
-    msg_lines.number_of_lines=Utils::linesFromLanes(value);
-}
-
 int64_t LayoutComponent_RoadState::getWay_id() const
 {
     return msg_lines.way_id;
@@ -206,6 +201,16 @@ void LayoutComponent_RoadState::setTotalComponentScore(double value)
 {
     totalComponentScore = value;
 }
+
+road_layout_estimation::msg_lines LayoutComponent_RoadState::getMsg_lines() const
+{
+    return msg_lines;
+}
+
+void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_lines &value)
+{
+    msg_lines = value;
+}
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " <<particle_id << " componentState: " << getComponentState()(0)<< ";" <<getComponentState()(1)<< ";" << getComponentState()(2));
@@ -224,8 +229,8 @@ void LayoutComponent_RoadState::componentPoseEstimation()
     //    this->way_id       = this->way_id;
 
     this->setRoad_width     (this->getRoad_width());
-    this->setLanes_number   (this->getLanes_number());
     this->setWay_id         (this->getWay_id());
+    //this->setLanes_number   (this->getLanes_number()); // deleted , see #446 for details
 
 }
 
