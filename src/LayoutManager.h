@@ -243,6 +243,9 @@ public:
 
     tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 
+    double getCurrent_layoutScore() const;
+    void setCurrent_layoutScore(double value);
+
 private:
 
     tf::TransformListener tf_listener;
@@ -255,6 +258,7 @@ private:
     int    resampling_interval;                 // The resampling interval of the main Particle Filter
 
 
+
     static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
     static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
     static bool first_msg;                      // flag used for init particle-set
@@ -262,6 +266,7 @@ private:
 
     bool new_detections;				        // indicates detectors found new detections (not used)
     vector<Particle> current_layout;	        // stores the current layout
+    double current_layoutScore;
     long resampling_count;
 
     MatrixXd particle_poses_statistics;         // To calculate the statistics of the particle set for evaluation purposes (localization confidence)

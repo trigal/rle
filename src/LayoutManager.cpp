@@ -291,6 +291,16 @@ tf::Stamped<tf::Pose> LayoutManager::toGlobalFrame(Vector3d p_state)
 
     return tf_pose_map_frame;
 }
+double LayoutManager::getCurrent_layoutScore() const
+{
+    return current_layoutScore;
+}
+
+void LayoutManager::setCurrent_layoutScore(double value)
+{
+    current_layoutScore = value;
+}
+
 
 
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
@@ -2203,6 +2213,8 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
 void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 {
 
+    setCurrent_layoutScore(0.0f);
+
     ROS_INFO_STREAM("--------------------------------------------------------------------------------");
     this->deltaTimerTime = (timerEvent.current_real-timerEvent.last_real).toSec();
 
@@ -2312,6 +2324,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
             currentScore = (*particle_itr).getParticleScore();  /// Get the score of the current particle
 
+            current_layoutScore += currentScore;
+
             if (currentScore>bestParticleScore)
             {
                 bestParticleScore=(*particle_itr).getParticleScore();
@@ -2327,12 +2341,14 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 road_layout_estimation::msg_debugInformation debugInfoMessage;
                 vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
                 LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-                debugInfoMessage.scoreRoadLane_Lanes  = lc->getScoreLanes();
-                debugInfoMessage.scoreRoadLane_Width  = lc->getScoreWidth();
-                debugInfoMessage.scoreRoadLane_Total  = lc->getTotalComponentScore();
-                debugInfoMessage.distance_Euclidean   = (*bestParticle).pose_diff_score_component;
-                debugInfoMessage.distance_Angular     = (*bestParticle).final_angle_diff_score_component;
-                debugInfoMessage.overaAllParticleScore= (*bestParticle).getParticleScore();
+                debugInfoMessage.scoreRoadLane_Lanes   = lc->getScoreLanes();
+                debugInfoMessage.scoreRoadLane_Width   = lc->getScoreWidth();
+                debugInfoMessage.scoreRoadLane_Total   = lc->getTotalComponentScore();
+                debugInfoMessage.distance_Euclidean    = (*bestParticle).pose_diff_score_component;
+                debugInfoMessage.distance_Angular      = (*bestParticle).final_angle_diff_score_component;
+                debugInfoMessage.bestParticleScore     = (*bestParticle).getParticleScore();
+                debugInfoMessage.overAllParticleScore = current_layoutScore;
+
 
                 this->publisher_debugInformation.publish(debugInfoMessage);
             }
