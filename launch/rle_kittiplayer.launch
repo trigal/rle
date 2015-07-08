@@ -7,7 +7,7 @@
 
         <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
-        <param name="/road_layout_estimation/roadState_distribution_weight"     value="0.5"/>
+        <param name="/road_layout_estimation/roadState_distribution_weight"     value="1"/>
 
         <!--State6DOF ***ABSOLUTE***-->
         <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />

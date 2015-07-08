@@ -226,7 +226,7 @@ public:
 
 
     void normalizeParticleSet();
-    void publishMarkerArray();
+    void publishMarkerArray(double normalizationFactor);
     void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);

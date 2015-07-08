@@ -993,7 +993,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         LayoutManager::array_pub.publish(array_msg);
 
 
-        LayoutManager::publishMarkerArray();
+        LayoutManager::publishMarkerArray(1); //normalization factor 1, as all particles score value is 1 or should be ..
 
 
     } // end if(first_run)
@@ -1004,7 +1004,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
  * Callback called on nav_msg::Odometry arrival
  * @param msg
  ***************************************************************************************************/
-void LayoutManager::publishMarkerArray()
+void LayoutManager::publishMarkerArray(double normalizationFactor)
 {
 
     //normalizeParticleSet();
@@ -1013,7 +1013,6 @@ void LayoutManager::publishMarkerArray()
     marker_array.markers.clear();
     for(int i = 0; i<current_layout.size(); i++)
     {
-        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i);
         Particle p = current_layout.at(i);
         geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
 
@@ -1039,12 +1038,14 @@ void LayoutManager::publishMarkerArray()
         marker.scale.x = 5;
         marker.scale.y = 0.5;
         marker.scale.z = 1;
-        marker.color.a = p.getParticleScore()+0.5;
+        marker.color.a = p.getParticleScore()/normalizationFactor;
         marker.color.r = 0;
-        marker.color.g = p.getParticleScore();
+        marker.color.g = p.getParticleScore()/normalizationFactor;
         marker.color.b = 0;
 
         marker_array.markers.push_back(marker);
+
+        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i << "P.score: "<< std::setprecision(5) << p.getParticleScore() << " L-inf: " << normalizationFactor << " resulting alpha " << marker.color.a);
 
         //cout << "p.getParticleScore()\t" << p.getParticleScore() << endl;
     }
@@ -2054,16 +2055,36 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
     ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr).getParticleScore());
 
-    double debug=(  ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
-                    ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
-                    ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
+    //double debug=(  ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
+    //                ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
+    //                ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
+    //             );
+
+    double debug=(  (street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
+                    angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
+                    roadState_distribution_weight * lc->getComponentWeight()) / 3.0f
                  );
 
-    (*particle_itr).setParticleScore( exp(
-                                            ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
-                                            ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
-                                            ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
-                                         )
+    ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
+    ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
+    ROS_ASSERT(lc->getComponentWeight()                         > 0.0f);
+
+    //(*particle_itr).setParticleScore( exp(
+    //                                        ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
+    //                                        ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
+    //                                        ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
+    //                                     )
+    //                                );
+
+    (*particle_itr).setParticleScore( (*particle_itr).getParticleScore() *
+                                      (
+                                          (
+                                            street_distribution_weight    * (*particle_itr).pose_diff_score_component            +
+                                            angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component     +
+                                            roadState_distribution_weight * lc->getComponentWeight()
+                                          )
+                                          /3.0f
+                                      )
                                     );
 
     ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log): " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
@@ -2353,7 +2374,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         if(resampling_count++ == resampling_interval)
         //    if(0)
         {
-            ROS_DEBUG_STREAM("Resampling phase!");
+            ROS_DEBUG_STREAM("> Begin resampling phase!");
             resampling_count = 0;
             vector<Particle> new_current_layout;
             vector<double> particle_score_vect;
@@ -2393,6 +2414,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                             {
                                 Particle temp_part = current_layout.at(particle_counter);
                                 temp_part.setId(k);
+                                temp_part.setParticleScore(1.0f);
     //                            stat_out_file << temp_part.getId() << "\t";
     //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
     //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
@@ -2408,6 +2430,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                         int temp_rand = floor(uniform_rand3(rng));
                         Particle temp_part = current_layout.at(temp_rand);
                         temp_part.setId(k);
+                        temp_part.setParticleScore(1.0f);
                         new_current_layout.push_back(temp_part);
                     }
 
@@ -2417,11 +2440,12 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 current_layout.clear();
                 current_layout = new_current_layout;
             }
+            ROS_DEBUG_STREAM("< End resampling phase!");
         }
         // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
         /// Other
-        LayoutManager::publishMarkerArray();
+        LayoutManager::publishMarkerArray((*bestParticle).getParticleScore()); // L^infinity-Normalization
 
     }
     else
@@ -2436,14 +2460,22 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
     //return current_layout; // current layout is the <vector> of Particles
 }
 
-void LayoutManager::normalizeParticleSet(){
+ROS_DEPRECATED void LayoutManager::normalizeParticleSet()
+{
+
+    //Applies a L-infinity normalization
 
     vector<Particle>::iterator itr;
+
     double sum=0.0f;
     double max=-1.0f;
+
     for (itr = current_layout.begin(); itr != current_layout.end(); itr++)
+    {
+        sum+=(*itr).getParticleScore();
         if ((*itr).getParticleScore()>max)
             max=(*itr).getParticleScore();
+    }
     for (itr = current_layout.begin(); itr != current_layout.end(); itr++)
         (*itr).setParticleScore((*itr).getParticleScore()/max);
 }
