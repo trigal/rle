@@ -77,7 +77,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
     double scoreNaiveWidth       = 1.0f;
     double totalComponentScore   = 0.0f;
 
-    double scaling_factor        = 1.0f;
+    double scaling_factor        = 0.0f; // calculated later in the code
     double OSM_lines_reliability = 1.0f;
 
     if (getHighwayInfo_client->call(getHighwayInfo))
@@ -111,12 +111,12 @@ void LayoutComponent_RoadState::calculateComponentScore()
         }
         else
         {
-            scoreWidth = scoreNaiveWidth;
-            ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth);
+            scaling_factor = 0.3f; //fixed, how much the width distance calculated using all the lines, not only the ones with the OK valid flag (tracked with n.steps)
+            scoreWidth = scoreNaiveWidth * scaling_factor;
+            ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth << "\tScaling Factor: " << scaling_factor );
         }
 
-        // totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1-scaling_factor)); TODO: try this
-        totalComponentScore = (scoreLanes + scoreWidth) / 2.0f;
+        totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1-scaling_factor)); // refs #446
 
         ROS_DEBUG_STREAM("SCORE WIDTH: " << scoreWidth << "\tSCORE LANES: " << scoreLanes << "\tTOTAL SCORE: " << totalComponentScore);
 

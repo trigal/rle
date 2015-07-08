@@ -1045,7 +1045,7 @@ void LayoutManager::publishMarkerArray(double normalizationFactor)
 
         marker_array.markers.push_back(marker);
 
-        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i << "P.score: "<< std::setprecision(5) << p.getParticleScore() << " L-inf: " << normalizationFactor << " resulting alpha " << marker.color.a);
+        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i << " P.score: "<< std::setprecision(5) << p.getParticleScore() << " L-inf: " << normalizationFactor << " resulting alpha " << marker.color.a);
 
         //cout << "p.getParticleScore()\t" << p.getParticleScore() << endl;
     }
@@ -1755,7 +1755,7 @@ void LayoutManager::componentsPerturbation()
  */
 void LayoutManager::calculateLayoutComponentsWeight()
 {
-    ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore");
+    ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
     // first, iterate over all particles of 'current_layout'
     for(int i=0; i<current_layout.size(); i++)
     {
@@ -1770,7 +1770,7 @@ void LayoutManager::calculateLayoutComponentsWeight()
             lc->calculateComponentScore();
         }
     }
-    ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore");
+    ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
 }
 /** **************************************************************************************************************/
 
@@ -2038,7 +2038,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
  */
 void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 {
-    ROS_DEBUG_STREAM("Entering calculateScore() -- particleId" << particle_itr->getId());
+    ROS_DEBUG_STREAM("Entering calculateScore() -- particleId " << particle_itr->getId());
 
     //(*particle_itr).setParticleScore(street_distribution_weight * (*particle_itr).pose_diff_score_component * angle_distribution_weight * (*particle_itr).final_angle_diff_score);
 
@@ -2055,42 +2055,28 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
     ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr).getParticleScore());
 
-    //double debug=(  ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
-    //                ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
-    //                ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
-    //             );
-
-    double debug=(  (street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
-                    angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
-                    roadState_distribution_weight * lc->getComponentWeight()) / 3.0f
-                 );
 
     ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
     ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
     ROS_ASSERT(lc->getComponentWeight()                         > 0.0f);
 
-    //(*particle_itr).setParticleScore( exp(
-    //                                        ( log(abs(street_distribution_weight    * (*particle_itr).pose_diff_score_component ))) +
-    //                                        ( log(abs(angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component    ))) +
-    //                                        ( log(abs(roadState_distribution_weight * lc->getComponentWeight())))
-    //                                     )
-    //                                );
+    double sumOfWeights = street_distribution_weight + angle_distribution_weight + roadState_distribution_weight;
 
-    (*particle_itr).setParticleScore( (*particle_itr).getParticleScore() *
-                                      (
-                                          (
-                                            street_distribution_weight    * (*particle_itr).pose_diff_score_component            +
-                                            angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component     +
-                                            roadState_distribution_weight * lc->getComponentWeight()
-                                          )
-                                          /3.0f
-                                      )
-                                    );
+    double newScore=(
+                        (
+                           street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
+                           angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
+                           roadState_distribution_weight * lc->getComponentWeight()
+                        )
+                        / sumOfWeights
+                    );
 
-    ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log): " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
-    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log): " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
-    ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log): " << exp(log(abs(lc->getComponentWeight())))                 ) ;
-    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  debug                                                 << "\texp(log): " << exp(debug                 )) ;
+    (*particle_itr).setParticleScore( (*particle_itr).getParticleScore() * newScore );
+
+    ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
+    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log) : " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
+    ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
+    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfWeights) ;
     ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
 
     ROS_DEBUG_STREAM("Exiting calculateScore()");
