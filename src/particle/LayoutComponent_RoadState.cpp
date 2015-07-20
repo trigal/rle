@@ -72,8 +72,9 @@ void LayoutComponent_RoadState::calculateComponentScore()
     double scoreNaiveWidth       = 1.0f;
     double totalComponentScore   = 0.0f;
 
-    double scaling_factor        = 0.0f; // calculated later in the code
+    double scaling_factor        = 0.0f; // calculated later in the code P(OSM | GOOD_DETECTION) = P (GOOD_DETECTION | OSM) * P (OSM) / P(GOOD_DETECTION)
     double OSM_lines_reliability = 1.0f;
+    double detector_reliability  = 1.0f;
 
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
@@ -101,6 +102,19 @@ void LayoutComponent_RoadState::calculateComponentScore()
         {
             // return the normalized scorewidth, scaled by a factor equal to the good lines tracked over the expected number of lines of OSM.
             scaling_factor = (this->msg_lines.goodLines / this->msg_lines.number_of_lines) * OSM_lines_reliability;
+
+            double linesLikelihood = 0.0f;
+            for (int index = 0; index< this->msg_lines.goodLines; index++)
+            {
+                if (this->msg_lines.lines.at(index).isValid)
+                {
+                    linesLikelihood += this->msg_lines.lines.at(index).counter;
+                }
+            }
+
+            // TRY THIS. scaling_factor = linesLikelihood * OSM_lines_reliability / detector_reliability;
+
+            ROS_ASSERT (scaling_factor <=1.0f);
             ROS_DEBUG_STREAM("GoodLines > 0 ["<< this->msg_lines.goodLines << "], using      Score " << scoreWidth << "\tScaling Factor: " << scaling_factor << " [goodL/numL,OSM_reliability]:" << (this->msg_lines.goodLines / this->msg_lines.number_of_lines)  << " " << OSM_lines_reliability);
             scoreWidth = scoreWidth * scaling_factor;
         }

@@ -12,6 +12,7 @@
 
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "road_layout_estimation/msg_lines.h"
+#include "road_layout_estimation/msg_lineInfo.h"
 
 #include <iostream>
 #include <ros/ros.h>

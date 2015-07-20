@@ -2388,8 +2388,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                  particle_score_vect.push_back(cum_score_sum);
             }
 
-            ROS_ERROR_STREAM("Sum of all particles scores: " << cum_score_sum);
-
+            ROS_DEBUG_STREAM(" Resampling: sum of all particles scores: " << cum_score_sum);
 
             if(cum_score_sum != 0)
             {
