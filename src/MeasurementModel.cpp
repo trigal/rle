@@ -142,7 +142,8 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &odometryMessage)
 
         delta_transform.setOrigin(fixed_transform * _old_transform.inverse() * new_transform.getOrigin());
         delta_transform.setBasis(_old_transform.inverse().getBasis() * new_transform.getBasis());
-        tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); // TODO: CHECK THIS MAGIC OUT
+        //tf::Quaternion tmp_q(delta_transform.getRotation().getZ(),-delta_transform.getRotation().getX(),-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); // TODO: CHECK THIS MAGIC OUT --- 3D
+        tf::Quaternion tmp_q(0.0f,0.0f,-delta_transform.getRotation().getY(),delta_transform.getRotation().getW()); //  refs #418 - 2D
         tmp_q.normalize();
         delta_transform.setRotation(tmp_q);
 
@@ -156,13 +157,13 @@ void MeasurementModel::setMsg(const nav_msgs::Odometry &odometryMessage)
 
         // pose wrt last position, is a DELTA, so is mostly moving forward! ** PROVED **
         _measure_Delta = State6DOF();
-        _measure_Delta.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ())));
+        //_measure_Delta.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),(delta_transform.getOrigin().getZ()))); //3D
+        _measure_Delta.setPose(Eigen::Vector3d(delta_transform.getOrigin().getX(),delta_transform.getOrigin().getY(),0));  // refs #418 - 2D
         _measure_Delta.setRotation(Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ())));
 
         // OLD AXEL BEHAVIOR
         //_measure.setTranslationalVelocity(Eigen::Vector3d(tmp_translational_velocity.getX(),tmp_translational_velocity.getY(),tmp_translational_velocity.getZ()));
         //_measure.setRotationalVelocity(tmp_rotational_velocity);
-
         // NEW BEHAVIOR
         _measure_Delta.setTranslationalVelocity(Eigen::Vector3d(delta_transform.getOrigin().getX()/delta_time.toSec() ,delta_transform.getOrigin().getY()/delta_time.toSec() ,(delta_transform.getOrigin().getZ()/delta_time.toSec() )));
         tmp_rotational_velocity=Eigen::AngleAxisd(Eigen::Quaterniond(delta_transform.getRotation().getW(),delta_transform.getRotation().getX(),delta_transform.getRotation().getY(),delta_transform.getRotation().getZ()));

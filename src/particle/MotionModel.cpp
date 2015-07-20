@@ -235,6 +235,14 @@ State6DOF MotionModel::propagatePoseWithPercentage(State6DOF& p_state)
     return p_state_propagated;
 }
 
+/**
+ * @brief MotionModel::propagatePoseWithControlPercentageAndDeltatime
+ * THIS IS THE ROUTINE CURRENTLY USED
+ * @param p_state
+ * @param control
+ * @param deltaTime
+ * @return
+ */
 State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF& p_state,State6DOF& control, double deltaTime)
 {
 
@@ -273,13 +281,13 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
     Eigen::Vector3d percentageVelError; double percentageRotationError=0.0f;
     percentageVelError(0)   = Utils::box_muller(1,propagate_translational_percentage_vel_error_x);
     percentageVelError(1)   = Utils::box_muller(1,propagate_translational_percentage_vel_error_y);
-    percentageVelError(2)   = Utils::box_muller(1,propagate_translational_percentage_vel_error_z);
+    percentageVelError(2)   = 0.0f; //Utils::box_muller(1,propagate_translational_percentage_vel_error_z);      refs #418 - 2D
     percentageRotationError = Utils::box_muller(1,propagate_rotational_percentage_vel_error);
 
     Eigen::Vector3d absoluteVelError; double absoluteRotationError=0.0f;
     absoluteVelError(0)=Utils::box_muller(0,propagate_translational_absolute_vel_error_x);
     absoluteVelError(1)=Utils::box_muller(0,propagate_translational_absolute_vel_error_y);
-    absoluteVelError(2)=Utils::box_muller(0,propagate_translational_absolute_vel_error_z);
+    absoluteVelError(2)=0.0f; //Utils::box_muller(0,propagate_translational_absolute_vel_error_z);              refs #418 - 2D
     absoluteVelError = p_state._rotation * absoluteVelError;
     absoluteRotationError = Utils::box_muller(0,propagate_rotational_absolute_vel_error);
 
