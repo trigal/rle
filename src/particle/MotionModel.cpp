@@ -268,7 +268,8 @@ State6DOF MotionModel::propagatePoseWithControlPercentageAndDeltatime(State6DOF&
                                                                   control.getRotationalVelocity().axis()(1)        << ";" <<
                                                                   control.getRotationalVelocity().axis()(2)        << ";" <<
                                                                   " dt: " << deltaTime);
-    //related to #418
+
+    //related to #418   -- THIS WAS NOT USED IN THE 418 FINAL FIXING ON 20/07/2015
     //p_state.setOrthogonalPoseRotation();
     //p_state.setOrthogonalSpeedRotation();
 
