@@ -47,7 +47,6 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
-
 )
 
 catkin_package(
@@ -118,6 +117,10 @@ add_executable(visual_odometry_nvm
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
 
 add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
+add_dependencies(road_layout_estimation ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(roadStateComponent_fake ${PROJECT_NAME}_gencfg)
+add_dependencies(roadStateComponent_fake ${PROJECT_NAME}_generate_messages_cpp)
+
 add_dependencies(visual_odometry_fake ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_nvm ${PROJECT_NAME}_gencfg)
 add_dependencies(visual_odometry_test ${PROJECT_NAME}_gencfgf)
