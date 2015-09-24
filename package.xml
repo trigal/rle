@@ -45,7 +45,6 @@
         <build_depend>road_lane_detection</build_depend>
         <run_depend>road_lane_detection</run_depend>
         
-</package>
 
 
 </package>
