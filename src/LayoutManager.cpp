@@ -71,7 +71,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     LayoutManager::first_msg = true;
     visualOdometryOldMsg.header.stamp = ros::Time::now();    // init header timestamp
     node_handle = n;                                         // set this node_handle as the same of 'road_layout_manager'
-    start_with_gps_message  = true;                          // select RLE mode, hard-coded KITTI initializations, or GPS message TODO:FIX this shame
+    start_with_gps_message  = false;                          // select RLE mode, hard-coded KITTI initializations, or GPS message TODO:FIX this shame
 
     this->bagfile = bagfile;
 

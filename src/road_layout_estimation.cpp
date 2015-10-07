@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     std::cout << endl;
 
     string visual_odometry_topic = "/stereo_odometer/odometry";
-    string bagfile = "kitti_01";
+    string bagfile = "kitti_04";
 
     if(argc > 3)
     {
