@@ -1,3 +1,4 @@
+Header header
 float64         number_of_lines  #adaptiveness of the filter! number of lanes that we were looking for
 float64         goodLines        #how many good lines are currently found
 float64         width            #full road width, calculated with valid line offsets
