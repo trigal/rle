@@ -79,7 +79,7 @@ using std::vector;
  *----------------------------------------------------------------------------------------------
  * SPECIFICHE:
  * - pose particle -> filtro EKF
- * 	 pose componenti -> filtro particelle
+ *   pose componenti -> filtro particelle
  *
                  // - score -> confronto tra predict ed eq. di misura
                  // - weight -> quanto pesa nella somma di tutte le componenti
@@ -89,20 +89,20 @@ using std::vector;
  *
  *  SCORE = SCORE_MOTION_MODEL(kalman gain) + sum(SCORE_COMPONENTS)
  *
- *	EQUAZIONE DI MISURA:
- *		mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
- *		L'equazione di misura sarà una matrice (vedi foglio). La derivata è paro paro
+ *  EQUAZIONE DI MISURA:
+ *      mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
+ *      L'equazione di misura sarà una matrice (vedi foglio). La derivata è paro paro
  *
  *--------------------------------------------------------------------------------------------------------
- *	CALCOLO V_t+1
+ *  CALCOLO V_t+1
  *
- *	PREDICTION:
- *		considero sempre l'equazione v t+1 = v t + R
+ *  PREDICTION:
+ *      considero sempre l'equazione v t+1 = v t + R
  *
- *	UPDATE:
- *	caso 1: non mi arrivano dati da visual odometry
- *			l'accelerazione è data dalla costante di smorzamento (vedi formula su foglio)
- *	caso 2: nel caso mi arrivino dati, faccio l'update
+ *  UPDATE:
+ *  caso 1: non mi arrivano dati da visual odometry
+ *          l'accelerazione è data dalla costante di smorzamento (vedi formula su foglio)
+ *  caso 2: nel caso mi arrivino dati, faccio l'update
  *
  *
  *----------------------------------------------------------------------------------------------
@@ -114,10 +114,9 @@ using std::vector;
  */
 
 
-
-/**
- * Implementation of the current layout estimator
- */
+///
+/// \brief The LayoutManager class
+/// Implementation of the current layout estimator
 class LayoutManager
 {
 public:
@@ -172,30 +171,35 @@ public:
 
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
-    /**
-     * Genera una stima del layout al tempo t a partire dal currentLayout
-     * @return particle set al tempo t
-     */
+    ///
+    /// \brief layoutEstimation
+    /// \param timerEvent
+    /// \return particle set al tempo t
+    /// Genera una stima del layout al tempo t a partire dal currentLayout
+    ///
     void layoutEstimation(const ros::TimerEvent &timerEvent);
 
-    /**
-     * @brief odometryCallback (was the temp odometryCallback2);
-     * @param msg
-     */
+    ///
+    /// \brief odometryCallback
+    /// \param visualOdometryMsg
+    /// (was the temp odometryCallback2);
+    ///
     void odometryCallback(const nav_msgs::Odometry& visualOdometryMsg);
 
-    /**
-     * @brief reconfigureCallback
-     * @param config
-     * @param level
-     */
+    ///
+    /// \brief reconfigureCallback
+    /// \param config
+    /// \param level
+    ///
     void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level);
 
-    /**
-     * @brief roadLaneCallback
-     * @param msg
-     */
-    void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
+    ///
+    /// \brief roadLaneCallback
+    /// \param msg
+    /// This is the callback from the OLD Dario Limongi Lane Detector.
+    /// It is DEPRECATED.
+    ///
+    ROS_DEPRECATED void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
@@ -203,8 +207,14 @@ public:
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }
 
-    vector<Particle> getCurrentLayout(){ return current_layout; }
-    void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
+    vector<Particle> getCurrentLayout()
+    {
+        return current_layout;
+    }
+    void setCurrentLayout(vector<Particle>& p_set)
+    {
+        current_layout = p_set;
+    }
 
     // costructor & destructor ----------------------------------------------------------------------
     LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel);
@@ -227,7 +237,7 @@ public:
 
     void normalizeParticleSet();
     void publishMarkerArray(double normalizationFactor);
-    void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
+    void publishMarkerArrayDistances(int id, double x1, double y1, double x2, double y2, double z);
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
     void publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point);
@@ -238,7 +248,14 @@ public:
     void rleStart();
     void rleStop();
 
+    ///
+    /// \brief getAllParticlesLatLonService
+    /// \param req
+    /// \param resp
+    /// \return
+    ///
     /// Service Callback
+    ///
     bool getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp);
 
     tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
@@ -264,8 +281,8 @@ private:
     static bool first_msg;                      // flag used for init particle-set
     nav_msgs::Odometry visualOdometryOldMsg;    // used for delta_t calculation
 
-    bool new_detections;				        // indicates detectors found new detections (not used)
-    vector<Particle> current_layout;	        // stores the current layout
+    bool new_detections;                        // indicates detectors found new detections (not used)
+    vector<Particle> current_layout;            // stores the current layout
     double current_layoutScore;
     long resampling_count;
 
@@ -290,57 +307,68 @@ private:
     bool start_with_gps_message;                // select RLE mode, hard-coded KITTI initializations, or GPS message
 
 
-    /*
-     * @brief checkHasMoved
-     * @return
-     */
+    ///
+    /// \brief checkHasMoved
+    /// \return
+    ///
     bool checkHasMoved();
 
-    /*
-     * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
-     * STEP 2: PERTURBATE COMPONENT POSES
-     * STEP 3: WEIGHT LAYOUT-COMPONENTS
-     */
+    ///
+    /// \brief componentsEstimation
+    /// STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+    /// STEP 2: PERTURBATE COMPONENT POSES
+    /// STEP 3: WEIGHT LAYOUT-COMPONENTS
+    ///
     void componentsEstimation();
 
-    /*
-     * Sampling from the state transition p(x_t | u_t , x_t-1):
-     * we propagate the particle and its components with the motion model
-     * and generate a predicted particle-set
-     */
+    ///
+    /// \brief sampling
+    /// Sampling from the state transition p(x_t | u_t , x_t-1):
+    /// we propagate the particle and its components with the motion model
+    /// and generate a predicted particle-set
+    ///
     void sampling();
     void componentsPerturbation();
     void calculateLayoutComponentsWeight();
 
 
-    /*
-     * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
-     * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
-     * @param particle-set predetto
-     * @return particle-set con resampling
-     */
+    ///
+    /// \brief resampling
+    /// \param particle-set predetto
+    /// \return particle-set con resampling
+    ///
+    /// Resampling sul particle-set predetto, utilizzando lo score delle particelle:
+    /// chi ha peso più alto è più probabile che venga preso [roulette-wheel]
+    ///
     void resampling();
 
 
-    /*
-     * FORMULA CALCOLO SCORE
-     *
-     * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
-     *  1- Kalman gain sulla pose della particella
-     *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
-     *
-     * Cardinalità >= 2
-     *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
-     *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
-     *
-     * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
-     * essa sarà mantenuta in vita nonostante lo score sia basso.
-     * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
-     * uno score di valore basso per motivi di natura diversa.
-     *
-     */
+    ///
+    /// \brief calculateScore
+    /// \param particle_itr
+    ///
+    /// Cardinalità unaria (Particella presa INDIVIDUALMENTE)
+    ///  1- Kalman gain sulla pose della particella
+    ///  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
+    ///
+    /// Cardinalità >= 2
+    ///  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
+    ///  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
+    ///
+    /// Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+    /// essa sarà mantenuta in vita nonostante lo score sia basso.
+    /// In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
+    /// uno score di valore basso per motivi di natura diversa.
+    ///
     void calculateScore(Particle *particle_itr);
-    void calculateGeometricScores(Particle *particle_itr); //helper function, while the distance (metric+angular) aren't components.
+
+    ///
+    /// \brief calculateGeometricScores
+    /// \param particle_itr
+    ///
+    /// helper function, while the distance (metric+angular) aren't components.
+    ///
+    void calculateGeometricScores(Particle *particle_itr);
 
 };
 

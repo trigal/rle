@@ -2,8 +2,8 @@
 
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="10"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="3"/>     <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/particles_number"                  value="1"/>
+        <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10-->
         <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>     <!--these values should be greater than zero-->
@@ -67,15 +67,13 @@
 
         <!-- VISUALIZATION STUFF -->
             <!-- Launch RViz -->
-            <node pkg="rviz" type="rviz" name="rviz" respawn="true"
-                    args="-d $(arg rviz)"
-                    output="screen"
-            />
+            <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d $(arg rviz)" output="screen">
+            </node>
 
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 
-        <!-- Launch ROAD LANE DETECTOR
+        <!-- Launch ROAD LANE DETECTOR  ** IRALAB**
             <node
                     pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
                     required="true"
@@ -83,6 +81,10 @@
             />
          -->
 
+        <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB** -->
+        <include file="$(find isis_line_detector)/launch/linedetector.launch" />
+
+        <!-- KITTI PLAYER -->
         <include file="$(find kitti_player)/launch/kittiplayer_libviso2.launch" />
 
 </launch>

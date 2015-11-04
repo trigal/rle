@@ -33,6 +33,10 @@ void LayoutComponent_RoadState::setCurrent_lane(char value)
     current_lane = value;
 }
 
+///
+/// \brief LayoutComponent_RoadState::getLanes_number
+/// \return the number of LANES given the number of lines.
+///
 int LayoutComponent_RoadState::getLanes_number() const
 {
     if (msg_lines.goodLines > 0)
@@ -67,7 +71,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
     ira_open_street_map::getHighwayInfo getHighwayInfo;
     getHighwayInfo.request.way_id = this->getWay_id();
 
-    double scoreLanes            = 1.0f;
+    double scoreLanes            = 1.0f; // LINES to LANES conversion in the getLanes_number() function
     double scoreWidth            = 1.0f;
     double scoreNaiveWidth       = 1.0f;
     double totalComponentScore   = 0.0f;
@@ -89,30 +93,41 @@ void LayoutComponent_RoadState::calculateComponentScore()
         ROS_DEBUG_STREAM("Width       Score (normalized-to-1 normal pdf): " << std::fixed << scoreWidth      << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_width())      );
         ROS_DEBUG_STREAM("Naive Width Score (normalized-to-1 normal pdf): " << std::fixed << scoreNaiveWidth << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_naiveWidth()) );
 
+        // 1. SCORE LANES
+        // If we have the number of lanes, update the scoreLanes value. Otherwise leave unchanged = 1.0f
         if (getHighwayInfo.response.number_of_lanes)
         {
+            // Initialize the POISSON distribution
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
+
+            // Conversion from #LINES to #LANES inside getLanes_number
             scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
+
             ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << std::fixed << scoreLanes << "\t not-Normalized: " <<  pdf(poisson_distribution,this->getLanes_number()));
         }
 
         ROS_DEBUG_STREAM ("GOOD LINES: " << this->msg_lines.goodLines <<"\tALL LINES: "<< this->msg_lines.number_of_lines);
 
+        // 2. SCORE WIDTH
+        // Calculate the scoreWith depending from the goodLines value.
         if (this->msg_lines.goodLines != 0)
         {
             // return the normalized scorewidth, scaled by a factor equal to the good lines tracked over the expected number of lines of OSM.
             scaling_factor = (this->msg_lines.goodLines / this->msg_lines.number_of_lines) * OSM_lines_reliability;
 
-            double linesLikelihood = 0.0f;
+            double linesSum = 0.0f;
             for (int index = 0; index< this->msg_lines.goodLines; index++)
             {
                 if (this->msg_lines.lines.at(index).isValid)
                 {
-                    linesLikelihood += this->msg_lines.lines.at(index).counter;
+                    linesSum += this->msg_lines.lines.at(index).counter;
                 }
             }
 
-            // TRY THIS. scaling_factor = linesLikelihood * OSM_lines_reliability / detector_reliability;
+            double linesLikelihood = 0.0f;
+            linesLikelihood = linesSum / this->msg_lines.number_of_lines * this->maxValueForGoodLine;
+
+            // TRY THIS. scaling_factor = linesLikelihood * OSM_lines_reliability / detector_reliability; [WARNING: linesLikelihood is linesSum now, wrong name before. It was and it is NOT used]
 
             ROS_ASSERT (scaling_factor <=1.0f);
             ROS_DEBUG_STREAM("GoodLines > 0 ["<< this->msg_lines.goodLines << "], using      Score " << scoreWidth << "\tScaling Factor: " << scaling_factor << " [goodL/numL,OSM_reliability]:" << (this->msg_lines.goodLines / this->msg_lines.number_of_lines)  << " " << OSM_lines_reliability);
@@ -125,6 +140,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
             ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth << "\tScaling Factor: " << scaling_factor );
         }
 
+        // Normalize the totalComponentScore to sum up to one.
         totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1-scaling_factor)); // refs #446
 
         ROS_DEBUG_STREAM("SCORE WIDTH: " << scoreWidth << "\tSCORE LANES: " << scoreLanes << "\tTOTAL SCORE: " << totalComponentScore);

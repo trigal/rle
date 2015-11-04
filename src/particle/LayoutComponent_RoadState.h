@@ -19,16 +19,33 @@
 
 using namespace std;
 
+/// \file LayoutComponent_RoadState.h
+/// \brief Road component
+/// The state is stored using a msg_lines message
+///
+///
 class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
     char            current_lane;     // -1 don't know
 
-    //int             lanes_number;
-    //double          road_width;
-    //bool            oneway;
-    //int64_t         way_id;
+    // Description msg_lines
+    // Header header
+    // float64         number_of_lines  #adaptiveness of the filter! number of lanes that we were looking for
+    // float64         goodLines        #how many good lines are currently found
+    // float64         width            #full road width, calculated with valid line offsets
+    // float64         naive_width      #full road width, calculated with all line offsets (even invalid)
+    // int32           oneway           #MAKE SENSE?
+    // int64           way_id           #FOR COMPATIBILITY WITH roadStateComponent FAKE
+    // msg_lineInfo[]  lines            #details of each line (from the detector) see the next message
+
+    // Description msg_lineInfo (from the detector)
+    // ## This message is part of msg_lines.
+    // ## Since it does not have an header is not meant to be used stand alone
+    // bool    isValid
+    // int32   counter
+    // float32 offset
 
     road_layout_estimation::msg_lines msg_lines;
 
@@ -43,9 +60,9 @@ private:
     double scoreLanes;
     double scoreWidth;
     double totalComponentScore;
+    const double maxValueForGoodLine = 10;
 
 public:
-
 
     void componentPoseEstimation();
     void calculateComponentScore();

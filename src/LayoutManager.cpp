@@ -1010,10 +1010,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 }// end reconfigure callback
 
 
-/** *************************************************************************************************
- * Callback called on nav_msg::Odometry arrival
- * @param msg
- ***************************************************************************************************/
+///
+/// \brief LayoutManager::publishMarkerArray
+/// \param normalizationFactor
+///
+/// Callback called on nav_msg::Odometry arrival
+///
 void LayoutManager::publishMarkerArray(double normalizationFactor)
 {
 
@@ -1566,10 +1568,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 }
 
 
-/**
- * Check if car has moved or not by confronting odometry matrix and motion threshold matrix
- * @return true if car has moved beyond the the threshold matrix
- */
+///
+/// \brief LayoutManager::checkHasMoved
+/// \return true if car has moved beyond the the threshold matrix
+///
+/// Check if car has moved or not by confronting odometry matrix and motion threshold matrix
+///
 bool LayoutManager::checkHasMoved(){
     //MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
 //	MatrixXd diff_matrix = MatrixXd::Ones(12,12);
@@ -1578,15 +1582,18 @@ bool LayoutManager::checkHasMoved(){
     return true;
 }
 
-/**
- * @brief LayoutManager::roadLaneCallback
- * @param msg
- */
-void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg)
+///
+/// \brief LayoutManager::roadLaneCallback
+/// \param msg
+/// \deprecated {old version, Limongi Thesis}
+///
+/// This is the callback from the OLD Dario Limongi Lane Detector
+///
+ROS_DEPRECATED void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg)
 {
     ROS_ERROR_STREAM("> Entering roadLaneCallback");
 
-    ROS_ERROR_STREAM("WHY ARE YOU CALLING THIS ROUTINE?!");
+    ROS_ERROR_STREAM("WHY ARE YOU CALLING THIS ROUTINE?! IT IS DEPRECATED, OLD DARIO LIMONGI CODE!");
 
     // Add it to all particles
     for(int i=0; i<current_layout.size(); ++i){
@@ -1620,6 +1627,14 @@ void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array&
     ROS_ERROR_STREAM("< Exiting roadLaneCallback");
 }
 
+///
+/// \brief LayoutManager::roadStateCallback
+/// \param msg_lines
+/// \todo {Parametrize snapParticle.request.max_distance_radius value}
+///
+/// This function update (by creating new ones) the RoadState Component.
+/// It calls the snapParticle to get the WAY ID.
+///
 void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
 
@@ -1657,6 +1672,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         {
             ROS_WARN_STREAM("Warning, snap failed in roadStateCallback in the radius of " << snapParticle.request.max_distance_radius << "m");
             snapParticle.response.way_id=0;
+            // WARNING: do not set  modified_msg_lines.way_id here!
         }
 
 
@@ -1696,10 +1712,11 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
 
 
 
-/** **************************************************************************************************************/
-/**
- * Estimate particles' components using particle filter
- */
+///
+/// \brief LayoutManager::componentsEstimation
+///
+/// Estimate particles' components using particle filter
+///
 void LayoutManager::componentsEstimation()
 {
     ROS_DEBUG("> Entering componentsEstimation");
@@ -1716,10 +1733,12 @@ void LayoutManager::componentsEstimation()
     ROS_DEBUG("< Exiting componentsEstimation");
 }
 
-/**
- * PARTICLE FILTER, STEP 1:
- * cicle through all the particles, and call their function "propagate-components"
- */
+///
+/// \brief LayoutManager::sampling
+///
+/// PARTICLE FILTER, STEP 1:
+/// Cicle through all the particles, and call their function "propagate-components"
+///
 void LayoutManager::sampling(){
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<Particle>::iterator itr;
@@ -1735,10 +1754,11 @@ void LayoutManager::sampling(){
     ROS_DEBUG_STREAM("< Exiting Sampling of all components");
 }
 
-/**
- * PARTICLE FILTER, STEP 2:
- * @brief LayoutManager::componentsPerturbation
- */
+///
+/// \brief LayoutManager::componentsPerturbation
+///
+/// PARTICLE FILTER, STEP 2:
+///
 void LayoutManager::componentsPerturbation()
 {
 
@@ -1756,12 +1776,12 @@ void LayoutManager::componentsPerturbation()
     }
 }
 
-/**
- * PARTICLE FILTER, STEP 3:
- * @brief LayoutManager::calculateLayoutComponentsWeight
- *
- * andiamo a vedere quanto bene fitta la componente della singola particella nella realtà
- */
+///
+/// \brief LayoutManager::calculateLayoutComponentsWeight
+///
+/// PARTICLE FILTER, STEP 3:
+/// andiamo a vedere quanto bene fitta la componente della singola particella nella realtà
+///
 void LayoutManager::calculateLayoutComponentsWeight()
 {
     ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
@@ -2027,24 +2047,25 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
 
 
-/** **************************************************************************************************************/
-/**
- * FORMULA CALCOLO SCORE
- *
- * Cardinalità unaria
- *  NO: 1- Kalman gain sulla pose della particella
- *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
- *
- * Cardinalità >= 2
- *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.) nella stessa particella
- *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.) nella stessa particella
- *
- * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
- * essa sarà mantenuta in vita nonostante lo score sia basso.
- * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
- * uno score di valore basso per motivi di natura diversa.
- *
- */
+///
+/// \brief LayoutManager::calculateScore
+/// \param particle_itr
+///
+/// FORMULA CALCOLO SCORE
+///
+/// Cardinalità unaria
+///  NO: 1- Kalman gain sulla pose della particella
+///  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
+///
+/// Cardinalità >= 2
+///  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.) nella stessa particella
+///  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.) nella stessa particella
+///
+/// Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+/// essa sarà mantenuta in vita nonostante lo score sia basso.
+/// In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
+/// uno score di valore basso per motivi di natura diversa.
+///
 void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 {
     ROS_DEBUG_STREAM("Entering calculateScore() -- particleId " << particle_itr->getId());
