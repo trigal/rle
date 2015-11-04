@@ -17,7 +17,7 @@
 #include "State6DOF.h"
 #include "../LayoutManager.h"
 #include <vector>
-#include <Eigen/Dense>	//used for pose matrix
+#include <Eigen/Dense>  //used for pose matrix
 #include <Eigen/Core>
 using namespace Eigen;
 using std::vector;
@@ -26,7 +26,8 @@ using std::vector;
 /**
  * Update every particle's components pose using motion model equations
  */
-void Particle::propagateLayoutComponents(){
+void Particle::propagateLayoutComponents()
+{
     ROS_DEBUG_STREAM("> Entering propagateLayoutComponents");
 
     vector<LayoutComponent*>::iterator itr;
@@ -35,7 +36,7 @@ void Particle::propagateLayoutComponents(){
     {
         ROS_DEBUG_STREAM("Cycling through component id: " << (int)(component_counter++) << " of " << (*itr)->getComponentId());
 
-        if(dynamic_cast<LayoutComponent_RoadState* >(*itr))
+        if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
             ROS_DEBUG_STREAM("roadStateComponent detected");
             (*itr)->componentPoseEstimation(); //virtual
@@ -66,7 +67,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 {
     // odometry is the measurementModel of the LAYOUTMANAGER (default motion model)
     // check if _first_run is still set.
-    if(odometry->getFirstRun())
+    if (odometry->getFirstRun())
     {
         ROS_WARN_STREAM("First run in particlePoseEstimation");
         particle_state.setRotationalVelocity(odometry->getMeasureDeltaState().getRotationalVelocity());
@@ -91,14 +92,14 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     MatrixXd E_t = particle_sigma;                                              /// initial sigma (state error covariance)
 
     State6DOF stato_ut_predetto;
-    MatrixXd E_t_pred = MatrixXd::Zero(12,12);                                  /// predicted sigma (state error covariance)
+    MatrixXd E_t_pred = MatrixXd::Zero(12, 12);                                 /// predicted sigma (state error covariance)
 
     MatrixXd R_t = particle_mtn_model.getErrorCovariance();                     /// motion error covariance     (mtn_model_position_uncertainty ecc)
     MatrixXd Q_t = odometry->getMeasureCov();                                   /// measure error covariance
 
-    MatrixXd G_t = MatrixXd::Zero(12,12);	                                    /// motion equations jacobian
-    MatrixXd H_t = MatrixXd::Zero(12,12);	                                    /// measure equations jacobian
-    MatrixXd K_t = MatrixXd::Zero(12,12);	                                    /// Kalman gain
+    MatrixXd G_t = MatrixXd::Zero(12, 12);                                      /// motion equations jacobian
+    MatrixXd H_t = MatrixXd::Zero(12, 12);                                      /// measure equations jacobian
+    MatrixXd K_t = MatrixXd::Zero(12, 12);                                      /// Kalman gain
 
     // ------- PREDICTION STEP -------
     /// 1. Absolute
@@ -136,8 +137,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
 
     // Check if the measure is valid
-    if(true) // set to TRUE if using "With Odometry"
-    //if(!odometry->isMeasureValid())
+    if (true) // set to TRUE if using "With Odometry"
+        //if(!odometry->isMeasureValid())
     {
         ROS_DEBUG_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
 
@@ -159,8 +160,9 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
         {
 
             {
-                VectorXd state; state=stato_ut_predetto.getPose();
-                ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0)<<"\t"<< state(1)<<"\t"<< state(2));
+                VectorXd state;
+                state = stato_ut_predetto.getPose();
+                ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0) << "\t" << state(1) << "\t" << state(2));
 
                 (*itr)->setComponentState(state); //virtual call
             }
@@ -174,7 +176,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     // ------- UPDATE STEP -------
 
     //State6DOF delta_measure = odometry->getMeasureDeltaState();                                            // differenza tra odometria arrivata, usata per calcolare misura zt
-    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);    // here the measurement is scaled with the timestamps. Needed in decoupling.
+    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime, deltaOdomTime);   // here the measurement is scaled with the timestamps. Needed in decoupling.
     //ROS_ASSERT (delta_measure.getRotation().isUnitary());
 
 //    delta_measure.setRotation(AngleAxisd::Identity());
@@ -241,7 +243,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     // calculate belief
     State6DOF stato_filtrato = stato_ut_predetto.add_vectXd(kalman_per_msr_diff);
-    E_t = (MatrixXd::Identity(12,12) - (K_t * H_t)) * E_t_pred;
+    E_t = (MatrixXd::Identity(12, 12) - (K_t * H_t)) * E_t_pred;
 
     // update particle values
     particle_state = stato_filtrato;

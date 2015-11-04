@@ -8,7 +8,7 @@ double LayoutComponent_RoadState::getRoad_width() const
 
 void LayoutComponent_RoadState::setRoad_width(double value)
 {
-    msg_lines.width=value;
+    msg_lines.width = value;
 //    road_width = value;
 }
 
@@ -19,7 +19,7 @@ double LayoutComponent_RoadState::getRoad_naiveWidth() const
 
 void LayoutComponent_RoadState::setRoad_naiveWidth(double value)
 {
-    msg_lines.naive_width=value;
+    msg_lines.naive_width = value;
 }
 
 
@@ -53,7 +53,7 @@ int64_t LayoutComponent_RoadState::getWay_id() const
 
 void LayoutComponent_RoadState::setWay_id(const int64_t &value)
 {
-    msg_lines.way_id=value;
+    msg_lines.way_id = value;
 //    way_id = value;
 }
 
@@ -101,12 +101,12 @@ void LayoutComponent_RoadState::calculateComponentScore()
             boost::math::poisson poisson_distribution(getHighwayInfo.response.number_of_lanes); // Poisson distribution: lambda/mean must be > 0
 
             // Conversion from #LINES to #LANES inside getLanes_number
-            scoreLanes = pdf(poisson_distribution,this->getLanes_number()) / pdf(poisson_distribution,getHighwayInfo.response.number_of_lanes);
+            scoreLanes = pdf(poisson_distribution, this->getLanes_number()) / pdf(poisson_distribution, getHighwayInfo.response.number_of_lanes);
 
-            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << std::fixed << scoreLanes << "\t not-Normalized: " <<  pdf(poisson_distribution,this->getLanes_number()));
+            ROS_DEBUG_STREAM("Lanes  Score (normalzed-to-1 poisson pdf): " << std::fixed << scoreLanes << "\t not-Normalized: " <<  pdf(poisson_distribution, this->getLanes_number()));
         }
 
-        ROS_DEBUG_STREAM ("GOOD LINES: " << this->msg_lines.goodLines <<"\tALL LINES: "<< this->msg_lines.number_of_lines);
+        ROS_DEBUG_STREAM ("GOOD LINES: " << this->msg_lines.goodLines << "\tALL LINES: " << this->msg_lines.number_of_lines);
 
         // 2. SCORE WIDTH
         // Calculate the scoreWith depending from the goodLines value.
@@ -116,7 +116,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
             scaling_factor = (this->msg_lines.goodLines / this->msg_lines.number_of_lines) * OSM_lines_reliability;
 
             double linesSum = 0.0f;
-            for (int index = 0; index< this->msg_lines.goodLines; index++)
+            for (int index = 0; index < this->msg_lines.goodLines; index++)
             {
                 if (this->msg_lines.lines.at(index).isValid)
                 {
@@ -129,19 +129,19 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
             // TRY THIS. scaling_factor = linesLikelihood * OSM_lines_reliability / detector_reliability; [WARNING: linesLikelihood is linesSum now, wrong name before. It was and it is NOT used]
 
-            ROS_ASSERT (scaling_factor <=1.0f);
-            ROS_DEBUG_STREAM("GoodLines > 0 ["<< this->msg_lines.goodLines << "], using      Score " << scoreWidth << "\tScaling Factor: " << scaling_factor << " [goodL/numL,OSM_reliability]:" << (this->msg_lines.goodLines / this->msg_lines.number_of_lines)  << " " << OSM_lines_reliability);
+            ROS_ASSERT (scaling_factor <= 1.0f);
+            ROS_DEBUG_STREAM("GoodLines > 0 [" << this->msg_lines.goodLines << "], using      Score " << scoreWidth << "\tScaling Factor: " << scaling_factor << " [goodL/numL,OSM_reliability]:" << (this->msg_lines.goodLines / this->msg_lines.number_of_lines)  << " " << OSM_lines_reliability);
             scoreWidth = scoreWidth * scaling_factor;
         }
         else
         {
             scaling_factor = 0.3f; //fixed, how much the width distance calculated using all the lines, not only the ones with the OK valid flag (tracked with n.steps)
             scoreWidth = scoreNaiveWidth * scaling_factor;
-            ROS_DEBUG_STREAM("GoodLines = 0 ["<< this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth << "\tScaling Factor: " << scaling_factor );
+            ROS_DEBUG_STREAM("GoodLines = 0 [" << this->msg_lines.goodLines << "], using NaiveScore " << scoreWidth << "\tScaling Factor: " << scaling_factor );
         }
 
         // Normalize the totalComponentScore to sum up to one.
-        totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1-scaling_factor)); // refs #446
+        totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1 - scaling_factor)); // refs #446
 
         ROS_DEBUG_STREAM("SCORE WIDTH: " << scoreWidth << "\tSCORE LANES: " << scoreLanes << "\tTOTAL SCORE: " << totalComponentScore);
 
@@ -164,7 +164,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
     }
 
 
-    ROS_DEBUG_STREAM("< Exiting calculateComponentScore, component ID: " << component_id << " of particle ID: " <<particle_id);
+    ROS_DEBUG_STREAM("< Exiting calculateComponentScore, component ID: " << component_id << " of particle ID: " << particle_id);
 }
 
 /**
@@ -183,7 +183,7 @@ void LayoutComponent_RoadState::componentPerturbation()
     //boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
     //double road_width = this->getRoad_width() * var_nor();
 
-    double road_width = this->getRoad_width() * Utils::box_muller(1,0.001);
+    double road_width = this->getRoad_width() * Utils::box_muller(1, 0.001);
 
 
     ROS_DEBUG_STREAM("roadWith: " << this->getRoad_width() << "\tPerturbed: " << road_width);
@@ -192,15 +192,6 @@ void LayoutComponent_RoadState::componentPerturbation()
 }
 
 
-/**
- * Implementation of pure virtual method 'componentPoseEstimation'
- * In roadStateComponent this routine does the following, to 'predict' the new component 'state':
- *      1. given the particle position call snap_particle_xy, this return the way_id
- *      2. call getHighwayInfo(way_id)
- *      3. set new values to into the component
- *
- *      @now <<<do not update the values>>>
- */
 
 double LayoutComponent_RoadState::getScoreLanes() const
 {
@@ -241,9 +232,21 @@ void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_l
 {
     msg_lines = value;
 }
+
+///
+/// \brief LayoutComponent_RoadState::componentPoseEstimation
+///
+/// Implementation of pure virtual method 'componentPoseEstimation'
+/// In roadStateComponent this routine does the following, to 'predict' the new component 'state':
+///      1. given the particle position call snap_particle_xy, this return the way_id
+///      2. call getHighwayInfo(way_id)
+///      3. set new values to into the component
+///
+///      @now <<<do not update the values>>>
+///
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
-    ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " <<particle_id << " componentState: " << getComponentState()(0)<< ";" <<getComponentState()(1)<< ";" << getComponentState()(2));
+    ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " << particle_id << " componentState: " << getComponentState()(0) << ";" << getComponentState()(1) << ";" << getComponentState()(2));
 
     /*
      * il componente ha come <VectorXd component_state> lo stato (position) della particella .

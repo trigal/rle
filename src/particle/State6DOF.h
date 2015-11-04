@@ -40,19 +40,41 @@ public:
     void setOrthogonalSpeedRotation();  // _rotational_velocity
 
     // getters & setters --------------------------------------------------------------
-    Vector3d getPose() { return _pose; }
-    void setPose(Vector3d pose){ _pose = pose; }
+    Vector3d getPose()
+    {
+        return _pose;
+    }
+    void setPose(Vector3d pose)
+    {
+        _pose = pose;
+    }
 
-    AngleAxisd getRotation() { //ROS_ASSERT(_rotation.isUnitary()); TODO:RE-ENABLE
-                               return _rotation; }
-    void setRotation(AngleAxisd rotation) { _rotation = rotation; }
+    AngleAxisd getRotation()   //ROS_ASSERT(_rotation.isUnitary()); TODO:RE-ENABLE
+    {
+        return _rotation;
+    }
+    void setRotation(AngleAxisd rotation)
+    {
+        _rotation = rotation;
+    }
 
-    Vector3d getTranslationalVelocity() { return _translational_velocity; }
-    void setTranslationalVelocity(Vector3d t_velocity) { _translational_velocity = t_velocity; }
+    Vector3d getTranslationalVelocity()
+    {
+        return _translational_velocity;
+    }
+    void setTranslationalVelocity(Vector3d t_velocity)
+    {
+        _translational_velocity = t_velocity;
+    }
 
-    AngleAxisd getRotationalVelocity() { //ROS_ASSERT(_rotational_velocity.isUnitary()); TODO:RE-ENABLE
-                                         return _rotational_velocity; }
-    void setRotationalVelocity(AngleAxisd rot_velocity) { _rotational_velocity = rot_velocity; }
+    AngleAxisd getRotationalVelocity()   //ROS_ASSERT(_rotational_velocity.isUnitary()); TODO:RE-ENABLE
+    {
+        return _rotational_velocity;
+    }
+    void setRotationalVelocity(AngleAxisd rot_velocity)
+    {
+        _rotational_velocity = rot_velocity;
+    }
 
 
 };

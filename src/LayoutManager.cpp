@@ -36,7 +36,7 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
     array_msg.header.frame_id = "local_map";
 
     // Insert all particles inside msg
-    for(int i = 0; i<particles.size(); i++)
+    for (int i = 0; i < particles.size(); i++)
     {
         // build Pose from Particle
         Particle p = particles.at(i);
@@ -44,7 +44,7 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
 
         // normalize quaternion
         tf::Quaternion q;
-        tf::quaternionMsgToTF(pose.orientation,q);
+        tf::quaternionMsgToTF(pose.orientation, q);
         q = q.normalize();
         tf::quaternionTFToMsg(q, pose.orientation);
 
@@ -59,7 +59,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 {
 
     /// This sets the logger level; use this to disable all ROS prints
-    if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, loggingLevel) )
+    if ( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, loggingLevel) )
         ros::console::notifyLoggerLevelsChanged();
     else
         std::cout << "Error while setting the logger level!" << std::endl;
@@ -89,9 +89,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     /// Issue: #420
 
     tf::StampedTransform fixed_transform ;
-    fixed_transform.setOrigin(tf::Vector3(0.0f,0.0f,0.0f));
+    fixed_transform.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
     fixed_transform.setRotation(tf::createQuaternionFromRPY(-1.570796f, 0.0f, -1.570796f ));
-    measurement_model->setFixed_transform(fixed_transform);    
+    measurement_model->setFixed_transform(fixed_transform);
 
     //    try
     //    {
@@ -119,11 +119,11 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
-    LayoutManager::array_pub                            = n.advertise<geometry_msgs::PoseArray>              ("/road_layout_estimation/layout_manager/particle_pose_array",1);
-    LayoutManager::gps_pub                              = n.advertise<sensor_msgs::NavSatFix>                ("/road_layout_estimation/layout_manager/gps_fix",1);
-    LayoutManager::street_publisher                     = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/quaternion_pose",1);
-    LayoutManager::particle_publisher                   = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/particle_pose",1);
-    LayoutManager::diff_publisher                       = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/diff_pose",1);
+    LayoutManager::array_pub                            = n.advertise<geometry_msgs::PoseArray>              ("/road_layout_estimation/layout_manager/particle_pose_array", 1);
+    LayoutManager::gps_pub                              = n.advertise<sensor_msgs::NavSatFix>                ("/road_layout_estimation/layout_manager/gps_fix", 1);
+    LayoutManager::street_publisher                     = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/quaternion_pose", 1);
+    LayoutManager::particle_publisher                   = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/particle_pose", 1);
+    LayoutManager::diff_publisher                       = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/diff_pose", 1);
     LayoutManager::marker_pub                           = n.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle", 1);
     LayoutManager::marker_pub2                          = n.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle2", 1);
     LayoutManager::publisher_marker_array               = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/particle_set", 1);
@@ -132,9 +132,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     LayoutManager::publisher_z_particle                 = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped                  = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
     LayoutManager::publisher_GT_RTK                     = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
-    LayoutManager::publisher_average_pose               = n.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose",1);
+    LayoutManager::publisher_average_pose               = n.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
 
-    LayoutManager::publisher_debugInformation           = n.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation",1);
+    LayoutManager::publisher_debugInformation           = n.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
 
     /// Init ROS service clients
     latlon_2_xy_client                  = n.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
@@ -153,7 +153,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     latlon_2_xy_client.waitForExistence();      // WAIT FOR SERVICE -- the function prints some pretty comments
 
     deltaTimerTime = timerInterval;             //deltaTimer of the LayoutManager Class is initialy set as the requested interval
-    RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this,false, false);
+    RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
     /// For debug purposes, print default paramenters (from .launch or .cfg file)
     road_layout_estimation::road_layout_estimationConfig defaultConfigFromLaunchFile;
@@ -204,8 +204,8 @@ void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_m
     tmp_marker1.pose.orientation.w = 1.0;
 
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
-    tmp_marker1.scale.x = sqrt(cov1)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
-    tmp_marker1.scale.y = sqrt(cov2)*3*2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
+    tmp_marker1.scale.x = sqrt(cov1) * 3 * 2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
+    tmp_marker1.scale.y = sqrt(cov2) * 3 * 2; //*2 Scale of the marker. Applied before the position/orientation. A scale of [1,1,1] means the object will be 1m by 1m by 1m.
     tmp_marker1.scale.z = .1;
 
     // Set the color -- be sure to set alpha to something non-zero!
@@ -274,16 +274,17 @@ tf::Stamped<tf::Pose> LayoutManager::toGlobalFrame(Vector3d p_state)
     tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
     tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
 
-    tf_pose_map_frame.setOrigin(tf::Vector3(0,0,0));
+    tf_pose_map_frame.setOrigin(tf::Vector3(0, 0, 0));
     tf_pose_map_frame.setRotation(tf::createIdentityQuaternion());
 
     // Transform pose from "local_map" to "map"
-    try{
-         tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+    try
+    {
+        tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
     }
     catch (tf::TransformException &ex)
     {
-        ROS_ERROR("%s",ex.what());
+        ROS_ERROR("%s", ex.what());
         ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
         ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
         return tf_pose_map_frame;
@@ -316,8 +317,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     resampling_interval           = config.resampling_interval;
 
     // update uncertainty values -----------------------------------------------------------------------------------
-    for(int i=0; i<current_layout.size(); ++i)
-    {        
+    for (int i = 0; i < current_layout.size(); ++i)
+    {
 
         Particle* particle_ptr = &current_layout.at(i);
 
@@ -332,15 +333,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         //            );
 
         motionModelPointer->setPropagationError(
-                    config.propagate_translational_absolute_vel_error_x,
-                    config.propagate_translational_absolute_vel_error_y,
-                    config.propagate_translational_absolute_vel_error_z,
-                    config.propagate_rotational_absolute_vel_error,
-                    config.propagate_translational_percentage_vel_error_x,
-                    config.propagate_translational_percentage_vel_error_y,
-                    config.propagate_translational_percentage_vel_error_z,
-                    config.propagate_rotational_percentage_vel_error
-                    );
+            config.propagate_translational_absolute_vel_error_x,
+            config.propagate_translational_absolute_vel_error_y,
+            config.propagate_translational_absolute_vel_error_z,
+            config.propagate_rotational_absolute_vel_error,
+            config.propagate_translational_percentage_vel_error_x,
+            config.propagate_translational_percentage_vel_error_y,
+            config.propagate_translational_percentage_vel_error_z,
+            config.propagate_rotational_percentage_vel_error
+        );
     }
 
 
@@ -360,15 +361,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     //            );
 
     default_mtn_model.setPropagationError(
-                config.propagate_translational_absolute_vel_error_x,
-                config.propagate_translational_absolute_vel_error_y,
-                config.propagate_translational_absolute_vel_error_z,
-                config.propagate_rotational_absolute_vel_error,
-                config.propagate_translational_percentage_vel_error_x,
-                config.propagate_translational_percentage_vel_error_y,
-                config.propagate_translational_percentage_vel_error_z,
-                config.propagate_rotational_percentage_vel_error
-                );       
+        config.propagate_translational_absolute_vel_error_x,
+        config.propagate_translational_absolute_vel_error_y,
+        config.propagate_translational_absolute_vel_error_z,
+        config.propagate_rotational_absolute_vel_error,
+        config.propagate_translational_percentage_vel_error_x,
+        config.propagate_translational_percentage_vel_error_y,
+        config.propagate_translational_percentage_vel_error_z,
+        config.propagate_rotational_percentage_vel_error
+    );
 
     ///disabling
     // TODO: verificare. perché c'è questa cosa? Non dovrebbe essere letta dal messaggio di odometria? Questa è Q in EKF.
@@ -380,84 +381,85 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     //            );
 
     // update particle-set number (only if this IS NOT the first run) ------------------------------------------------
-    if(!LayoutManager::layoutManagerFirstRun)
+    if (!LayoutManager::layoutManagerFirstRun)
     {
-        if(config.particles_number > num_particles)
+        if (config.particles_number > num_particles)
         {
             // let's add some empty particles to particle-set:
-           int counter = current_layout.size(); //this will keep track of current ID
-           int particles_to_add = config.particles_number - num_particles;
-           for(int i=0; i<particles_to_add; i++)
-           {
-               ROS_WARN_STREAM("NEW PARTICLE");
-               Particle new_particle(counter, default_mtn_model);
+            int counter = current_layout.size(); //this will keep track of current ID
+            int particles_to_add = config.particles_number - num_particles;
+            for (int i = 0; i < particles_to_add; i++)
+            {
+                ROS_WARN_STREAM("NEW PARTICLE");
+                Particle new_particle(counter, default_mtn_model);
 
-               new_particle.in_cluster = -1;
-               new_particle.distance_to_closest_segment = 0.0f;
+                new_particle.in_cluster = -1;
+                new_particle.distance_to_closest_segment = 0.0f;
 
-               State6DOF tmp;
-               tmp.addNoise(0.5, 0.5, 0.5, 0.5);
+                State6DOF tmp;
+                tmp.addNoise(0.5, 0.5, 0.5, 0.5);
 
-               new_particle.setParticleState(tmp);
+                new_particle.setParticleState(tmp);
 
-               // update particle score using OpenStreetMap
-               if(LayoutManager::openstreetmap_enabled)
-               {
-                   tf::Stamped<tf::Pose> tf_pose_map_frame=toGlobalFrame(new_particle.getParticleState().getPose());
+                // update particle score using OpenStreetMap
+                if (LayoutManager::openstreetmap_enabled)
+                {
+                    tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle.getParticleState().getPose());
 
-                   // Build request
-                   ira_open_street_map::snap_particle_xy srv;
-                   srv.request.x = tf_pose_map_frame.getOrigin().getX();
-                   srv.request.y = tf_pose_map_frame.getOrigin().getY();
-                   srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
+                    // Build request
+                    ira_open_street_map::snap_particle_xy srv;
+                    srv.request.x = tf_pose_map_frame.getOrigin().getX();
+                    srv.request.y = tf_pose_map_frame.getOrigin().getY();
+                    srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
-                   // Get distance from closest street and set it as particle score
-                   // init normal distribution
-                   boost::math::normal normal_dist(0, street_distribution_sigma);
-                   if (LayoutManager::snap_particle_xy_client.call(srv))
-                   {
-                       // calculate difference between original particle position and snapped particle position
-                       // use it to set particle score using normal distribution PDF
-                       double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
-                       double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
-                       double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
-                       double distance = sqrt(dx*dx + dy*dy + dz*dz);
-                       new_particle.setParticleScore(pdf(normal_dist, distance));
-                   }
-                   else
-                   {
-                       // Either service is down or particle is too far from a street
-                       new_particle.setParticleScore(0);
-                   }
-               }
+                    // Get distance from closest street and set it as particle score
+                    // init normal distribution
+                    boost::math::normal normal_dist(0, street_distribution_sigma);
+                    if (LayoutManager::snap_particle_xy_client.call(srv))
+                    {
+                        // calculate difference between original particle position and snapped particle position
+                        // use it to set particle score using normal distribution PDF
+                        double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
+                        double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
+                        double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
+                        double distance = sqrt(dx * dx + dy * dy + dz * dz);
+                        new_particle.setParticleScore(pdf(normal_dist, distance));
+                    }
+                    else
+                    {
+                        // Either service is down or particle is too far from a street
+                        new_particle.setParticleScore(0);
+                    }
+                }
 
-               // Push particle
-               current_layout.push_back(new_particle);
+                // Push particle
+                current_layout.push_back(new_particle);
 
-               // Update counter
-               counter = counter+1;
-           }// end cycle for creating particle (FOR)
+                // Update counter
+                counter = counter + 1;
+            }// end cycle for creating particle (FOR)
         }
-        else if(config.particles_number < num_particles)
+        else if (config.particles_number < num_particles)
         {
             // let's erase particles starting from particle-set tail
             // WARNING: should we remove RANDOM particles instead of 'the last N particles'?
-           int particles_to_remove = num_particles - config.particles_number;
-           for(int i=0; i<particles_to_remove; i++){
-               // delete last element
-               current_layout.erase(current_layout.end());
-           }
+            int particles_to_remove = num_particles - config.particles_number;
+            for (int i = 0; i < particles_to_remove; i++)
+            {
+                // delete last element
+                current_layout.erase(current_layout.end());
+            }
         }
 
         num_particles = config.particles_number;
     }
 
     // -----FIRST RUN-------------------------------------------------------------------------------------------
-    if(LayoutManager::layoutManagerFirstRun)
+    if (LayoutManager::layoutManagerFirstRun)
     {
         //ROS_ASSERT(num_particles==0);
 
-        if(LayoutManager::openstreetmap_enabled)
+        if (LayoutManager::openstreetmap_enabled)
         {
             ROS_INFO_STREAM("Road layout manager first run, init particle-set from GPS signal");
 
@@ -514,7 +516,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
                 // KITTI 00 [OK, si impianta dopo un pò per i ritardi accumulati]
-                if (bagfile.compare("kitti_00")==0)
+                if (bagfile.compare("kitti_00") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_00 intial coordinates");
                     alt = 0;
@@ -525,7 +527,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 01 [OK, video autostrada, si perde nella curva finale]
-                if (bagfile.compare("kitti_01")==0)
+                if (bagfile.compare("kitti_01") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_01 intial coordinates");
                     alt = 0;
@@ -536,7 +538,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 02 [NI, si perde dopo un paio di curve]
-                if (bagfile.compare("kitti_02")==0)
+                if (bagfile.compare("kitti_02") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_02 intial coordinates");
                     alt = 0;
@@ -547,7 +549,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 04 [OK, video road, rettilineo corto]
-                if (bagfile.compare("kitti_04")==0)
+                if (bagfile.compare("kitti_04") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_04 intial coordinates");
                     alt = 0;
@@ -558,7 +560,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 05 [NI, se imbocca la strada giusta nell'inizializzazione funziona bene]
-                if (bagfile.compare("kitti_05")==0)
+                if (bagfile.compare("kitti_05") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_05 intial coordinates");
                     lat = 49.04951961077;
@@ -569,7 +571,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 06 [OK, video loop, si perde dopo il secondo incrocio]
-                if (bagfile.compare("kitti_06")==0)
+                if (bagfile.compare("kitti_06") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_06 intial coordinates");
                     alt = 0;
@@ -580,7 +582,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 07 [CUTTED OK, video in cui sta fermo allo stop alcuni secondi]
-                if (bagfile.compare("kitti_07")==0)
+                if (bagfile.compare("kitti_07") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_07 intial coordinates");
                     alt = 0;
@@ -591,7 +593,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 08 [bag inizia dopo]
-                if (bagfile.compare("kitti_08")==0)
+                if (bagfile.compare("kitti_08") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_08 intial coordinates");
                     alt = 0;
@@ -602,7 +604,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 09 [OK, video serie curve tondeggianti]
-                if (bagfile.compare("kitti_09")==0)
+                if (bagfile.compare("kitti_09") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_09 intial coordinates");
                     alt = 0;
@@ -613,7 +615,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // KITTI 10 [CUTTED OK, non esegue l'inversione finale rimane indietro]
-                if (bagfile.compare("kitti_10")==0)
+                if (bagfile.compare("kitti_10") == 0)
                 {
                     ROS_INFO_STREAM("Using hard-coded kitti_10 intial coordinates");
                     alt = 0;
@@ -627,7 +629,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             }
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
-                                        // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
+            // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
             // Publish GPS fix on map
 //            fix.header.frame_id = "map";
@@ -683,14 +685,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             geometry_msgs::Point point;
             if (LayoutManager::latlon_2_xy_client.call(latlon_2_xy_srv))
             {
-                 point.x = latlon_2_xy_srv.response.x;
-                 point.y = latlon_2_xy_srv.response.y;
+                point.x = latlon_2_xy_srv.response.x;
+                point.y = latlon_2_xy_srv.response.y;
             }
             else
             {
-              ROS_ERROR_STREAM("  Error with 'latlon_2_xy_srv' service");
-              ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-              return;
+                ROS_ERROR_STREAM("  Error with 'latlon_2_xy_srv' service");
+                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+                return;
             }
 
             /// Set mean for sampling
@@ -700,8 +702,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             /// Set covariance for sampling
             Eigen::Matrix2d covar = Eigen::Matrix2d::Identity();
-            covar(0,0) = cov1;
-            covar(1,1) = cov2;
+            covar(0, 0) = cov1;
+            covar(1, 1) = cov2;
 
             ROS_INFO_STREAM ("------------------------------------------------------------" );
             ROS_INFO_STREAM ("GPS FIX COORDINATES:" );
@@ -719,11 +721,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // Publish initial markers (uncertainties areas as a green flat sphere.
             publish_initial_markers(cov1, cov2, point);
 
-            particle_poses_statistics = MatrixXd(config.particles_number,2);
+            particle_poses_statistics = MatrixXd(config.particles_number, 2);
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
-            Eigen::EigenMultivariateNormal<double, 2> normalSampler(mean,covar);
+            Eigen::EigenMultivariateNormal<double, 2> normalSampler(mean, covar);
 
             // Reset current_layout
             LayoutManager::current_layout.clear();
@@ -731,9 +733,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // Populate current_layout with *ONLY* valid particles
             int particle_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
-            while((while_ctr < 1000) && (current_layout.size() < config.particles_number))
+            while ((while_ctr < 1000) && (current_layout.size() < config.particles_number))
             {
-                if(while_ctr == 999)
+                if (while_ctr == 999)
                 {
                     ROS_ERROR_STREAM("Random particle set init: while ctr reached max limit" );
                     ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
@@ -743,7 +745,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 }
 
                 // Generate a sample from the bivariate Gaussian distribution
-                Matrix<double,2,-1> sample = normalSampler.samples(1);
+                Matrix < double, 2, -1 > sample = normalSampler.samples(1);
 
                 //-------------- SNAP PARTICLE v2  -------------------------------------- //
                 // Init OSM cartography service
@@ -768,7 +770,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(snapParticleXYService.response.way_dir_rad), pose_map_frame.pose.orientation);
                     tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
-                    tf::poseStampedMsgToTF(pose_map_frame,tf_pose_map_frame);
+                    tf::poseStampedMsgToTF(pose_map_frame, tf_pose_map_frame);
 
                     // Transform pose from "map" to "local_map"
                     try
@@ -778,7 +780,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     }
                     catch (tf::TransformException &ex)
                     {
-                        ROS_ERROR_STREAM("%s"<<ex.what());
+                        ROS_ERROR_STREAM("%s" << ex.what());
                         ROS_INFO_STREAM("map to local map exception");
                         continue; //Skip this iteration
                     }
@@ -789,12 +791,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
 
                     AngleAxisd rotation = AngleAxisd(
-                                Quaterniond(
-                                    tf_pose_local_map_frame.getRotation().getW(),
-                                    tf_pose_local_map_frame.getRotation().getX(),
-                                    tf_pose_local_map_frame.getRotation().getY(),
-                                    tf_pose_local_map_frame.getRotation().getZ()
-                                    ));
+                                              Quaterniond(
+                                                  tf_pose_local_map_frame.getRotation().getW(),
+                                                  tf_pose_local_map_frame.getRotation().getX(),
+                                                  tf_pose_local_map_frame.getRotation().getY(),
+                                                  tf_pose_local_map_frame.getRotation().getZ()
+                                              ));
                     p_pose.setRotation(rotation);
 
                     // Init particle's sigma
@@ -814,7 +816,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     //////////// CREATE COMPONENT ROAD_STATE ////////////
                     ira_open_street_map::getHighwayInfo getHighwayService;
                     getHighwayService.request.way_id = snapParticleXYService.response.way_id;
-                    if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
+                    if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
                     {
                         road_layout_estimation::msg_lines lines;
                         road_layout_estimation::msg_lineInfo lineInfo;
@@ -827,17 +829,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         lines.width           = getHighwayService.response.width;
                         lines.goodLines       = 0;
                         lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
-                        for (int i = 0; i< getHighwayService.response.number_of_lanes; i++)
+                        for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
                             lines.lines.push_back(lineInfo);
 
 
-                        ROS_INFO_STREAM("Adding roadState component!");                        
+                        ROS_INFO_STREAM("Adding roadState component!");
                         LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                                                                             1,                             //component Id
-                                                                                             ros::Time::now(),
-                                                                                             &this->getHighwayInfo_client,
-                                                                                             lines
-                                                                                             );
+                                1,                             //component Id
+                                ros::Time::now(),
+                                &this->getHighwayInfo_client,
+                                lines
+                                                                                            );
 
                         //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                         //                                                                     1,
@@ -849,7 +851,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         //                                                                     &this->getHighwayInfo_client
                         //                                                                     );
 
-                        VectorXd state=new_particle.getParticleState().getPose();
+                        VectorXd state = new_particle.getParticleState().getPose();
                         roadState->setComponentState(state);
                         ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
                         new_particle.addComponent(roadState);
@@ -864,19 +866,19 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     particle_id += 1;
 
                     // Check if we should create 2 particles with opposite direction
-                    if(snapParticleXYService.response.way_dir_opposite_particles)
+                    if (snapParticleXYService.response.way_dir_opposite_particles)
                     {
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
                         tf_pose_local_map_frame_opposite_direction = tf_pose_local_map_frame;
-                        tf_pose_local_map_frame_opposite_direction.setRotation(tf_pose_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
+                        tf_pose_local_map_frame_opposite_direction.setRotation(tf_pose_local_map_frame * tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
 
                         AngleAxisd rotation_opposite = AngleAxisd(
-                                    Quaterniond(
-                                        tf_pose_local_map_frame_opposite_direction.getRotation().getW(),
-                                        tf_pose_local_map_frame_opposite_direction.getRotation().getX(),
-                                        tf_pose_local_map_frame_opposite_direction.getRotation().getY(),
-                                        tf_pose_local_map_frame_opposite_direction.getRotation().getZ()
-                                        ));
+                                                           Quaterniond(
+                                                               tf_pose_local_map_frame_opposite_direction.getRotation().getW(),
+                                                               tf_pose_local_map_frame_opposite_direction.getRotation().getX(),
+                                                               tf_pose_local_map_frame_opposite_direction.getRotation().getY(),
+                                                               tf_pose_local_map_frame_opposite_direction.getRotation().getZ()
+                                                           ));
 
                         //                        // Invert Yaw direction
                         //                        double angle_temp = M_PI + part.getParticleState().getRotation().angle();
@@ -897,7 +899,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         //////////// CREATE COMPONENT ROAD_STATE ////////////
                         ira_open_street_map::getHighwayInfo getHighwayService;
                         getHighwayService.request.way_id = snapParticleXYService.response.way_id;
-                        if(LayoutManager::getHighwayInfo_client.call(getHighwayService))
+                        if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
                         {
 
                             road_layout_estimation::msg_lines lines;
@@ -911,16 +913,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             lines.width           = getHighwayService.response.width;
                             lines.goodLines       = 0;
                             lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
-                            for (int i = 0; i< getHighwayService.response.number_of_lanes; i++)
+                            for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
                                 lines.lines.push_back(lineInfo);
 
                             ROS_INFO_STREAM("Adding roadState component!");
                             LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                                                                                 1,                             //component Id
-                                                                                                 ros::Time::now(),
-                                                                                                 &this->getHighwayInfo_client,
-                                                                                                 lines
-                                                                                                 );
+                                    1,                             //component Id
+                                    ros::Time::now(),
+                                    &this->getHighwayInfo_client,
+                                    lines
+                                                                                                );
 
                             //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                             //                                                                     1,
@@ -932,7 +934,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             //                                                                     &this->getHighwayInfo_client
                             //                                                                     );
 
-                            VectorXd state=new_particle_opposite.getParticleState().getPose();
+                            VectorXd state = new_particle_opposite.getParticleState().getPose();
                             (*roadState).setComponentState(state);
                             new_particle_opposite.addComponent(roadState);
                         }
@@ -961,7 +963,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         else
         {
             // gps initialization disabled, just generate particles with all values set to zero
-            for(int i = 0; i < config.particles_number; i++){
+            for (int i = 0; i < config.particles_number; i++)
+            {
                 Particle zero_part(i, default_mtn_model);
                 MatrixXd tmp_cov = default_mtn_model.getErrorCovariance();
                 zero_part.setParticleSigma(tmp_cov);
@@ -978,7 +981,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         // print particle poses
         vector<Particle>::iterator particle_itr;
         ROS_ERROR_STREAM("NUMERO DI LAYOUT: " << current_layout.size());
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ostringstream tmp_convert;   // stream used for the conversion
             tmp_convert << "Particle ID: " << (*particle_itr).getId();
@@ -987,7 +990,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             // Normalize weights
             // refs #445
-            (*particle_itr).setParticleScore((*particle_itr).getParticleScore()/current_layout.size());
+            (*particle_itr).setParticleScore((*particle_itr).getParticleScore() / current_layout.size());
             ROS_DEBUG_STREAM("Updating score of Particle " << (*particle_itr).getId() << "\t with new value: " << (*particle_itr).getParticleScore());
         }
 
@@ -1023,13 +1026,13 @@ void LayoutManager::publishMarkerArray(double normalizationFactor)
 
     //the same but with marker-array
     marker_array.markers.clear();
-    for(int i = 0; i<current_layout.size(); i++)
+    for (int i = 0; i < current_layout.size(); i++)
     {
         Particle p = current_layout.at(i);
         geometry_msgs::Pose pose = p.getParticleState().toGeometryMsgPose();
 
         tf::Quaternion q;
-        tf::quaternionMsgToTF(pose.orientation,q);
+        tf::quaternionMsgToTF(pose.orientation, q);
         q = q.normalize();
         tf::quaternionTFToMsg(q, pose.orientation);
 
@@ -1050,14 +1053,14 @@ void LayoutManager::publishMarkerArray(double normalizationFactor)
         marker.scale.x = 5;
         marker.scale.y = 0.5;
         marker.scale.z = 1;
-        marker.color.a = p.getParticleScore()/normalizationFactor;
+        marker.color.a = p.getParticleScore() / normalizationFactor;
         marker.color.r = 0;
-        marker.color.g = p.getParticleScore()/normalizationFactor;
+        marker.color.g = p.getParticleScore() / normalizationFactor;
         marker.color.b = 0;
 
         marker_array.markers.push_back(marker);
 
-        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i << " P.score: "<< std::setprecision(5) << p.getParticleScore() << " L-inf: " << normalizationFactor << " resulting alpha " << marker.color.a);
+        ROS_DEBUG_STREAM("PUBLISHING INITIAL ARROWS: " << i << " P.score: " << std::setprecision(5) << p.getParticleScore() << " L-inf: " << normalizationFactor << " resulting alpha " << marker.color.a);
 
         //cout << "p.getParticleScore()\t" << p.getParticleScore() << endl;
     }
@@ -1174,7 +1177,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     // marker_pub.publish(marker1);
     // marker_pub2.publish(marker2);
 
-    if(LayoutManager::first_msg)
+    if (LayoutManager::first_msg)
     {
         visualOdometryOldMsg = visualOdometryMsg; //used for timestamps only
         // update flag
@@ -1187,7 +1190,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     deltaOdomTime = visualOdometryMsg.header.stamp.toSec() - visualOdometryOldMsg.header.stamp.toSec();
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Odometry Timestamp: " << visualOdometryMsg.header.stamp);
     ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Previous Timestamp: " << visualOdometryOldMsg.header.stamp);
-    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Delta Timestamp    : "<< deltaOdomTime);
+    ROS_DEBUG_STREAM("void LayoutManager::odometryCallback2 Delta Timestamp    : " << deltaOdomTime);
 
     // retrieve measurement from odometry
     measurement_model->setMsg(visualOdometryMsg);
@@ -1240,15 +1243,15 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     ///////////////////////////////////////////////////////////////////////////
     // CLUSTERING PHASE
     bool enabled_clustering = false;
-    int best_cluster=-1;
-    int best_cluster_size=0;
-    double cluster_score=0.0f;
+    int best_cluster = -1;
+    int best_cluster_size = 0;
+    double cluster_score = 0.0f;
     double best_cluster_score = -1.0f;
     if (enabled_clustering)
     {
         ///////////////////////////////////////////////////////////////////////////
         // FIRST STEP, every particle in_cluster value = -1
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             (*particle_itr).in_cluster = -1;
         }
@@ -1256,34 +1259,41 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
         ///////////////////////////////////////////////////////////////////////////
         // SECOND STEP, clustering. double for.
-        int cluster_INDEX=0;
-        double euclidean_distance=0.0f; double angle_distance=0.0f;
+        int cluster_INDEX = 0;
+        double euclidean_distance = 0.0f;
+        double angle_distance = 0.0f;
         double euclidean_threshold = 5.00f; //meters
         double angle_threshold     = 0.20f; //radians
         vector<Particle>::iterator inner_particle_itr;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
 
             if ((*particle_itr).in_cluster == -1)
                 (*particle_itr).in_cluster = cluster_INDEX++;
 
-            for( inner_particle_itr = current_layout.begin(); inner_particle_itr != current_layout.end(); inner_particle_itr++ ){
+            for ( inner_particle_itr = current_layout.begin(); inner_particle_itr != current_layout.end(); inner_particle_itr++ )
+            {
                 if (particle_itr == inner_particle_itr)
                     continue;
                 if ((*inner_particle_itr).in_cluster == -1)
                     continue;
 
-                euclidean_distance = sqrt(   (*particle_itr).getParticleState().getPose()(0)-(*inner_particle_itr).getParticleState().getPose()(0)+
-                                             (*particle_itr).getParticleState().getPose()(1)-(*inner_particle_itr).getParticleState().getPose()(1)+
-                                             (*particle_itr).getParticleState().getPose()(2)-(*inner_particle_itr).getParticleState().getPose()(2)
-                                             );
+                euclidean_distance = sqrt(   (*particle_itr).getParticleState().getPose()(0) - (*inner_particle_itr).getParticleState().getPose()(0) +
+                                             (*particle_itr).getParticleState().getPose()(1) - (*inner_particle_itr).getParticleState().getPose()(1) +
+                                             (*particle_itr).getParticleState().getPose()(2) - (*inner_particle_itr).getParticleState().getPose()(2)
+                                         );
 
                 Eigen::Quaterniond q1 = Eigen::Quaterniond((*particle_itr).getParticleState().getRotation());
                 Eigen::Quaterniond q2 = Eigen::Quaterniond((*inner_particle_itr).getParticleState().getRotation());
-                tf::Quaternion t1,t2;
-                t1.setX(q1.x());t2.setX(q2.x());
-                t1.setY(q1.y());t2.setY(q2.y());
-                t1.setZ(q1.z());t2.setZ(q2.z());
-                t1.setW(q1.w());t2.setW(q2.w());
+                tf::Quaternion t1, t2;
+                t1.setX(q1.x());
+                t2.setX(q2.x());
+                t1.setY(q1.y());
+                t2.setY(q2.y());
+                t1.setZ(q1.z());
+                t2.setZ(q2.z());
+                t1.setW(q1.w());
+                t2.setW(q2.w());
 
                 angle_distance = t1.angleShortestPath(t2);
 
@@ -1299,23 +1309,25 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         //STEP3 - searching best cluster
         vector<double> clusters;
         clusters.resize(cluster_INDEX);
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
-            clusters[(*particle_itr).in_cluster]+=(*particle_itr).getParticleScore() / tot_score;
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
+            clusters[(*particle_itr).in_cluster] += (*particle_itr).getParticleScore() / tot_score;
         }
 
-        best_cluster=-1;
-        best_cluster_score=-1.0f;
-        for(int looking_for_best_cluster = 0; looking_for_best_cluster < cluster_INDEX; looking_for_best_cluster++ )
+        best_cluster = -1;
+        best_cluster_score = -1.0f;
+        for (int looking_for_best_cluster = 0; looking_for_best_cluster < cluster_INDEX; looking_for_best_cluster++ )
         {
-            if (clusters[looking_for_best_cluster]>best_cluster_score)
+            if (clusters[looking_for_best_cluster] > best_cluster_score)
             {
-                best_cluster_score=clusters[looking_for_best_cluster];
-                best_cluster=looking_for_best_cluster;
+                best_cluster_score = clusters[looking_for_best_cluster];
+                best_cluster = looking_for_best_cluster;
             }
         }
-        cluster_score=0.0f;
-        best_cluster_size=0;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ ){
+        cluster_score = 0.0f;
+        best_cluster_size = 0;
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
             if ((*particle_itr).in_cluster == best_cluster)
             {
                 cluster_score += (*particle_itr).getParticleScore();
@@ -1333,8 +1345,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     bool enabled_statistics = false;
     if (enabled_statistics)
     {
-        double average_distance=0.0f;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        double average_distance = 0.0f;
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
 
@@ -1357,9 +1369,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             t.setW(q.w());
 
             if (enabled_clustering)
-                average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / cluster_score);
+                average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr).getParticleScore() / cluster_score);
             else
-                average_quaternion += t.slerp(tf::createIdentityQuaternion(),(*particle_itr).getParticleScore() / tot_score);
+                average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr).getParticleScore() / tot_score);
 
             if (enabled_clustering)
                 average_distance += (*particle_itr).distance_to_closest_segment * (*particle_itr).getParticleScore() / cluster_score;
@@ -1372,22 +1384,22 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
 
         nav_msgs::Odometry odometry;
-        odometry.header.frame_id="/local_map";
-        odometry.header.stamp=ros::Time::now();
+        odometry.header.frame_id = "/local_map";
+        odometry.header.stamp = ros::Time::now();
 
-        odometry.pose.pose.position.x=average_pose(0);
-        odometry.pose.pose.position.y=average_pose(1);
-        odometry.pose.pose.position.z=average_pose(2);
-        tf::quaternionTFToMsg(average_quaternion,odometry.pose.pose.orientation);
-        double roll=0.0f, pitch=0.0f, yaw=0.0f;
+        odometry.pose.pose.position.x = average_pose(0);
+        odometry.pose.pose.position.y = average_pose(1);
+        odometry.pose.pose.position.z = average_pose(2);
+        tf::quaternionTFToMsg(average_quaternion, odometry.pose.pose.orientation);
+        double roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
         publisher_average_pose.publish(odometry); // Odometry message
 
         ifstream RTK;
-        double from_latitude,from_longitude,from_altitude,to_lat,to_lon;
+        double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
-        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/"+bagfile.substr(bagfile.find_last_of("_")+1,2)+"/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
+        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
+        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -1398,37 +1410,38 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         RTK.close();
 
         sensor_msgs::NavSatFix gps_fix;
-        gps_fix.header.frame_id="/map";
+        gps_fix.header.frame_id = "/map";
         gps_fix.header.stamp = visualOdometryMsg.header.stamp;
-        gps_fix.latitude=from_latitude;
-        gps_fix.longitude=from_longitude;
-        gps_fix.altitude=from_altitude;
+        gps_fix.latitude = from_latitude;
+        gps_fix.longitude = from_longitude;
+        gps_fix.altitude = from_altitude;
         gps_pub.publish(gps_fix);
 
 
         /*
-     *      SAVING GPS-RTK PART
-     */
+        *      SAVING GPS-RTK PART
+        */
         // Get XY values from GPS coords
         ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
         query_latlon2xy.latitude = from_latitude;
         query_latlon2xy.longitude = from_longitude;
         ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
-        if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy,response_latlon2xy))
+        if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy, response_latlon2xy))
         {
             cout << std::setprecision(16) << response_latlon2xy;
             tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
-            RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x,response_latlon2xy.y,0));
+            RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x, response_latlon2xy.y, 0));
             RTK_map_frame.setRotation(tf::createIdentityQuaternion());
-            RTK_map_frame.frame_id_="/map";
+            RTK_map_frame.frame_id_ = "/map";
 
             // Transform pose from "map" to "local_map"
-            try{
+            try
+            {
                 tf_listener.transformPose("local_map", ros::Time(0), RTK_map_frame, "map", RTK_local_map_frame);
             }
             catch (tf::TransformException &ex)
             {
-                ROS_ERROR_STREAM("LayoutManager.cpp says: %s"<<ex.what());
+                ROS_ERROR_STREAM("LayoutManager.cpp says: %s" << ex.what());
                 ROS_ERROR_STREAM("     Transform RTK pose from map to local_map");
                 ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
             }
@@ -1458,11 +1471,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             publisher_GT_RTK.publish(marker_array_GT_RTK);
 
             RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                                RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-                                0 << " "<< 0 << " "<< 0 << " " <<
-                                0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                                tot_score / current_layout.size() << " " <<
-                                query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+                             0 << " " << 0 << " " << 0 << " " <<
+                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+                             tot_score / current_layout.size() << " " <<
+                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
 
 
             //        cout  << msg.header.seq << " " << setprecision(16) <<
@@ -1482,26 +1495,27 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
 
         /*
-     *      SAVING RLE PART
-     */
+        *      SAVING RLE PART
+        */
         // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
         tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
-        average_pose_local_map_frame.frame_id_="local_map";
-        average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0),average_pose(1),average_pose(2)));
+        average_pose_local_map_frame.frame_id_ = "local_map";
+        average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0), average_pose(1), average_pose(2)));
         average_pose_local_map_frame.setRotation(tf::createIdentityQuaternion());
         // Transform pose from "local_map" to "map"
-        try{
+        try
+        {
             tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
 
             ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
             ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
-            query_xy2latlon.x=average_pose_map_frame.getOrigin().getX();
-            query_xy2latlon.y=average_pose_map_frame.getOrigin().getY();
-            if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon,response_xy2latlon))
+            query_xy2latlon.x = average_pose_map_frame.getOrigin().getX();
+            query_xy2latlon.y = average_pose_map_frame.getOrigin().getY();
+            if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon, response_xy2latlon))
             {
                 // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
-                to_lat=response_xy2latlon.latitude;
-                to_lon=response_xy2latlon.longitude;
+                to_lat = response_xy2latlon.latitude;
+                to_lon = response_xy2latlon.longitude;
             }
             else
             {
@@ -1512,47 +1526,48 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
-            tf::Matrix3x3(average_quaternion).getRPY(roll,pitch,yaw);
+            tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
             RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                            average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                            roll << " "<< pitch << " "<< yaw << " " <<
-                            average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                            tot_score / current_layout.size() << " " <<
-                            to_lat << " " << to_lon << " " <<
-                            average_distance << "\n";
+                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                         roll << " " << pitch << " " << yaw << " " <<
+                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                         tot_score / current_layout.size() << " " <<
+                         to_lat << " " << to_lon << " " <<
+                         average_distance << "\n";
 
             cout << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                    average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                    roll << " "<< pitch << " "<< yaw << " " <<
-                    average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                    tot_score / current_layout.size() << " " <<
-                    to_lat << " " << to_lon << " " <<
-                    average_distance << "\n";
+                 average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                 roll << " " << pitch << " " << yaw << " " <<
+                 average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                 tot_score / current_layout.size() << " " <<
+                 to_lat << " " << to_lon << " " <<
+                 average_distance << "\n";
         }
         catch (tf::TransformException &ex)
         {
-            ROS_ERROR_STREAM("LayoutManager.cpp says: %s"<<ex.what());
+            ROS_ERROR_STREAM("LayoutManager.cpp says: %s" << ex.what());
             ROS_ERROR_STREAM("     Transform AVERAGE pose from local_map to map");
             ros::shutdown();
         }
 
 
         /*
-     *      SAVING LIBVISO PART
-     */
+        *      SAVING LIBVISO PART
+        */
 
         // TODO: calculate LAT LON
         tf::StampedTransform VO;
-        try{
-            tf_listener.lookupTransform("/local_map","/visual_odometry_car_frame",ros::Time(0),VO);
+        try
+        {
+            tf_listener.lookupTransform("/local_map", "/visual_odometry_car_frame", ros::Time(0), VO);
 
-            tf::Matrix3x3(VO.getRotation()).getRPY(roll,pitch,yaw);
+            tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
 
             LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                                VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
-                                roll << " "<< pitch << " "<< yaw << " " <<
-                                VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
-                                tot_score / current_layout.size() << "\n";
+                             VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
+                             roll << " " << pitch << " " << yaw << " " <<
+                             VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
+                             tot_score / current_layout.size() << "\n";
         }
         catch (tf::TransformException &ex)
         {
@@ -1574,10 +1589,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 ///
 /// Check if car has moved or not by confronting odometry matrix and motion threshold matrix
 ///
-bool LayoutManager::checkHasMoved(){
+bool LayoutManager::checkHasMoved()
+{
     //MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
-//	MatrixXd diff_matrix = MatrixXd::Ones(12,12);
-//	return diff_matrix.count() > 0; //every position over the threshold will count as 1
+//  MatrixXd diff_matrix = MatrixXd::Ones(12,12);
+//  return diff_matrix.count() > 0; //every position over the threshold will count as 1
 
     return true;
 }
@@ -1596,7 +1612,8 @@ ROS_DEPRECATED void LayoutManager::roadLaneCallback(const road_lane_detection::r
     ROS_ERROR_STREAM("WHY ARE YOU CALLING THIS ROUTINE?! IT IS DEPRECATED, OLD DARIO LIMONGI CODE!");
 
     // Add it to all particles
-    for(int i=0; i<current_layout.size(); ++i){
+    for (int i = 0; i < current_layout.size(); ++i)
+    {
 
         // Get all layout components of particle
         Particle* particle = &current_layout.at(i);
@@ -1606,7 +1623,8 @@ ROS_DEPRECATED void LayoutManager::roadLaneCallback(const road_lane_detection::r
         layout_components->clear();
 
         // Cycle through all lanes
-        for(int k=0; k<msg.road_lane_vector.size(); ++k){
+        for (int k = 0; k < msg.road_lane_vector.size(); ++k)
+        {
 
             // Create a new roadlane component
             road_lane_detection::road_lane lane = msg.road_lane_vector.at(k);
@@ -1643,9 +1661,9 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
     ira_open_street_map::snap_particle_xy snapParticle;
 
     road_layout_estimation::msg_lines modified_msg_lines;
-    modified_msg_lines=msg_lines;
+    modified_msg_lines = msg_lines;
 
-    for(int i=0; i<current_layout.size(); ++i)
+    for (int i = 0; i < current_layout.size(); ++i)
     {
         // Get all layout components of particle
         Particle* particle = &current_layout.at(i);
@@ -1658,7 +1676,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         /// Since it is not "detected" retrieve it from the particle state.
         /// TODO: handle this, maybe we can add this in the propagateComponent etc
 
-        tf::Stamped<tf::Pose> tf_pose_map_frame=toGlobalFrame(particle->getParticleState().getPose());
+        tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(particle->getParticleState().getPose());
         snapParticle.request.x = tf_pose_map_frame.getOrigin().getX();
         snapParticle.request.y = tf_pose_map_frame.getOrigin().getY();
         snapParticle.request.max_distance_radius = 20;  // TODO: parametrize this value
@@ -1671,7 +1689,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         else
         {
             ROS_WARN_STREAM("Warning, snap failed in roadStateCallback in the radius of " << snapParticle.request.max_distance_radius << "m");
-            snapParticle.response.way_id=0;
+            snapParticle.response.way_id = 0;
             // WARNING: do not set  modified_msg_lines.way_id here!
         }
 
@@ -1693,15 +1711,15 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         // this was included in the fake detector before.
 
         LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle->getId(),
-                                                                             1,                             //component Id
-                                                                             ros::Time::now(),
-                                                                             &this->getHighwayInfo_client,
-                                                                             modified_msg_lines
-                                                                             );
+                1,                             //component Id
+                ros::Time::now(),
+                &this->getHighwayInfo_client,
+                modified_msg_lines
+                                                                            );
 
-        VectorXd state=particle->getParticleState().getPose();
+        VectorXd state = particle->getParticleState().getPose();
         roadState->setComponentState(state);
-        ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2)<< "\tWay_id: "<< roadState->getWay_id() );
+        ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2) << "\tWay_id: " << roadState->getWay_id() );
 
         // Add lane to layout components
         particle->addComponent(roadState);
@@ -1739,14 +1757,16 @@ void LayoutManager::componentsEstimation()
 /// PARTICLE FILTER, STEP 1:
 /// Cicle through all the particles, and call their function "propagate-components"
 ///
-void LayoutManager::sampling(){
+void LayoutManager::sampling()
+{
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<Particle>::iterator itr;
-    for( itr = current_layout.begin(); itr != current_layout.end(); itr++ ){
+    for ( itr = current_layout.begin(); itr != current_layout.end(); itr++ )
+    {
         ROS_INFO_STREAM_ONCE("--- Propagating components of particle, ID: " << itr->getId() << " ---");
 
         // QtCreator annoying bug... solved with this 'trick'
-        Particle &particle=*itr;
+        Particle &particle = *itr;
         particle.propagateLayoutComponents();
 
         //itr->propagateLayoutComponents();
@@ -1763,12 +1783,13 @@ void LayoutManager::componentsPerturbation()
 {
 
     // first, iterate over all particles of 'current_layout'
-    for(int i=0; i<current_layout.size(); i++){
+    for (int i = 0; i < current_layout.size(); i++)
+    {
         Particle p = current_layout.at(i);
         vector<LayoutComponent*> vec = p.getLayoutComponents();
 
         // second, iterate over all layout-components of current 'particle'
-        for(int j=0; j<vec.size(); j++)
+        for (int j = 0; j < vec.size(); j++)
         {
             LayoutComponent* lc = vec.at(j);
             lc->componentPerturbation();
@@ -1786,14 +1807,14 @@ void LayoutManager::calculateLayoutComponentsWeight()
 {
     ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
     // first, iterate over all particles of 'current_layout'
-    for(int i=0; i<current_layout.size(); i++)
+    for (int i = 0; i < current_layout.size(); i++)
     {
         Particle p = current_layout.at(i);
         ROS_DEBUG_STREAM("Particle p.getId() : " << p.getId());
         vector<LayoutComponent*> vec = p.getLayoutComponents();
 
         // second, iterate over all layout-components of current 'particle'
-        for(int j=0; j<vec.size(); j++)
+        for (int j = 0; j < vec.size(); j++)
         {
             LayoutComponent* lc = vec.at(j);
             lc->calculateComponentScore();
@@ -1807,7 +1828,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 {
     // SCORE using OpenStreetMap-----------------------------------------------------------------------------
     // update particle score using OpenStreetMap
-    if(LayoutManager::openstreetmap_enabled)
+    if (LayoutManager::openstreetmap_enabled)
     {
         // Diff quaternions used for angle score
         tf::Quaternion first_quaternion_diff;
@@ -1836,13 +1857,14 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
         tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
         // Transform pose from "local_map" to "map"
-        try{
+        try
+        {
             tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
 
         }
         catch (tf::TransformException &ex)
         {
-            ROS_ERROR_STREAM("%s"<<ex.what());
+            ROS_ERROR_STREAM("%s" << ex.what());
             ROS_ERROR_STREAM("     Transform snapped particle pose from local_map to map");
             ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
             return;
@@ -1923,8 +1945,9 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
             //}
 
             // Transform pose from "map" to "local_map"
-            try{
-                tf_listener.waitForTransform("local_map","map",ros::Time(0),ros::Duration(1));
+            try
+            {
+                tf_listener.waitForTransform("local_map", "map", ros::Time(0), ros::Duration(1));
                 tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
             }
             catch (tf::TransformException &ex)
@@ -1946,7 +1969,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
             double dx = tf_pose_local_map_frame.getOrigin().getX() - tf_snapped_local_map_frame.getOrigin().getX();
             double dy = tf_pose_local_map_frame.getOrigin().getY() - tf_snapped_local_map_frame.getOrigin().getY();
             double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0; // particle Z axis is forced to be next to zero
-            double distance = sqrt(dx*dx + dy*dy + dz*dz);
+            double distance = sqrt(dx * dx + dy * dy + dz * dz);
 
             /// For debuggin purposes: add line to marker array distances
             //publishMarkerArrayDistances((*particle_itr).getId(),
@@ -1964,39 +1987,39 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 
             // calculate angle difference ---------------------------------------------------------------------------------------
             first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
-            street_direction=first_quaternion_diff;
+            street_direction = first_quaternion_diff;
 
             //      get PDF score from first angle
             boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
             double first_angle_difference = Utils::normalize_angle(first_quaternion_diff.getAngle());
-            double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference) / pdf(angle_normal_dist,0.0f);
+            double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference) / pdf(angle_normal_dist, 0.0f);
 
             (*particle_itr).final_angle_diff_score_component  = 0.0f;
             double second_angle_diff_score = 0.0f;
             double second_angle_difference = 0.0f;
 
             //      if street have 2 directions check angle diff with opposite angle
-            if(snapParticle_serviceMessage.response.way_dir_opposite_particles)
+            if (snapParticle_serviceMessage.response.way_dir_opposite_particles)
             {
-                tf_snapped_local_map_frame_opposite_direction=tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
-                tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame*tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
+                tf_snapped_local_map_frame_opposite_direction = tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
+                tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame * tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
                 second_quaternion_diff = tf_snapped_local_map_frame_opposite_direction.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
                 //      get PDF score
                 second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
-                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist,0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
+                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist, 0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
 
                 //      set score
-                if(second_angle_diff_score > first_angle_diff_score)
+                if (second_angle_diff_score > first_angle_diff_score)
                     (*particle_itr).final_angle_diff_score_component = second_angle_diff_score;
                 else
                     (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
 
-                ROS_DEBUG_STREAM("ONEWAY-No \tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference << "\tANGLE_2: " << second_angle_difference);
+                ROS_DEBUG_STREAM("ONEWAY-No \tSPATIAL_DISTANCE: " << distance << "\tANGLE_1: " << first_angle_difference << "\tANGLE_2: " << second_angle_difference);
             }
             else
             {
-                ROS_DEBUG_STREAM("ONEWAY-Yes\tSPATIAL_DISTANCE: "<< distance << "\tANGLE_1: " << first_angle_difference);
+                ROS_DEBUG_STREAM("ONEWAY-Yes\tSPATIAL_DISTANCE: " << distance << "\tANGLE_1: " << first_angle_difference);
                 (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
             }
 
@@ -2092,14 +2115,14 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
     double sumOfWeights = street_distribution_weight + angle_distribution_weight + roadState_distribution_weight;
 
-    double newScore=(
-                        (
-                           street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
-                           angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
-                           roadState_distribution_weight * lc->getComponentWeight()
-                        )
-                        / sumOfWeights
-                    );
+    double newScore = (
+                          (
+                              street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
+                              angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
+                              roadState_distribution_weight * lc->getComponentWeight()
+                          )
+                          / sumOfWeights
+                      );
 
     (*particle_itr).setParticleScore( (*particle_itr).getParticleScore() * newScore );
 
@@ -2161,19 +2184,19 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
     std::vector<double> longitudes;
     std::vector<double> particleScores;
     std::vector<long int> way_ids;
-    unsigned int particle_counter=0;
+    unsigned int particle_counter = 0;
 
-    for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+    for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
     {
         vector<LayoutComponent*> componentVector = (*particle_itr).getLayoutComponents();
         int components = componentVector.size();
 
         ROS_DEBUG_STREAM("PARTICLE " << particle_counter++ << "\tComponents Vector Size: " << components);
 
-        for (int i=0;i<components;i++)
+        for (int i = 0; i < components; i++)
         {
             LayoutComponent *component = componentVector.at(i);
-            if(LayoutComponent_RoadState* roadState = dynamic_cast<LayoutComponent_RoadState* >(component))
+            if (LayoutComponent_RoadState* roadState = dynamic_cast<LayoutComponent_RoadState* >(component))
             {
                 ROS_DEBUG_STREAM("ParticleId: " << (*particle_itr).getId() << "\twayId: " << roadState->getWay_id());
                 way_ids.push_back(roadState->getWay_id());
@@ -2181,16 +2204,16 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
 
                 // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
                 tf::Stamped<tf::Pose> particle_map_frame, particle_local_frame;
-                particle_local_frame.frame_id_="local_map";
-                particle_local_frame.setOrigin(tf::Vector3((*particle_itr).getParticleState().getPose()(0),(*particle_itr).getParticleState().getPose()(1),(*particle_itr).getParticleState().getPose()(2)));
+                particle_local_frame.frame_id_ = "local_map";
+                particle_local_frame.setOrigin(tf::Vector3((*particle_itr).getParticleState().getPose()(0), (*particle_itr).getParticleState().getPose()(1), (*particle_itr).getParticleState().getPose()(2)));
                 particle_local_frame.setRotation(tf::createIdentityQuaternion());
                 // Transform pose from "local_map" to "map"
                 try
                 {
                     tf_listener.transformPose("map", ros::Time(0), particle_local_frame, "local_map", particle_map_frame);
                     ira_open_street_map::xy_2_latlon xy2latlon;
-                    xy2latlon.request.x=particle_map_frame.getOrigin().getX();
-                    xy2latlon.request.y=particle_map_frame.getOrigin().getY();
+                    xy2latlon.request.x = particle_map_frame.getOrigin().getX();
+                    xy2latlon.request.y = particle_map_frame.getOrigin().getY();
                     if (LayoutManager::xy_2_latlon_client.call(xy2latlon))
                     {
                         latitudes.push_back(xy2latlon.response.latitude);
@@ -2204,7 +2227,7 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
                 }
                 catch (tf::TransformException &ex)
                 {
-                    ROS_ERROR_STREAM("getAllParticlesLatLonService failed to trasform needed poses %s"<<ex.what());
+                    ROS_ERROR_STREAM("getAllParticlesLatLonService failed to trasform needed poses %s" << ex.what());
                     ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
                     return false;
                 }
@@ -2219,11 +2242,11 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
         }
 
     }
-    resp.particleNumber=current_layout.size();
-    resp.latitudes=latitudes;
-    resp.longitudes=longitudes;
-    resp.way_ids=way_ids;
-    resp.particleScores=particleScores;
+    resp.particleNumber = current_layout.size();
+    resp.latitudes = latitudes;
+    resp.longitudes = longitudes;
+    resp.way_ids = way_ids;
+    resp.particleScores = particleScores;
 
     ROS_DEBUG_STREAM("> Exiting getAllParticlesLatLonService");
     return true;
@@ -2236,13 +2259,13 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
     setCurrent_layoutScore(0.0f);
 
     ROS_INFO_STREAM("--------------------------------------------------------------------------------");
-    this->deltaTimerTime = (timerEvent.current_real-timerEvent.last_real).toSec();
+    this->deltaTimerTime = (timerEvent.current_real - timerEvent.last_real).toSec();
 
     ROS_INFO_STREAM ("Entering RLE layoutEstimation\t" << timerEvent.current_expected << "\t"
-                                                       << timerEvent.current_real << "\t"
-                                                       << timerEvent.profile.last_duration.toSec() << "\t"
-                                                       << this->deltaTimerTime << "\t"
-                     );
+                     << timerEvent.current_real << "\t"
+                     << timerEvent.profile.last_duration.toSec() << "\t"
+                     << this->deltaTimerTime << "\t"
+                    );
 
 
 
@@ -2259,37 +2282,37 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         {
             ROS_DEBUG_STREAM("measurementModelFirstRunNotExecuted: " << this->measurement_model->measurementModelFirstRunNotExecuted);
             //In the very first iteration, use the delta_time from the measurementModel
-            this->deltaTimerTime=this->measurement_model->getDelta_time().toSec();
+            this->deltaTimerTime = this->measurement_model->getDelta_time().toSec();
             ROS_WARN_STREAM("FIRST run! Using measurementModel delta_time for this iteration only: " << this->deltaTimerTime);
 
             vector<Particle>::iterator particle_itr;
-            for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+            for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             {
                 ROS_DEBUG_STREAM("FIRST run! Setting speeds of particle n# " << (*particle_itr).getId());
                 //(*particle_itr).setParticleVelocities(measurement_model->getMeasureDeltaState());             //3D Initialization
                 (*particle_itr).setParticleVelocities(measurement_model->getOrthogonalMeasureDeltaState());     //do not use 3D rotations for initialization
             }
 
-            this->layoutManagerFirstRun=false;
+            this->layoutManagerFirstRun = false;
         }
     }
 
-    if (this->deltaTimerTime>10)
+    if (this->deltaTimerTime > 10)
     {
         ROS_WARN_STREAM("Warning, deltaTimer>10 seconds. Force deltatimer = 0.1 HARDCODED");
         this->deltaTimerTime = 0.1;
     }
 
     // Check if car has moved, if it has moved then estimate new layout
-    if( checkHasMoved() )
+    if ( checkHasMoved() )
     {
         /// ----------------- predict and update layout poses using E.K.F ----------------- //
         vector<Particle>::iterator particle_itr;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ROS_DEBUG_STREAM("Estimating pose of particle n# " << (*particle_itr).getId());
-            (*particle_itr).particlePoseEstimation(measurement_model,this->deltaTimerTime,this->deltaOdomTime);
-        }        
+            (*particle_itr).particlePoseEstimation(measurement_model, this->deltaTimerTime, this->deltaOdomTime);
+        }
 
         // -------------- sampling + perturbation + weight layout-components ------------- //
         this->componentsEstimation();
@@ -2297,7 +2320,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
         // ------------------------------ calculate score -------------------------------- //
         /// GET SOME GEOMETRIC VALUES
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             this->calculateGeometricScores(&(*particle_itr));
 
         /// COMPUTE NORMALIZATON (disabled, I just print some values here)
@@ -2305,21 +2328,21 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         double minAngle    = std::numeric_limits<double>::max();
         double maxDistance = std::numeric_limits<double>::min();
         double maxAngle    = std::numeric_limits<double>::min();
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ROS_INFO_STREAM("#distance: " << (*particle_itr).pose_diff_score_component <<
                             "  \tangle (rad): " << (*particle_itr).final_angle_diff_score_component <<
                             "  \tcomponent(0): " << (*particle_itr).getLayoutComponents().at(0)->getComponentWeight()
-                            );
+                           );
 
             if ((*particle_itr).pose_diff_score_component > maxDistance)
-                maxDistance=(*particle_itr).pose_diff_score_component ;
+                maxDistance = (*particle_itr).pose_diff_score_component ;
             if ((*particle_itr).pose_diff_score_component < minDistance)
-                minDistance=(*particle_itr).pose_diff_score_component ;
+                minDistance = (*particle_itr).pose_diff_score_component ;
             if ((*particle_itr).final_angle_diff_score_component > maxAngle)
-                maxAngle=(*particle_itr).final_angle_diff_score_component;
+                maxAngle = (*particle_itr).final_angle_diff_score_component;
             if ((*particle_itr).final_angle_diff_score_component < minAngle)
-                minAngle=(*particle_itr).final_angle_diff_score_component;
+                minAngle = (*particle_itr).final_angle_diff_score_component;
         }
         ROS_DEBUG_STREAM("**********************************************************************************");
         ROS_DEBUG_STREAM("minDistance: " << minDistance << "\tmaxDistance: " << maxDistance);
@@ -2338,7 +2361,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         Particle *bestParticle   = NULL;
         double bestParticleScore = 0.0f;
         double currentScore      = 0.0f;
-        for( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             this->calculateScore(&(*particle_itr));             /// Evaluate the SCORE of the particle
 
@@ -2346,9 +2369,9 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
             current_layoutScore += currentScore;
 
-            if (currentScore>bestParticleScore)
+            if (currentScore > bestParticleScore)
             {
-                bestParticleScore=(*particle_itr).getParticleScore();
+                bestParticleScore = (*particle_itr).getParticleScore();
                 bestParticle = &(*(particle_itr));
             }
         }
@@ -2383,18 +2406,18 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         // ------------------------------------------------------------------------------- //
 
         // ------------------------------ resampling ------------------------------------- //
-        if(new_detections)
+        if (new_detections)
         {
-//			Add new candidate-components ----------------------------------------------------- //
-//			(1) given N new candidate-layout-components duplicate 2^N particles and those particles to them
-//			(2) calculate score
-//			(3) resample all combination
+//          Add new candidate-components ----------------------------------------------------- //
+//          (1) given N new candidate-layout-components duplicate 2^N particles and those particles to them
+//          (2) calculate score
+//          (3) resample all combination
         }
 
 
         // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
-        if(resampling_count++ == resampling_interval)
-        //    if(0)
+        if (resampling_count++ == resampling_interval)
+            //    if(0)
         {
             ROS_DEBUG_STREAM("> Begin resampling phase!");
             resampling_count = 0;
@@ -2403,15 +2426,15 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
             double cum_score_sum = 0.0f;
 
             // Build cumulative sum of the score and roulette vector
-            for(particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+            for (particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             {
-                 cum_score_sum += (*particle_itr).getParticleScore();
-                 particle_score_vect.push_back(cum_score_sum);
+                cum_score_sum += (*particle_itr).getParticleScore();
+                particle_score_vect.push_back(cum_score_sum);
             }
 
             ROS_DEBUG_STREAM(" Resampling: sum of all particles scores: " << cum_score_sum);
 
-            if(cum_score_sum != 0)
+            if (cum_score_sum != 0)
             {
                 // Init uniform distribution
                 boost::uniform_real<double> uniform_rand(0, cum_score_sum);
@@ -2421,24 +2444,24 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 // find weight that is at least num
                 vector<double>::iterator score_itr;
 
-                for(int k = 0; k<current_layout.size(); ++k)
+                for (int k = 0; k < current_layout.size(); ++k)
                 {
-                    if(uniform_rand2(rng) <= 95) //This percentage of weighted samples
+                    if (uniform_rand2(rng) <= 95) //This percentage of weighted samples
                     {
                         // WEIGHTED RESAMPLER
                         int particle_counter = 0;
                         double num = uniform_rand(rng);
 
-                        for(score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
+                        for (score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
                         {
-                            if( *score_itr >= num)
+                            if ( *score_itr >= num)
                             {
                                 Particle temp_part = current_layout.at(particle_counter);
                                 temp_part.setId(k);
                                 temp_part.setParticleScore(1.0f);
-    //                            stat_out_file << temp_part.getId() << "\t";
-    //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
-    //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+                                //                            stat_out_file << temp_part.getId() << "\t";
+                                //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
+                                //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
                                 new_current_layout.push_back(temp_part);
                                 break;
                             }
@@ -2488,16 +2511,16 @@ ROS_DEPRECATED void LayoutManager::normalizeParticleSet()
 
     vector<Particle>::iterator itr;
 
-    double sum=0.0f;
-    double max=-1.0f;
+    double sum = 0.0f;
+    double max = -1.0f;
 
     for (itr = current_layout.begin(); itr != current_layout.end(); itr++)
     {
-        sum+=(*itr).getParticleScore();
-        if ((*itr).getParticleScore()>max)
-            max=(*itr).getParticleScore();
+        sum += (*itr).getParticleScore();
+        if ((*itr).getParticleScore() > max)
+            max = (*itr).getParticleScore();
     }
     for (itr = current_layout.begin(); itr != current_layout.end(); itr++)
-        (*itr).setParticleScore((*itr).getParticleScore()/max);
+        (*itr).setParticleScore((*itr).getParticleScore() / max);
 }
 

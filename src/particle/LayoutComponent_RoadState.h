@@ -68,9 +68,6 @@ public:
     void calculateComponentScore();
     void componentPerturbation();
 
-    // Getters and setters ----------------------------------------------------------------------
-    void          setTimestamp(ros::Time time)  { timestamp = time; }
-    ros::Time     getTimestamp()                { return timestamp; }
     double        getRoad_width()               const;
     double        getRoad_naiveWidth()          const;
     char          getCurrent_lane()             const;
@@ -79,20 +76,31 @@ public:
     void          setRoad_naiveWidth            (double value);
     void          setCurrent_lane               (char value);
 
+    // Getters and setters ----------------------------------------------------------------------
+    void          setTimestamp(ros::Time time)
+    {
+        timestamp = time;
+    }
+    ros::Time     getTimestamp()
+    {
+        return timestamp;
+    }
+
     // Constructors and destructors -------------------------------------------------------------
-    LayoutComponent_RoadState(){
+    LayoutComponent_RoadState()
+    {
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
         component_state = VectorXd::Zero(12);
-        component_cov = MatrixXd::Zero(12,12);
+        component_cov = MatrixXd::Zero(12, 12);
         //lanes_number = 0;
         //current_lane = 0;
         //road_width = 0.0f;
         //way_id = 0;
         timestamp = ros::Time(0);
 
-        getHighwayInfo_client=NULL;
+        getHighwayInfo_client = NULL;
     }
 
     /// This constructor should be used only in the initialization phase
@@ -110,9 +118,9 @@ public:
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
-        this->component_cov = MatrixXd::Zero(12,12);
+        this->component_cov = MatrixXd::Zero(12, 12);
 
-        getHighwayInfo_client=serviceClientFromLayoutManager;
+        getHighwayInfo_client = serviceClientFromLayoutManager;
     }
 
     /// This constructor should be used during the normal filter iteration
@@ -126,9 +134,9 @@ public:
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
-        this->component_cov = MatrixXd::Zero(12,12);
+        this->component_cov = MatrixXd::Zero(12, 12);
 
-        getHighwayInfo_client=serviceClientFromLayoutManager;
+        getHighwayInfo_client = serviceClientFromLayoutManager;
     }
 
     ~LayoutComponent_RoadState()
@@ -137,7 +145,7 @@ public:
         component_id = 0;
         component_weight = 0;
         component_state.resize(0);
-        component_cov.resize(0,0);
+        component_cov.resize(0, 0);
         timestamp = ros::Time(0);
     }
     int64_t getWay_id() const;

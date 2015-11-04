@@ -12,7 +12,7 @@ Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
     //std::cout << "this->toVectorXd()\n" << this->toVectorXd() << std::endl;
     //std::cout << "to_be_subtracted.toVectorXd()\n" << to_be_subtracted.toVectorXd() << std::endl<<std::endl;
 
-    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
+    Eigen::Matrix<double, 12, 1> tmp_matrix = this->toVectorXd() - to_be_subtracted.toVectorXd();
 
     //    Eigen::Matrix<double,12,1> tmp_matrix = this->toVectorXd();// - to_be_subtracted.toVectorXd();
     //    tmp_matrix.block(0,0,3,1) = tmp_matrix.block(0,0,3,1) - to_be_subtracted.toVectorXd().block(0,0,3,1);
@@ -50,25 +50,25 @@ State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)
 //    tmp_v.block(0,0,3,1) = tmp_v.block(0,0,3,1) + to_be_added.block(0,0,3,1);
 //    tmp_v.block(6,0,3,1) = tmp_v.block(6,0,3,1) + to_be_added.block(6,0,3,1);
 
-    tmp._pose = tmp_v.block(0,0,3,1);
-    if(tmp_v.block(3,0,3,1) == Eigen::VectorXd::Zero(3))
+    tmp._pose = tmp_v.block(0, 0, 3, 1);
+    if (tmp_v.block(3, 0, 3, 1) == Eigen::VectorXd::Zero(3))
     {
         Eigen::VectorXd angle = Eigen::VectorXd::Zero(3);
         angle(0) = 1.0;
-        tmp._rotation = Eigen::AngleAxisd(0,angle);
+        tmp._rotation = Eigen::AngleAxisd(0, angle);
     }
     else
-        tmp._rotation = Eigen::AngleAxisd(tmp_v.block(3,0,3,1).norm(), tmp_v.block(3,0,3,1).normalized());
+        tmp._rotation = Eigen::AngleAxisd(tmp_v.block(3, 0, 3, 1).norm(), tmp_v.block(3, 0, 3, 1).normalized());
 
-    tmp._translational_velocity = tmp_v.block(6,0,3,1);
-    if(tmp_v.block(9,0,3,1) == Eigen::VectorXd::Zero(3))
+    tmp._translational_velocity = tmp_v.block(6, 0, 3, 1);
+    if (tmp_v.block(9, 0, 3, 1) == Eigen::VectorXd::Zero(3))
     {
         Eigen::VectorXd angle = Eigen::VectorXd::Zero(3);
         angle(0) = 1.0;
         tmp._rotational_velocity = Eigen::AngleAxisd(0, angle);
     }
     else
-        tmp._rotational_velocity = Eigen::AngleAxisd(tmp_v.block(9,0,3,1).norm(), tmp_v.block(9,0,3,1).normalized());
+        tmp._rotational_velocity = Eigen::AngleAxisd(tmp_v.block(9, 0, 3, 1).norm(), tmp_v.block(9, 0, 3, 1).normalized());
     return tmp;
 }
 
@@ -87,10 +87,10 @@ Eigen::VectorXd State6DOF::toVectorXd()
 {
     Eigen::VectorXd tmp_vector(12);
     tmp_vector <<
-            this->_pose,
-            this->_rotation.axis() * this->_rotation.angle(),
-            this->_translational_velocity,
-            this->_rotational_velocity.axis() * this->_rotational_velocity.angle();
+               this->_pose,
+                    this->_rotation.axis() * this->_rotation.angle(),
+                    this->_translational_velocity,
+                    this->_rotational_velocity.axis() * this->_rotational_velocity.angle();
     return tmp_vector;
 }
 
@@ -117,7 +117,7 @@ State6DOF::State6DOF(const nav_msgs::Odometry &odom_msg)
     this->_pose << odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, odom_msg.pose.pose.position.z;
 
     // Set rotation from pose quaternion
-    this->_rotation = Eigen::AngleAxisd(Eigen::Quaterniond(odom_msg.pose.pose.orientation.w,odom_msg.pose.pose.orientation.x,odom_msg.pose.pose.orientation.y,odom_msg.pose.pose.orientation.z));
+    this->_rotation = Eigen::AngleAxisd(Eigen::Quaterniond(odom_msg.pose.pose.orientation.w, odom_msg.pose.pose.orientation.x, odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z));
 
     // Set translational velocity
     this->_translational_velocity << odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z;
@@ -127,39 +127,39 @@ State6DOF::State6DOF(const nav_msgs::Odometry &odom_msg)
     tmp_rot.setEulerYPR(odom_msg.twist.twist.angular.z, odom_msg.twist.twist.angular.y, odom_msg.twist.twist.angular.x);
     tf::Quaternion q;
     tmp_rot.getRotation(q);
-    this->_rotational_velocity = Eigen::AngleAxisd(Eigen::Quaterniond(q.getW(),q.getX(), q.getY(), q.getZ()));
+    this->_rotational_velocity = Eigen::AngleAxisd(Eigen::Quaterniond(q.getW(), q.getX(), q.getY(), q.getZ()));
 }
 
 void State6DOF::addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset)
 {
-   srand(time(0));
-   this->_pose(0) += Utils::getNoise(position_offset);
-   this->_pose(1) += Utils::getNoise(position_offset);
-   this->_pose(2) += Utils::getNoise(position_offset);
+    srand(time(0));
+    this->_pose(0) += Utils::getNoise(position_offset);
+    this->_pose(1) += Utils::getNoise(position_offset);
+    this->_pose(2) += Utils::getNoise(position_offset);
 
-   this->_rotation.angle() += Utils::getNoise(orientation_offset);
+    this->_rotation.angle() += Utils::getNoise(orientation_offset);
 
-   this->_translational_velocity(0) += Utils::getNoise(linear_offset);
-   this->_translational_velocity(1) += Utils::getNoise(linear_offset);
-   this->_translational_velocity(2) += Utils::getNoise(linear_offset);
+    this->_translational_velocity(0) += Utils::getNoise(linear_offset);
+    this->_translational_velocity(1) += Utils::getNoise(linear_offset);
+    this->_translational_velocity(2) += Utils::getNoise(linear_offset);
 
-   this->_rotational_velocity.angle() += Utils::getNoise(angular_offset);
+    this->_rotational_velocity.angle() += Utils::getNoise(angular_offset);
 }
 
 void State6DOF::setOrthogonalPoseRotation()
 {
-    if (this->_rotation.axis()(2)<0)
+    if (this->_rotation.axis()(2) < 0)
         this->_rotation.inverse();
-    this->_rotation.axis()(0)=0;
-    this->_rotation.axis()(1)=0;
-    this->_rotation.axis()(2)=1;
+    this->_rotation.axis()(0) = 0;
+    this->_rotation.axis()(1) = 0;
+    this->_rotation.axis()(2) = 1;
 }
 
 void State6DOF::setOrthogonalSpeedRotation()
 {
-    if (this->_rotation.axis()(2)<0)
+    if (this->_rotation.axis()(2) < 0)
         this->_rotation.inverse();
-    this->_rotational_velocity.axis()(0)=0;
-    this->_rotational_velocity.axis()(1)=0;
-    this->_rotational_velocity.axis()(2)=1;
+    this->_rotational_velocity.axis()(0) = 0;
+    this->_rotational_velocity.axis()(1) = 0;
+    this->_rotational_velocity.axis()(2) = 1;
 }
