@@ -39,7 +39,7 @@ void Particle::propagateLayoutComponents()
         if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
             ROS_DEBUG_STREAM("roadStateComponent detected");
-            (*itr)->componentPoseEstimation(); //virtual
+            (*itr)->componentPoseEstimation(); //virtual            
         }
         else
         {

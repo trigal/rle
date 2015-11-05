@@ -196,10 +196,8 @@ public:
     ///
     /// \brief roadLaneCallback
     /// \param msg
-    /// This is the callback from the OLD Dario Limongi Lane Detector.
-    /// It is DEPRECATED.
     ///
-    ROS_DEPRECATED void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
+    void roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines);
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 

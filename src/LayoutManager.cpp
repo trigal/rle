@@ -1601,15 +1601,11 @@ bool LayoutManager::checkHasMoved()
 ///
 /// \brief LayoutManager::roadLaneCallback
 /// \param msg
-/// \deprecated {old version, Limongi Thesis}
 ///
-/// This is the callback from the OLD Dario Limongi Lane Detector
 ///
-ROS_DEPRECATED void LayoutManager::roadLaneCallback(const road_lane_detection::road_lane_array& msg)
+void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
-    ROS_ERROR_STREAM("> Entering roadLaneCallback");
-
-    ROS_ERROR_STREAM("WHY ARE YOU CALLING THIS ROUTINE?! IT IS DEPRECATED, OLD DARIO LIMONGI CODE!");
+    ROS_ERROR_STREAM("> Entering " << __PRETTY_FUNCTION__);
 
     // Add it to all particles
     for (int i = 0; i < current_layout.size(); ++i)
@@ -1620,29 +1616,12 @@ ROS_DEPRECATED void LayoutManager::roadLaneCallback(const road_lane_detection::r
         vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
 
         // Clear old layout_components
-        layout_components->clear();
+        //layout_components->clear();
+        //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
 
-        // Cycle through all lanes
-        for (int k = 0; k < msg.road_lane_vector.size(); ++k)
-        {
-
-            // Create a new roadlane component
-            road_lane_detection::road_lane lane = msg.road_lane_vector.at(k);
-
-            LayoutComponent_RoadLane * road_lane = new LayoutComponent_RoadLane();
-            road_lane->setParticleId(particle->getId());
-            road_lane->setComponentId(layout_components->size());
-            road_lane->setK1(lane.k1);
-            road_lane->setK3(lane.k3);
-            road_lane->setHomographyYResolution(msg.homography_y_resolution);
-            road_lane->setTimestamp(msg.timestamp);
-
-            // Add lane to layout components
-            layout_components->push_back(road_lane);
-        }
     }
 
-    ROS_ERROR_STREAM("< Exiting roadLaneCallback");
+    ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
 }
 
 ///

@@ -98,6 +98,28 @@ public:
 
     void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime = 0.0f, double deltaOdomTime = 0.0f);
 
+    ///
+    /// \brief clearLayoutComponentType
+    /// \param T
+    /// \return number of deleted objects.
+    ///
+    /// Passing the type of Layout Component, updates the LayoutComponent vector
+    /// deleting all objects with type = T
+    ///
+    /// refs #498
+    /// \warning TEST needed
+    ///
+    template <typename LayoutComponentType> int clearLayoutComponentType()
+    {
+        for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); ++it)
+        {
+            if (dynamic_cast<LayoutComponentType*>(*it))
+            {
+                ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << " " << typeid(LayoutComponentType).name());
+            }
+        }
+    }
+
     vector<LayoutComponent*> getLayoutComponents()
     {
         return particle_components;
