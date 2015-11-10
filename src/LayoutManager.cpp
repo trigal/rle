@@ -55,7 +55,19 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
     return array_msg;
 }
 
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
+/**
+ * @brief LayoutManager::LayoutManager
+ * @param n ROS node handler
+ * @param visualOdometryTopic - up to now, we use LIBVISO2
+ * @param bagfile - name of the file/map to use
+ * @param timerInterval RLE frequency (parameter in the launch file)
+ * @param loggingLevel ROS console level for logs
+ *
+ * Default constructor
+ *
+ * TODO: bagfile is still needed even in the case of kittiplayer
+ */
+LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
 {
 
     /// This sets the logger level; use this to disable all ROS prints
@@ -111,7 +123,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
 
 
     /// Init publisher & subscribers
-    LayoutManager::odometry_sub  = node_handle.subscribe(topic, 1, &LayoutManager::odometryCallback, this);
+    LayoutManager::odometry_sub  = node_handle.subscribe(visualOdometryTopic, 1, &LayoutManager::odometryCallback, this);
     LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback , this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
     LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes"   , 3, &LayoutManager::roadStateCallback, this);        //ISISLAB Ruben callback
@@ -174,8 +186,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& topic, string &bag
     ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_z  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z);
     ROS_DEBUG_STREAM("propagate_rotational_percentage_vel_error       ------------  " << defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error     );
 
-    f = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
-    server.setCallback(f);
+    dynamicReconfigureCallback = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
+    dynamicReconfigureServer.setCallback(dynamicReconfigureCallback);
 }
 
 void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point)
@@ -303,7 +315,22 @@ void LayoutManager::setCurrent_layoutScore(double value)
 }
 
 
-
+/**
+ * @brief LayoutManager::reconfigureCallback
+ * @param config    same as constr
+ * @param level
+ *
+ * This modifies the number of particles and other parameters from the Dynamic
+ * Reconfigure Node
+ *
+ * This callback is also called during the creation of the RLE node by the
+ * constructor (FIRST RUN section) and in this case
+ *      1. creates only valid particles (near the road segments)
+ *      2. creates opposite particles if the way is two-ways
+ *      3. creates component > ROAD_STATE
+ *                 component > ROAD_LANE
+ *
+ */
 void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
 {
     ROS_INFO_STREAM ("Reconfigure callback! " << bagfile );
@@ -380,7 +407,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     //            config.msr_model_angular_uncertainty
     //            );
 
-    // update particle-set number (only if this IS NOT the first run) ------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////
+    /// update particle-set number (only if this IS NOT the first run)       ///
+    ////////////////////////////////////////////////////////////////////////////
     if (!LayoutManager::layoutManagerFirstRun)
     {
         if (config.particles_number > num_particles)
@@ -454,10 +483,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         num_particles = config.particles_number;
     }
 
-    // -----FIRST RUN-------------------------------------------------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////
+    /// -----FIRST RUN----------------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////
     if (LayoutManager::layoutManagerFirstRun)
     {
-        //ROS_ASSERT(num_particles==0);
+        ROS_ASSERT(num_particles == 0); // refs #385
 
         if (LayoutManager::openstreetmap_enabled)
         {
@@ -488,11 +519,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 ROS_DEBUG_STREAM("Received GPS lat/lon coordinates: " << lat << "\t" << lon);
                 ROS_DEBUG_STREAM("GPS variance in lat/lon " << cov1 << "\t" << cov2);
 
-            }
+            } // end getting the GPS from message
             else
             {
-
                 // ------ simulated GPS msg ----------- //
+
                 // via Chiese
                 //            double alt = 164.78;
                 //            double lat = 45.520172;
@@ -624,9 +655,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     cov1 = 50;
                     cov2 = 50;
                 }
-
-
-            }
+            } // end getting the lat/lon from  hard-coded kitti bags
 
             //ros::Duration(1).sleep(); // sleep for 2 secs
             // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
@@ -679,7 +708,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             latlon_2_xy_srv.request.latitude = lat;
             latlon_2_xy_srv.request.longitude = lon;
 
-            ROS_INFO_STREAM("lat: " << lat << "\t" << "lon: " << lon);
+            ROS_INFO_STREAM("RLE is going to initialize particles at LAT: " << lat << "\t" << "LON: " << lon);
 
             /// Convert lat/lon to xy
             geometry_msgs::Point point;
@@ -727,10 +756,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // with our chosen mean and covariance
             Eigen::EigenMultivariateNormal<double, 2> normalSampler(mean, covar);
 
-            // Reset current_layout
+            /// Setep 01 - Reset current_layout
             LayoutManager::current_layout.clear();
 
-            // Populate current_layout with *ONLY* valid particles
+            /// Setep 02 - Populate current_layout with *ONLY* valid particles
             int particle_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
             while ((while_ctr < 1000) && (current_layout.size() < config.particles_number))
@@ -739,7 +768,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 {
                     ROS_ERROR_STREAM("Random particle set init: while ctr reached max limit" );
                     ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-                    /**
+                    /*
                      * TODO: max_radius_size * 2 and find again
                      */
                 }
@@ -747,16 +776,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // Generate a sample from the bivariate Gaussian distribution
                 Matrix < double, 2, -1 > sample = normalSampler.samples(1);
 
-                //-------------- SNAP PARTICLE v2  -------------------------------------- //
+                //-------------- SNAP PARTICLE v2 -------------- //
                 // Init OSM cartography service
                 ira_open_street_map::snap_particle_xy snapParticleXYService;
                 snapParticleXYService.request.x = sample(0);
                 snapParticleXYService.request.y = sample(1);
                 snapParticleXYService.request.max_distance_radius = 200; // distance radius for finding the closest nodes for particle snap
-                boost::math::normal street_normal_dist(0, street_distribution_sigma);
-                boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
+                boost::math::normal street_normal_dist (0, street_distribution_sigma);
+                boost::math::normal angle_normal_dist  (0, angle_distribution_sigma);
 
-                // Call snap particle service
+                /// Setep 03 - Call snap particle service
                 if (LayoutManager::snap_particle_xy_client.call(snapParticleXYService))
                 {
                     geometry_msgs::PoseStamped pose_map_frame;
@@ -813,6 +842,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
 
+                    /// Step 04 - Create Component ROAD STATE
                     //////////// CREATE COMPONENT ROAD_STATE ////////////
                     ira_open_street_map::getHighwayInfo getHighwayService;
                     getHighwayService.request.way_id = snapParticleXYService.response.way_id;
@@ -858,14 +888,23 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     }
                     //////////// CREATE COMPONENT ROAD_STATE ////////////
 
-                    /// Push particle into particle-set
-                    current_layout.push_back(new_particle);
 
+                    ////////////////////////////////////////////////////
+                    //////////// CREATE COMPONENT ROAD_LANE ////////////
+                    ROS_INFO_STREAM("Adding roadLane component!");
+                    LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane();
+                    new_particle.addComponent(roadLane);
+                    //////////// CREATE COMPONENT ROAD_LANE ////////////
+                    ////////////////////////////////////////////////////
+
+                    /// Setep 05 - Push particle into particle-set and update the particles id counter
+                    current_layout.push_back(new_particle);
 
                     // Update particles id counter
                     particle_id += 1;
 
-                    // Check if we should create 2 particles with opposite direction
+                    /// Setep 06 - Check if we should create 2 particles with opposite direction
+                    /// if needed, create new "components"
                     if (snapParticleXYService.response.way_dir_opposite_particles)
                     {
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
@@ -940,6 +979,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         }
                         //////////// CREATE COMPONENT ROAD_STATE ////////////
 
+                        ////////////////////////////////////////////////////
+                        //////////// CREATE COMPONENT ROAD_LANE ////////////
+                        ROS_INFO_STREAM("Adding roadLane component!");
+                        LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane();
+                        new_particle_opposite.addComponent(roadLane);
+                        //////////// CREATE COMPONENT ROAD_LANE ////////////
+                        ////////////////////////////////////////////////////
+
                         /// Push particle inside particle-set
                         current_layout.push_back(new_particle_opposite);
 
@@ -962,6 +1009,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         } // end if(gps_initialization using OSM maps)
         else
         {
+            /// Old behaviour
             // gps initialization disabled, just generate particles with all values set to zero
             for (int i = 0; i < config.particles_number; i++)
             {
@@ -980,13 +1028,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         // print particle poses
         vector<Particle>::iterator particle_itr;
-        ROS_ERROR_STREAM("NUMERO DI LAYOUT: " << current_layout.size());
+        ROS_ERROR_STREAM("NUMERO DI LAYOUT (how many particles): " << current_layout.size());
         for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
         {
             ostringstream tmp_convert;   // stream used for the conversion
             tmp_convert << "Particle ID: " << (*particle_itr).getId();
             (*particle_itr).getParticleState().printState(tmp_convert.str());
-
 
             // Normalize weights
             // refs #445
@@ -1008,8 +1055,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
         LayoutManager::publishMarkerArray(1); //normalization factor 1, as all particles score value is 1 or should be ..
 
-
     } // end if(first_run)
+
 }// end reconfigure callback
 
 
@@ -1607,17 +1654,28 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
 {
     ROS_ERROR_STREAM("> Entering " << __PRETTY_FUNCTION__);
 
+    // Clear old layout_components
+    //layout_components->clear();
+    //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
+
     // Add it to all particles
     for (int i = 0; i < current_layout.size(); ++i)
     {
-
         // Get all layout components of particle
-        Particle* particle = &current_layout.at(i);
-        vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
+        vector<Particle>::iterator particle_itr;
+        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
+        {
+            vector<LayoutComponent*> layoutComponentVector = particle_itr->getLayoutComponents();
+            for (int j = 0; j < layoutComponentVector.size(); j++)
+            {
+                if (dynamic_cast<LayoutComponent_RoadLane*>(layoutComponentVector.at(j)))
+                {
+                    ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << __LINE__ << " of " << __FILE__);
+                }
+            }
+        }
 
-        // Clear old layout_components
-        //layout_components->clear();
-        //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
+
 
     }
 
@@ -1649,7 +1707,8 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         vector<LayoutComponent*>* layout_components = particle->getLayoutComponentsPtr();
 
         // Clear old layout_components
-        layout_components->clear(); //this should be replaced with some more clever idea... (maybe update the component instead of deleting them)
+        //layout_components->clear(); //this should be replaced with some more clever idea... (maybe update the component instead of deleting them)
+        particle->clearLayoutComponentType<LayoutComponent_RoadState>();
 
         /// Need the way_id for component evaluation
         /// Since it is not "detected" retrieve it from the particle state.
@@ -1803,6 +1862,14 @@ void LayoutManager::calculateLayoutComponentsWeight()
 }
 /** **************************************************************************************************************/
 
+
+/**
+ * @brief LayoutManager::calculateGeometricScores
+ * @param particle_itr
+ *
+ * This is the geometric part, EUCLIDEAN and ANGULAR distance from the OSM road net
+ *
+ */
 void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 {
     // SCORE using OpenStreetMap-----------------------------------------------------------------------------
@@ -2075,34 +2142,43 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
     //(*particle_itr).setParticleScore(street_distribution_weight * (*particle_itr).pose_diff_score_component * angle_distribution_weight * (*particle_itr).final_angle_diff_score);
 
 
-    vector<LayoutComponent*> vec = (*particle_itr).getLayoutComponents();
-    LayoutComponent* lc = vec.at(0); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-
-    //for(int j=0; j<vec.size(); j++)
-    //{
-    //    LayoutComponent* lc = vec.at(j);
-    //    lc->getComponentWeight();
-    //
-    //}
+    vector<LayoutComponent*> layoutComponentVector = (*particle_itr).getLayoutComponents();  //return the pointer to the LayoutComponent Array (vector)
+    LayoutComponent* lc = layoutComponentVector.at(0); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
 
     ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr).getParticleScore());
-
 
     ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
     ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
     ROS_ASSERT(lc->getComponentWeight()                         > 0.0f);
 
-    double sumOfWeights = street_distribution_weight + angle_distribution_weight + roadState_distribution_weight;
-
     double newScore = (
                           (
                               street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
-                              angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component   +
-                              roadState_distribution_weight * lc->getComponentWeight()
+                              angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component
+                              //roadState_distribution_weight * lc->getComponentWeight()
                           )
-                          / sumOfWeights
                       );
 
+    /// Iterate through all Layout Components
+    /// Here I have a check for the object type to select the right weight factor
+    for (int j = 0; j < layoutComponentVector.size(); j++)
+    {
+        LayoutComponent* lc = layoutComponentVector.at(j); //iterator through the Layout Components
+
+        if (dynamic_cast<LayoutComponent_RoadState* >(lc))
+            newScore += roadState_distribution_weight * lc->getComponentWeight();
+    }
+
+    // L1 Normalization factor, check if the single values are > 0
+    ROS_ASSERT(street_distribution_weight   > 0.0f);
+    ROS_ASSERT(angle_distribution_weight    > 0.0f);
+    ROS_ASSERT(roadState_distribution_weight > 0.0f);
+    double sumOfWeights = street_distribution_weight + angle_distribution_weight + roadState_distribution_weight;
+
+    /// Execute normalization
+    newScore = newScore / sumOfWeights;
+
+    /// Set the score to the particle
     (*particle_itr).setParticleScore( (*particle_itr).getParticleScore() * newScore );
 
     ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
@@ -2114,31 +2190,31 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
     ROS_DEBUG_STREAM("Exiting calculateScore()");
 
     /// OLD DARIO IMPLEMENTATION
-    //vector<Particle>::iterator p_itr
-    //for( p_itr = current_layout.begin(); p_itr != current_layout.end(); p_itr++ )
-    //{
-    //
-    //    // calculate summatory of all components weights
-    //    double components_weight = 0;
-    //    vector<LayoutComponent*> vec = p_itr->getLayoutComponents();
-    //    vector<LayoutComponent*>::iterator pc_itr;
-    //    for(pc_itr = vec.begin(); pc_itr != vec.end(); pc_itr++){
-    //        components_weight += (*pc_itr)->getComponentWeight();
-    //    }
-    //
-    //    // calculate unary score
-    //    MatrixXd unary_score = p_itr->getKalmanGain();
-    //
-    //    /// unary score con distanza dal segmento piu vicino
-    //    //cout << "Particle ID: " << p_itr->getId() << ", unary score: "<< unary_score << endl;
-    //
-    //    // calculate binary score
-    //    MatrixXd binary_score = MatrixXd::Zero(12,12);
-    //
-    //    // calculate particle score
-    //    MatrixXd particle_score = unary_score * binary_score;
-    //    //p_itr->setParticleScore(particle_score);
-    //}
+    /*vector<Particle>::iterator p_itr
+    for( p_itr = current_layout.begin(); p_itr != current_layout.end(); p_itr++ )
+    {
+
+        // calculate summatory of all components weights
+        double components_weight = 0;
+        vector<LayoutComponent*> vec = p_itr->getLayoutComponents();
+        vector<LayoutComponent*>::iterator pc_itr;
+        for(pc_itr = vec.begin(); pc_itr != vec.end(); pc_itr++){
+            components_weight += (*pc_itr)->getComponentWeight();
+        }
+
+        // calculate unary score
+        MatrixXd unary_score = p_itr->getKalmanGain();
+
+        /// unary score con distanza dal segmento piu vicino
+        //cout << "Particle ID: " << p_itr->getId() << ", unary score: "<< unary_score << endl;
+
+        // calculate binary score
+        MatrixXd binary_score = MatrixXd::Zero(12,12);
+
+        // calculate particle score
+        MatrixXd particle_score = unary_score * binary_score;
+        //p_itr->setParticleScore(particle_score);
+    }*/
 }
 /** **************************************************************************************************************/
 
@@ -2231,7 +2307,13 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
     return true;
 }
 
-
+/**
+ * @brief LayoutManager::layoutEstimation
+ * @param timerEvent
+ *
+ * This routine is called scheduled using the ROS timer
+ *
+ */
 void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 {
 
@@ -2297,7 +2379,14 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         this->componentsEstimation();
         // ------------------------------------------------------------------------------- //
 
-        // ------------------------------ calculate score -------------------------------- //
+        /// ------------------------------ calculate score -------------------------------- ///
+        ///
+        /// 1. Geometric Values     calculateGeometricScores
+        /// 2. Other Scores         calculateScore
+        ///
+        ///
+
+
         /// GET SOME GEOMETRIC VALUES
         for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             this->calculateGeometricScores(&(*particle_itr));
@@ -2356,6 +2445,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         }
 
 
+        /// Publish debug information
         try
         {
             if (bestParticle != NULL)
@@ -2377,7 +2467,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         }
         catch (...)
         {
-            ROS_ERROR_STREAM("Something went wrong");
+            ROS_ERROR_STREAM("Something went wrong in the publising debug information " << __LINE__ << " of " << __FILE__);
         }
 
 

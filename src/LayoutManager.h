@@ -45,15 +45,18 @@
 #include "ira_open_street_map/xy_2_latlon.h"
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
+
+//Components
+#include "particle/LayoutComponent.h"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
-#include "particle/LayoutComponent.h"
+#include "particle/LayoutComponent_RoadState.h"
+
 #include "particle/Particle.h"
 #include "road_lane_detection/road_lane_array.h"
 #include "road_lane_detection/road_lane.h"
 
 
-#include "particle/LayoutComponent_RoadState.h"
 //#include "road_layout_estimation/msg_roadState.h"  //ROADSTATECOMPONENT FAKE
 #include "road_layout_estimation/msg_lines.h"
 #include "road_layout_estimation/msg_debugInformation.h"
@@ -165,8 +168,8 @@ public:
     static int odometryMessageCounter;           /// stores the current layout_manager step
 
     // Dynamic reconfigure
-    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
-    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> dynamicReconfigureServer;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType dynamicReconfigureCallback;
     ros::NodeHandle node_handle;
 
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);

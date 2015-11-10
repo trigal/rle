@@ -71,7 +71,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
     ira_open_street_map::getHighwayInfo getHighwayInfo;
     getHighwayInfo.request.way_id = this->getWay_id();
 
-    double scoreLanes            = 1.0f; // LINES to LANES conversion in the getLanes_number() function
+    double scoreLanes            = 1.0f; // LINES to LANES conversion is in the getLanes_number() function
     double scoreWidth            = 1.0f;
     double scoreNaiveWidth       = 1.0f;
     double totalComponentScore   = 0.0f;

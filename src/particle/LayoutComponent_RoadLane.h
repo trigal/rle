@@ -5,44 +5,49 @@
 #include <iostream>
 #include <ros/ros.h>
 
+#include "../Utils.h"
+
 using namespace std;
 
-///
-/// \brief The LayoutComponent_RoadLane class
-///
+/**
+ * @brief The LayoutComponent_RoadLane class
+ */
 class LayoutComponent_RoadLane : public LayoutComponent
 {
 
 private:
 
+    std::vector <double> laneP;
+
 public:
 
-    ///
-    /// \brief calculateComponentScore
-    /// Implementation of pure virtual method 'calculateWeight'
-    void calculateComponentScore()
+    /**
+     * @brief calculateComponentScore
+     * Implementation of pure virtual method 'calculateWeight'
+     */
+    void calculateComponentScore();
+
+    /**
+     * @brief componentPerturbation
+     * Implementation of pure virtual method 'componentPerturbation'
+     */
+    void componentPerturbation();
+
+    /**
+     * @brief componentPoseEstimation
+     * Implementation of pure virtual method 'componentPerturbation'
+     */
+    void componentPoseEstimation();
+
+    /**
+     * @brief LayoutComponent_RoadLane
+     * Default Constructor
+     */
+    LayoutComponent_RoadLane()
     {
-        cout << "Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
+        ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+        laneP.clear();
     }
-
-    ///
-    /// \brief componentPerturbation
-    /// Implementation of pure virtual method 'componentPerturbation'
-    void componentPerturbation()
-    {
-        cout << "Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-    }
-
-    ///
-    /// \brief componentPoseEstimation
-    /// Implementation of pure virtual method 'componentPerturbation'
-    ///
-    void componentPoseEstimation()
-    {
-        cout << "Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-    }
-
-
 };
 
 #endif // LAYOUTCOMPONENT_ROADLANE_H

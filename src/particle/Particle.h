@@ -15,8 +15,9 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "LayoutComponent_RoadState.h"
 #include "LayoutComponent.h"
+#include "LayoutComponent_RoadState.h"
+#include "LayoutComponent_RoadLane.h"
 #include "MotionModel.h"
 #include "../MeasurementModel.h"
 #include "../Utils.h"
@@ -61,12 +62,20 @@ public:
     /**
      * Add new component to the particle
      * @param component
+     *
+     * Here I check the type of Layout Component and push back to the component
+     *
      */
     void addComponent(LayoutComponent* component)
     {
         if (dynamic_cast<LayoutComponent_RoadState* >(component))
         {
             ROS_DEBUG_STREAM("Adding Component roadStateComponent with componentID: " << component->getComponentId());
+            this->particle_components.push_back(component);
+        }
+        if (dynamic_cast<LayoutComponent_RoadLane* >(component))
+        {
+            ROS_DEBUG_STREAM("Adding Component roadLaneComponent with componentID: " << component->getComponentId());
             this->particle_components.push_back(component);
         }
     }

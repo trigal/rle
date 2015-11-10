@@ -81,7 +81,7 @@
             />
          -->
 
-        <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB** -->
+        <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB**-->
         <include file="$(find isis_line_detector)/launch/linedetector.launch" />
 
         <!-- KITTI PLAYER -->

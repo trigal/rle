@@ -114,7 +114,7 @@
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 
-        <!-- Launch ROAD LANE DETECTOR
+        <!-- Launch ROAD LANE DETECTOR ** IRALAB**
             <node
                     pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
                     required="true"
