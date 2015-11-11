@@ -117,8 +117,9 @@ public:
      *
      *  refs #498
      */
-    template <typename LayoutComponentType> int clearLayoutComponentType()
+    template <typename LayoutComponentType> unsigned int clearLayoutComponentType()
     {
+        int deleted=0;
         //for like a while...
         for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); )
         {
@@ -129,10 +130,12 @@ public:
                 //  Delete the elements with the passed LayoutComponentType
                 particle_components.erase(it);
                 it = particle_components.begin();
+                deleted++;
             }
             else
                 ++it;
         }
+        return deleted;
     }
 
     /**
