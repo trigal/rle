@@ -120,12 +120,19 @@ public:
     ///
     template <typename LayoutComponentType> int clearLayoutComponentType()
     {
-        for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); ++it)
+        //for like a while...
+        for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); )
         {
             if (dynamic_cast<LayoutComponentType*>(*it))
             {
-                ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << " " << typeid(LayoutComponentType).name());
+                ROS_DEBUG_STREAM("deleting component of type [" << typeid(LayoutComponentType).name() << "]" << ", code at: " << __PRETTY_FUNCTION__);
+
+                //  Delete the elements with the passed LayoutComponentType
+                particle_components.erase(it);
+                it = particle_components.begin();
             }
+            else
+                ++it;
         }
     }
 
