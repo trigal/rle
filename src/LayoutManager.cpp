@@ -124,9 +124,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopi
 
     /// Init publisher & subscribers
     LayoutManager::odometry_sub  = node_handle.subscribe(visualOdometryTopic, 1, &LayoutManager::odometryCallback, this);
-    LayoutManager::road_lane_sub = node_handle.subscribe("/road_lane_detection/lanes", 3, &LayoutManager::roadLaneCallback , this);
+    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
+    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
-    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes"   , 3, &LayoutManager::roadStateCallback, this);        //ISISLAB Ruben callback
 
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
@@ -1938,9 +1938,9 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
         getDistanceFromLaneCenter_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
         getDistanceFromLaneCenter_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
-        getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIXME: find the right component (check also the cast)
+        //getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIX: find the right component (check also the cast)
+        getDistanceFromLaneCenter_serviceMessage.request.way_id = (*particle_itr).getWayIDHelper(); // refs #502
         getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
-
 
         if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
         {
@@ -2143,14 +2143,17 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
 
     vector<LayoutComponent*> layoutComponentVector = (*particle_itr).getLayoutComponents();  //return the pointer to the LayoutComponent Array (vector)
-    LayoutComponent* lc = layoutComponentVector.at(0); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
+    //LayoutComponent* lc = layoutComponentVector.at(0); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
 
     ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr).getParticleScore());
 
     ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
     ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
-    ROS_ASSERT(lc->getComponentWeight()                         > 0.0f);
 
+    /// First sum the first parts coded inside the particle (not the component).
+    /// Before the N-number of components here we hace a single layout component
+    /// and a getComponentWeight, now it is splitted with this lines and the
+    /// following for
     double newScore = (
                           (
                               street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
@@ -2159,7 +2162,8 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
                           )
                       );
 
-    /// Iterate through all Layout Components
+    /// This is the second part I was writing about before.
+    /// This Iterates through all Layout Components to get the overall score.
     /// Here I have a check for the object type to select the right weight factor
     for (int j = 0; j < layoutComponentVector.size(); j++)
     {
@@ -2183,7 +2187,7 @@ void LayoutManager::calculateScore(Particle *particle_itr) //const reference
 
     ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
     ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log) : " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
-    ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
+    //ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
     ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfWeights) ;
     ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
 
@@ -2451,16 +2455,21 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
             if (bestParticle != NULL)
             {
                 road_layout_estimation::msg_debugInformation debugInfoMessage;
-                vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
-                LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-                debugInfoMessage.scoreRoadLane_Lanes   = lc->getScoreLanes();
-                debugInfoMessage.scoreRoadLane_Width   = lc->getScoreWidth();
-                debugInfoMessage.scoreRoadLane_Total   = lc->getTotalComponentScore();
+
                 debugInfoMessage.distance_Euclidean    = (*bestParticle).pose_diff_score_component;
                 debugInfoMessage.distance_Angular      = (*bestParticle).final_angle_diff_score_component;
                 debugInfoMessage.bestParticleScore     = (*bestParticle).getParticleScore();
                 debugInfoMessage.overAllParticleScore = current_layoutScore;
 
+                //vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
+                //LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
+                LayoutComponent_RoadState* lc  = bestParticle->giveMeThatComponent<LayoutComponent_RoadState>(); // refs #503
+                if (lc)
+                {
+                    debugInfoMessage.scoreRoadLane_Lanes   = lc->getScoreLanes();
+                    debugInfoMessage.scoreRoadLane_Width   = lc->getScoreWidth();
+                    debugInfoMessage.scoreRoadLane_Total   = lc->getTotalComponentScore();
+                }
 
                 this->publisher_debugInformation.publish(debugInfoMessage);
             }

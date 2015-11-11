@@ -103,6 +103,7 @@ public:
     // constructor
     LayoutComponent()
     {
+        ROS_DEBUG_STREAM(__PRETTY_FUNCTION__);
         particle_id = 0;
         component_id = 0;
         component_weight = 0;

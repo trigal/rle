@@ -62,7 +62,6 @@ public:
 
     static int lanesFromLines(int goodLines);
 
-
     ///
     /// \brief addOffsetToVectorXd
     /// \param pose

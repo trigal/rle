@@ -39,7 +39,7 @@ void Particle::propagateLayoutComponents()
         if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
             ROS_DEBUG_STREAM("roadStateComponent detected");
-            (*itr)->componentPoseEstimation(); //virtual            
+            (*itr)->componentPoseEstimation(); //virtual
         }
         else
         {
@@ -252,5 +252,28 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //DEBUG:stampa stato_t_predetto
     stato_filtrato.printState("[stato_t_filtrato]");
 
-//    cout << "--------------------------------------------------------------------------------" << endl;
+    //    cout << "--------------------------------------------------------------------------------" << endl;
+}
+
+/**
+ * @brief Utils::getWayIDHelper
+ * @return the wayId of the LayoutComponent Roadstate
+ *
+ * refs #502
+ */
+int64_t Particle::getWayIDHelper()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            int64_t a=dynamic_cast<LayoutComponent_RoadState *>(*it)->getWay_id();
+            return a;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return -1;
+
+    //(dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id();
 }

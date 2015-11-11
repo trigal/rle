@@ -448,14 +448,15 @@ int Utils::lanesFromLines(int goodLines)
 }
 
 
-///
-/// \brief Utils::addOffsetToVectorXd
-/// \param pose
-/// \param position_offset
-/// \param orientation_offset
-/// \param speed_offset
-/// \return Adds a random noise to a VectorXd 12x1 representing particle's pose
-///
+
+/**
+ * @brief Utils::addOffsetToVectorXd
+ * @param pose
+ * @param position_offset
+ * @param orientation_offset
+ * @param speed_offset
+ * @return Adds a random noise to a VectorXd 12x1 representing particle's pose
+ */
 VectorXd Utils::addOffsetToVectorXd(const VectorXd& pose, double position_offset, double orientation_offset, double speed_offset)
 {
     srand(time(0));

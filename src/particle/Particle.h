@@ -107,17 +107,16 @@ public:
 
     void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime = 0.0f, double deltaOdomTime = 0.0f);
 
-    ///
-    /// \brief clearLayoutComponentType
-    /// \param T
-    /// \return number of deleted objects.
-    ///
-    /// Passing the type of Layout Component, updates the LayoutComponent vector
-    /// deleting all objects with type = T
-    ///
-    /// refs #498
-    /// \warning TEST needed
-    ///
+    /**
+     *  @brief clearLayoutComponentType
+     *  @param T the type of the LayoutComponent to delete from the vector of components
+     *  @return number of deleted objects.
+     *
+     *  Passing the type of Layout Component, updates the LayoutComponent vector
+     *  deleting all objects with type = T
+     *
+     *  refs #498
+     */
     template <typename LayoutComponentType> int clearLayoutComponentType()
     {
         //for like a while...
@@ -135,6 +134,31 @@ public:
                 ++it;
         }
     }
+
+    /**
+     * @brief giveMeThatComponent
+     * @return pointer to the component if found, null otherwise
+     *
+     * checks in the LayoutComponent vector, looking for the param T (LayoutComponentType)
+     * and then returns a pointer to that component
+     *
+     * refs #503
+     *
+     */
+    template <typename LayoutComponentType> LayoutComponentType* giveMeThatComponent()
+    {
+        for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); ++it)
+        {
+            if (dynamic_cast<LayoutComponentType*>(*it))
+            {
+                return (dynamic_cast<LayoutComponentType*>(*it));
+            }
+        }
+        return 0;
+    }
+
+
+    int64_t getWayIDHelper();
 
     vector<LayoutComponent*> getLayoutComponents()
     {
