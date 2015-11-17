@@ -17,7 +17,7 @@ Eigen::Array4f sensor(0.9, 0.1, 0.0, 0.0);
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
-    if (std::fabs(a.offset) > std::fabs(b.offset))
+    if (std::fabs(a.offset) < std::fabs(b.offset))
         return true;
     else
         return false;
@@ -25,10 +25,23 @@ bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::m
 
 bool isFalse(road_layout_estimation::msg_lineInfo a)
 {
-    if (a.isValid)
+    if (!a.isValid)
         return true;
     else
         return false;
+}
+
+int lanesFromLines(int goodLines)
+{
+    ROS_ASSERT(goodLines >= 0);
+
+    if ( (goodLines == 0) ||
+            (goodLines == 1) ||
+            (goodLines == 2)
+       )
+        return 1;
+    else
+        return (goodLines - 1);
 }
 
 void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
@@ -85,39 +98,45 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     //ROS_INFO_STREAM(hypothesisCurrentLanesNaive << "\t" << msg_lines.naive_width << "\t\t" << hypothesisCurrentLanes << "\t" << msg_lines.width);
 
     vector <road_layout_estimation::msg_lineInfo> tmp = msg_lines.lines;
-    tmp.erase(std::remove_if(tmp.begin(),tmp.end(),isFalse));
-    std::sort (tmp.begin(),tmp.end(),myCompare);
+    vector <road_layout_estimation::msg_lineInfo>::iterator rm;
+    rm = tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isFalse));
+    std::sort (tmp.begin(), rm, myCompare);
 
     if (msg_lines.width > standardLaneWidth)
     {
         // se ci sono almeno due linee, quindi almeno una corsia
         if (msg_lines.goodLines > 1)
         {
-            char c = 0;
-            double vicina = std::numeric_limits<double>::max();
-            for (c = 0; c < msg_lines.number_of_lines; c++)
+
+            int corsie = lanesFromLines(msg_lines.number_of_lines); // ?goodlines? qui osm
+            int extra_corsie = corsie - hypothesisCurrentLanes; // quante altre penso che ci siano
+            double total_lenght = corsie * standardLaneWidth;
+
+            Eigen::ArrayXi tentative(corsie);
+            tentative.setZero(corsie);
+
+            while (extra_corsie+1)
             {
-                // la linea valida più vicina dovrebbe essere più vicina della standardLaneWidth, ovvero, siamo nella corsia?
-                if (msg_lines.lines.at(c).isValid)
+                /// In quale delle corsie su hypothesisCurrentLanes sono?
+                int toadd=corsie;
+                for (int i = 0; i < msg_lines.goodLines; i++)
                 {
-                    if (std::fabs(msg_lines.lines.at(c).offset) < standardLaneWidth )
+                    if (std::fabs(tmp[i].offset) < standardLaneWidth)
                     {
-                        // la linea dovrebbe appartenere alla corsia corrente
-                        // utilizzando NAIVE_WIDTH, in quale corsia siamo?
-                        vicina = msg_lines.lines.at(c).offset;
-                        //ROS_INFO_STREAM("current lane detected @" << msg_lines.lines.at(0).offset);
+                        tentative(toadd-1)=tentative(toadd-1)+1;
+                        break;
                     }
                     else
-                    {
-                        // non siamo dentro una corsia con le linee valide, ovvero
-                        // le linee valide sono fuori dalla nostra corsia
-                    }
+                        toadd--;
                 }
-                else
-                {
-                    // la linea non è segnata come VALID.
-                }
+
+                corsie--;
+                extra_corsie--;
             }
+
+            ROS_ERROR_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
+
+
         }
         else
         {
@@ -129,12 +148,13 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     corsia = temp * sensor;
     corsia /= corsia.sum();
 
-    std::cout << corsia.transpose() << endl << endl;
+    std::cout << corsia << endl << endl;
 
 }
 
 int main(int argc, char **argv)
 {
+
     ros::init(argc, argv, "listener");
 
     ros::NodeHandle n;
