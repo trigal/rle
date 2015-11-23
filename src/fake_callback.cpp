@@ -10,11 +10,9 @@
 
 using namespace std;
 
-double numb = 2;
-Eigen::Array2d corsia(1 / numb, 1 / numb); //, 1 / numb, 1 / numb);
-//Eigen::ArrayXd sensor; //(0.9, 0.1);//, 0.0, 0.0);
-Eigen::RowVector4d sensor;
-Eigen::Array4d megavariabile(0.495, 0.495, 0.005, 0.005);
+Eigen::Vector4d sensor;
+//Eigen::Array4d megavariabile(0.495, 0.495, 0.005, 0.005);
+Eigen::Array4d megavariabile(0.005, 0.005, 0.495, 0.495);
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
@@ -48,51 +46,28 @@ int lanesFromLines(int goodLines)
 
 void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 {
+    cout << "================================================================"<< endl << endl;
     Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
     cout << megavariabile.sum() << endl;
     ROS_ASSERT( (1 - megavariabile.sum()) <= 0.00001f);
 
-    //std::cout << corsia.transpose() << endl;
-
-    Eigen::MatrixXd state(4, 4);
-    //state << 0.91 , 0.09 , 0    , 0   ,
-    //        0.09 , 0.82 , 0.09 , 0   ,
-    //        0    , 0.09 , 0.82 , 0.09,
-    //        0    , 0    , 0.1  , 0.9 ;
-
     // from excel, unified-transition matrix with 2 lanes + broken-sensor
+    Eigen::MatrixXd state(4, 4);
     state << 0.693	, 0.297	, 0.007	, 0.003,
              0.297	, 0.693	, 0.003	, 0.007,
              0.07	, 0.03	, 0.63	, 0.27 ,
              0.03	, 0.07	, 0.27	, 0.63 ;
+    cout << "Transition Matrix" << endl;
+    cout << state.format(CleanFmt) << endl;
 
-    cout << state.col(0).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
-    cout << state.col(1).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
-    cout << state.col(2).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
-    cout << state.col(3).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
-
-    cout << endl;
-
-    cout << (megavariabile * state.col(0).array()).transpose().format(CleanFmt) << endl;
-    cout << (megavariabile * state.col(1).array()).transpose().format(CleanFmt) << endl;
-    cout << (megavariabile * state.col(2).array()).transpose().format(CleanFmt) << endl;
-    cout << (megavariabile * state.col(3).array()).transpose().format(CleanFmt) << endl;
-
-    cout << endl << "FOLLOWS PREDICTION" << endl;
-
-    cout << (megavariabile * state.col(0).array()).sum() << endl;
-    cout << (megavariabile * state.col(1).array()).sum() << endl;
-    cout << (megavariabile * state.col(2).array()).sum() << endl;
-    cout << (megavariabile * state.col(3).array()).sum() << endl;
+    //    cout << megavariabile.transpose() << " * " << state.col(0).array().transpose() << endl; //checking column/row multiplcation...
 
     Eigen::Array4d prediction;
     prediction[0] = (megavariabile * state.col(0).array()).sum();
     prediction[1] = (megavariabile * state.col(1).array()).sum();
     prediction[2] = (megavariabile * state.col(2).array()).sum();
     prediction[3] = (megavariabile * state.col(3).array()).sum();
-
-    //std::cout << temp.transpose() << endl ;
 
     double standardLaneWidth = 3.0f; //maybe minLaneWidth
     unsigned int hypothesisCurrentLanesNaive = 0.0f; //hypothesis of current lane
@@ -159,14 +134,15 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
             //ROS_DEBUG_STREAM(msg_lines.lines.at(0).offset);
             //ROS_ASSERT (((tentative[0]>0)||(tentative[1]>0)));
 
-            double debugsum = tentative.sum();
+            /// Add noise to every guess
+            tentative += 0.001f;
             tentative /= tentative.sum();
 
-            string s;
-            for (int i = 0; i <= tentative.cols(); i++)
-                s = s + " " + std::to_string(tentative[i]);
-            ROS_WARN_STREAM(s);
-            //ROS_DEBUG_STREAM(tentative[0] << " " << tentative[1] << "\tDebugsum: " << debugsum);
+            //string s;
+            //for (int i = 0; i <= tentative.cols(); i++)
+            //    s = s + " " + std::to_string(tentative[i]);
+            //ROS_WARN_STREAM(s);
+            //ROS_DEBUG_STREAM(tentative[0] << " " << tentative[1] << );
 
             /// Does some couple of lines create a plausible "lane?"
             for (int i = 0; i < validAndSorted.size() - 1; i++)
@@ -182,10 +158,53 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         }
         else
         {
+            ROS_WARN_STREAM("Not enough goodLines: " << msg_lines.goodLines << " - width: " << msg_lines.width );
+
             // standardLaneWidth > Threshold BUT goodLines = 1 AKA
             // only one line away from me more than 1 LANE threshold
-            ROS_WARN_STREAM("Not enough goodLines: " << msg_lines.goodLines << " - width: " << msg_lines.width );
-            sensor << 0.25, 0.25, 0.25, 0.25 ;
+            // I only can say that
+
+            //sensor << 0.25, 0.25, 0.25, 0.25 ;
+            if (validAndSorted.size()==1)
+            {
+                // The following two IF could be merged, but in this way it is "pretty" clear =)
+                int corsie = hypothesisCurrentLanes;
+
+                if (validAndSorted.at(0).offset > 0)
+                {
+                    // adding ONES to all LEFT lanes compatible with the ONELINE offset
+                    // i.e. all lines farther than validAndSorted, with the value on the RIGHT
+                    double tot = standardLaneWidth;
+                    while (corsie >= 0)
+                    {
+                        if (validAndSorted.at(0).offset < (tot))
+                            tentative(corsie) = 1;
+
+                        tot += standardLaneWidth;
+                        corsie--;
+                    }
+                }
+                else
+                {
+                    // adding ONES to all RIGHT lanes compatible with the ONELINE offset
+                    // i.e. all lines farther than validAndSorted, with the value on the LEFT
+                    double tot = standardLaneWidth;
+                    while (corsie >= 0)
+                    {
+                        if (std::fabs(validAndSorted.at(0).offset) < (tot))
+                            tentative(hypothesisCurrentLanes-corsie) = 1;
+
+                        tot += standardLaneWidth;
+                        corsie--;
+                    }
+                }
+
+                /// Add noise to every guess
+                tentative += 0.001f;
+                tentative /= tentative.sum();
+            }
+            else
+                ROS_ASSERT_MSG(1,"nope ... ");
         }
     }
     else
@@ -200,12 +219,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         //ROS_WARN_STREAM("Detected width less than standardLaneWidth: " << msg_lines.width);
     }
 
-    //sensor << 0.9, 0.1, 0, 0;
-    //corsia = temp * sensor;
-    //corsia /= corsia.sum();
-
-    //std::cout << corsia.transpose() << endl << endl;
-
+    // Sums the counter inside VALID lines.
     int counter=0;
     for(int i=0; i<msg_lines.lines.size();i++)
         if (msg_lines.lines.at(i).isValid)
@@ -214,6 +228,8 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     double SensorOK  = 0.0f; //double(counter) / double(msg_lines.number_of_lines * 10);
     double SensorBAD = 0.0f; //1-SensorOK;
     SensorOK  = double(counter) / double(msg_lines.number_of_lines * 10) - 0.01f; //adding noise
+    if (SensorOK<0.0f)
+        SensorOK=0.01;
     SensorBAD = double(1.0f)-SensorOK;
 
     ROS_INFO_STREAM("Sensor OK/BAD:" << SensorOK << "/" << SensorBAD << " - counter: " << counter << "/" << msg_lines.number_of_lines * 10);
@@ -224,11 +240,11 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     Eigen::Array2d b;
     a = (tentative * SensorOK ) ; //<< endl;
     b = (tentative * SensorBAD) ; //<< endl;
-    Eigen::Vector4d sensor;
+    sensor.setZero(4);
     sensor << a,b;
 
-    cout << "prediction:\t" << prediction.transpose().format(CleanFmt) << endl;
     cout << "sensor    :\t" <<sensor.transpose().format(CleanFmt) << endl;
+    cout << "prediction:\t" <<prediction.transpose().format(CleanFmt) << endl;
     Eigen::Vector4d update; update << sensor.array() * prediction.array() ;
     cout << "update 1  :\t" << update.transpose().format(CleanFmt) << endl;
     double sum = update.sum();
