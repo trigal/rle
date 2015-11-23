@@ -1658,7 +1658,16 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
     //layout_components->clear();
     //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
 
-    // Add it to all particles
+    double standardLaneWidth = 4.0f;
+    unsigned int hypothesisCurrentLanes = 0.0f; //hypothesis of current lane
+
+    /// Heuristic for number of lanes given the detected/naive width
+    if (std::fmod(msg_lines.naive_width, standardLaneWidth) >= (standardLaneWidth / 2))
+        hypothesisCurrentLanes = round(msg_lines.naive_width / standardLaneWidth );
+    else
+        hypothesisCurrentLanes = round(msg_lines.naive_width / standardLaneWidth ) + 1;
+
+    /// Iterate through all particles
     for (int i = 0; i < current_layout.size(); ++i)
     {
         // Get all layout components of particle
@@ -1671,6 +1680,7 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
                 if (dynamic_cast<LayoutComponent_RoadLane*>(layoutComponentVector.at(j)))
                 {
                     ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << __LINE__ << " of " << __FILE__);
+                    //LayoutComponent_RoadLane* RL = layoutComponentVector.at(j);
                 }
             }
         }

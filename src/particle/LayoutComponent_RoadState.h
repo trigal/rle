@@ -19,11 +19,16 @@
 
 using namespace std;
 
-/// \file LayoutComponent_RoadState.h
-/// \brief Road component
-/// The state is stored using a msg_lines message
-///
-///
+/**
+ * @brief The LayoutComponent_RoadState class
+ *
+ * This component should answer to the following question:
+ *
+ * QUANDO IL DETECTOR DI LINEE CI PERMETTE DI DIRE CHE LA 'DETECTION' SI AVVCINA
+ * A QUANTO DICE OSM UTILIZZANDO N#LINEE + LARGHEZZA STRADA
+ *
+ * The state is stored using a msg_lines message
+ */
 class LayoutComponent_RoadState : public LayoutComponent
 {
 private:

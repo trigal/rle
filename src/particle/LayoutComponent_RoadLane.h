@@ -11,6 +11,9 @@ using namespace std;
 
 /**
  * @brief The LayoutComponent_RoadLane class
+ *
+ * This component should answer to the following question: IN WHICH LANE I AM?
+ *
  */
 class LayoutComponent_RoadLane : public LayoutComponent
 {
@@ -36,6 +39,10 @@ public:
     /**
      * @brief componentPoseEstimation
      * Implementation of pure virtual method 'componentPerturbation'
+     *
+     * called from this tree:
+     *      2. Particle::propagateLayoutComponents()
+     *      1. LayoutManager::sampling()
      */
     void componentPoseEstimation();
 
