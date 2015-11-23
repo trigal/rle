@@ -1,5 +1,5 @@
+#include <string>
 #include "ros/ros.h"
-#include "std_msgs/String.h"
 #include "road_layout_estimation/msg_lines.h"
 #include "road_layout_estimation/msg_lineInfo.h"
 #include <limits>
@@ -10,14 +10,16 @@
 
 using namespace std;
 
-double numb = 4;
-Eigen::Array4f corsia(1 / numb, 1 / numb, 1 / numb, 1 / numb);
-//Eigen::Array4f sensor(0.25,0.25,0.25,0.25);
-Eigen::Array4f sensor(0.9, 0.1, 0.0, 0.0);
+double numb = 2;
+Eigen::Array2d corsia(1 / numb, 1 / numb); //, 1 / numb, 1 / numb);
+//Eigen::ArrayXd sensor; //(0.9, 0.1);//, 0.0, 0.0);
+Eigen::RowVector4d sensor;
+Eigen::Array4d megavariabile(0.495, 0.495, 0.005, 0.005);
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
-    if (std::fabs(a.offset) < std::fabs(b.offset))
+    if (a.offset > b.offset)
+        //if (std::fabs(a.offset) < std::fabs(b.offset))
         return true;
     else
         return false;
@@ -46,38 +48,53 @@ int lanesFromLines(int goodLines)
 
 void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 {
-    std::cout << corsia.transpose() << endl;
+    Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
-    Eigen::MatrixXf state(4, 4);
-    state << 0.91 , 0.09 , 0    , 0   ,
-          0.09 , 0.82 , 0.09 , 0   ,
-          0    , 0.09 , 0.82 , 0.09,
-          0    , 0    , 0.1  , 0.9 ;
+    cout << megavariabile.sum() << endl;
+    ROS_ASSERT( (1 - megavariabile.sum()) <= 0.00001f);
 
-    //Eigen::MatrixXf test(5,5);
-    //test << 1,1,1,1,1,
-    //        2,2,2,2,2,
-    //        3,3,3,3,3,
-    //        4,4,4,4,4,
-    //        5,5,5,5,5;
-    //
-    //Eigen::ArrayXf vect(5);
-    //vect << 1,2,3,4,5;
-    //
-    //std::cout << std::endl;
-    //Eigen::MatrixXf ris = vect * test.row(1).transpose().array();
-    //
-    //std::cout << ris.transpose() << std::endl ;
+    //std::cout << corsia.transpose() << endl;
 
-    Eigen::Array4f temp;
-    temp[0] = (corsia * state.row(0).transpose().array()).sum();
-    temp[1] = (corsia * state.row(1).transpose().array()).sum();
-    temp[2] = (corsia * state.row(2).transpose().array()).sum();
-    temp[3] = (corsia * state.row(3).transpose().array()).sum();
+    Eigen::MatrixXd state(4, 4);
+    //state << 0.91 , 0.09 , 0    , 0   ,
+    //        0.09 , 0.82 , 0.09 , 0   ,
+    //        0    , 0.09 , 0.82 , 0.09,
+    //        0    , 0    , 0.1  , 0.9 ;
 
-    std::cout << temp.transpose() << endl ;
+    // from excel, unified-transition matrix with 2 lanes + broken-sensor
+    state << 0.693	, 0.297	, 0.007	, 0.003,
+             0.297	, 0.693	, 0.003	, 0.007,
+             0.07	, 0.03	, 0.63	, 0.27 ,
+             0.03	, 0.07	, 0.27	, 0.63 ;
 
-    double standardLaneWidth = 4.0f;
+    cout << state.col(0).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
+    cout << state.col(1).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
+    cout << state.col(2).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
+    cout << state.col(3).array().transpose().format(CleanFmt) << " * " << megavariabile.transpose() << endl;
+
+    cout << endl;
+
+    cout << (megavariabile * state.col(0).array()).transpose().format(CleanFmt) << endl;
+    cout << (megavariabile * state.col(1).array()).transpose().format(CleanFmt) << endl;
+    cout << (megavariabile * state.col(2).array()).transpose().format(CleanFmt) << endl;
+    cout << (megavariabile * state.col(3).array()).transpose().format(CleanFmt) << endl;
+
+    cout << endl << "FOLLOWS PREDICTION" << endl;
+
+    cout << (megavariabile * state.col(0).array()).sum() << endl;
+    cout << (megavariabile * state.col(1).array()).sum() << endl;
+    cout << (megavariabile * state.col(2).array()).sum() << endl;
+    cout << (megavariabile * state.col(3).array()).sum() << endl;
+
+    Eigen::Array4d prediction;
+    prediction[0] = (megavariabile * state.col(0).array()).sum();
+    prediction[1] = (megavariabile * state.col(1).array()).sum();
+    prediction[2] = (megavariabile * state.col(2).array()).sum();
+    prediction[3] = (megavariabile * state.col(3).array()).sum();
+
+    //std::cout << temp.transpose() << endl ;
+
+    double standardLaneWidth = 3.0f; //maybe minLaneWidth
     unsigned int hypothesisCurrentLanesNaive = 0.0f; //hypothesis of current lane
     unsigned int hypothesisCurrentLanes = 0.0f; //hypothesis of current lane
 
@@ -85,7 +102,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 //    if (std::fmod(msg_lines.naive_width, standardLaneWidth) >= (standardLaneWidth / 1.0f))
 //        hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth );
 //    else
-//        hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth ) + 1;
+//        hypothesi-sCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth ) + 1;
 //
 //    if (std::fmod(msg_lines.naive_width, standardLaneWidth)  >= (standardLaneWidth / 1.0f))
 //        hypothesisCurrentLanes = round(msg_lines.width / standardLaneWidth );
@@ -93,62 +110,135 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 //        hypothesisCurrentLanes = round(msg_lines.width / standardLaneWidth ) + 1;
 
     hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth );
-    hypothesisCurrentLanes = round(msg_lines.width / standardLaneWidth );
+    hypothesisCurrentLanes =      round(msg_lines.width / standardLaneWidth );
 
-    //ROS_INFO_STREAM(hypothesisCurrentLanesNaive << "\t" << msg_lines.naive_width << "\t\t" << hypothesisCurrentLanes << "\t" << msg_lines.width);
+    /// Sorting lines
+    vector <road_layout_estimation::msg_lineInfo> validAndSorted;
+    for (int i = 0; i < msg_lines.lines.size(); ++i)
+    {
+        road_layout_estimation::msg_lineInfo toadd = msg_lines.lines.at(i);
+        if (toadd.isValid)
+            validAndSorted.push_back(toadd);
+    }
+    std::sort (validAndSorted.begin(), validAndSorted.end(), myCompare);
 
-    vector <road_layout_estimation::msg_lineInfo> tmp = msg_lines.lines;
-    vector <road_layout_estimation::msg_lineInfo>::iterator rm;
-    rm = tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isFalse));
-    std::sort (tmp.begin(), rm, myCompare);
+    int corsie = lanesFromLines(msg_lines.number_of_lines) ; // ?goodlines? qui osm
+    int extra_corsie = corsie - hypothesisCurrentLanes; // quante altre penso che ci siano oltre a quella trovata OSM - TROVATE
+    if (extra_corsie < 0)
+        extra_corsie = 0; //non può essere minore di zero. caso in cui ho più detection di quelle che dovrebbero esserci
+    double total_lenght = corsie * standardLaneWidth;
+    Eigen::ArrayXd tentative(corsie); // il numero di corsie ipotizzate = OSM
+    tentative.setZero(corsie);
 
+    // if the detected with (not naive, with VALID lines) ...
     if (msg_lines.width > standardLaneWidth)
     {
         // se ci sono almeno due linee, quindi almeno una corsia
         if (msg_lines.goodLines > 1)
         {
-
-            int corsie = lanesFromLines(msg_lines.number_of_lines); // ?goodlines? qui osm
-            int extra_corsie = corsie - hypothesisCurrentLanes; // quante altre penso che ci siano
-            double total_lenght = corsie * standardLaneWidth;
-
-            Eigen::ArrayXi tentative(corsie);
-            tentative.setZero(corsie);
-
-            while (extra_corsie+1)
+            while (extra_corsie + 1)
             {
                 /// In quale delle corsie su hypothesisCurrentLanes sono?
-                int toadd=corsie;
+                int toadd = corsie;
                 for (int i = 0; i < msg_lines.goodLines; i++)
                 {
-                    if (std::fabs(tmp[i].offset) < standardLaneWidth)
+                    if (std::fabs(validAndSorted[i].offset) < standardLaneWidth)
                     {
-                        tentative(toadd-1)=tentative(toadd-1)+1;
+                        if (toadd == 0)
+                            break;
+                        tentative(toadd - 1) = tentative(toadd - 1) + 1;
+                        //ROS_ASSERT ((toadd-1)>=1); //Stop if some value in the array is > 1, at the moment no-value should ..
                         break;
                     }
                     else
                         toadd--;
                 }
-
                 corsie--;
                 extra_corsie--;
             }
+            //ROS_DEBUG_STREAM(msg_lines.lines.at(0).offset);
+            //ROS_ASSERT (((tentative[0]>0)||(tentative[1]>0)));
 
-            ROS_ERROR_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
+            double debugsum = tentative.sum();
+            tentative /= tentative.sum();
 
+            string s;
+            for (int i = 0; i <= tentative.cols(); i++)
+                s = s + " " + std::to_string(tentative[i]);
+            ROS_WARN_STREAM(s);
+            //ROS_DEBUG_STREAM(tentative[0] << " " << tentative[1] << "\tDebugsum: " << debugsum);
+
+            /// Does some couple of lines create a plausible "lane?"
+            for (int i = 0; i < validAndSorted.size() - 1; i++)
+            {
+                double sum = (std::fabs(validAndSorted.at(i).offset) + std::fabs(validAndSorted.at(i + 1).offset));
+                double threshold = standardLaneWidth / 2.0f;
+                if ((validAndSorted.at(i).offset > 0.0f) && (validAndSorted.at(i + 1).offset < 0.0f))
+                    if ( (sum > (standardLaneWidth - threshold)) &&
+                            (sum < (standardLaneWidth + threshold)) )
+                            ROS_INFO_STREAM("Inside a lane created by lines " << i << " and " << i + 1 << " " << sum);
+            }
 
         }
         else
         {
+            // standardLaneWidth > Threshold BUT goodLines = 1 AKA
+            // only one line away from me more than 1 LANE threshold
+            ROS_WARN_STREAM("Not enough goodLines: " << msg_lines.goodLines << " - width: " << msg_lines.width );
             sensor << 0.25, 0.25, 0.25, 0.25 ;
         }
     }
+    else
+    {
+        tentative.setConstant(corsie, 1.0f / corsie);
+        //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
+        string s;
+        for (int i = 0; i <= tentative.cols(); i++)
+            s = s + " " + std::to_string(tentative[i]);
+        ROS_WARN_STREAM(s);
+        //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " ** Detected width less than standardLaneWidth (" << standardLaneWidth << "): " << msg_lines.width);
+        //ROS_WARN_STREAM("Detected width less than standardLaneWidth: " << msg_lines.width);
+    }
 
     //sensor << 0.9, 0.1, 0, 0;
-    corsia = temp * sensor;
-    corsia /= corsia.sum();
+    //corsia = temp * sensor;
+    //corsia /= corsia.sum();
 
-    std::cout << corsia << endl << endl;
+    //std::cout << corsia.transpose() << endl << endl;
+
+    int counter=0;
+    for(int i=0; i<msg_lines.lines.size();i++)
+        if (msg_lines.lines.at(i).isValid)
+            counter += msg_lines.lines.at(i).counter;
+
+    double SensorOK  = 0.0f; //double(counter) / double(msg_lines.number_of_lines * 10);
+    double SensorBAD = 0.0f; //1-SensorOK;
+    SensorOK  = double(counter) / double(msg_lines.number_of_lines * 10) - 0.01f; //adding noise
+    SensorBAD = double(1.0f)-SensorOK;
+
+    ROS_INFO_STREAM("Sensor OK/BAD:" << SensorOK << "/" << SensorBAD << " - counter: " << counter << "/" << msg_lines.number_of_lines * 10);
+
+    //tentative.setConstant(2, 0.5f);
+
+    Eigen::Array2d a;
+    Eigen::Array2d b;
+    a = (tentative * SensorOK ) ; //<< endl;
+    b = (tentative * SensorBAD) ; //<< endl;
+    Eigen::Vector4d sensor;
+    sensor << a,b;
+
+    cout << "prediction:\t" << prediction.transpose().format(CleanFmt) << endl;
+    cout << "sensor    :\t" <<sensor.transpose().format(CleanFmt) << endl;
+    Eigen::Vector4d update; update << sensor.array() * prediction.array() ;
+    cout << "update 1  :\t" << update.transpose().format(CleanFmt) << endl;
+    double sum = update.sum();
+    cout << "sum       :\t" << sum << endl;
+    update /= sum;
+    cout << "update 2  :\t" <<update.transpose().format(CleanFmt) << endl;
+
+    ROS_ASSERT( (1 - update.sum()) <= 0.00001f);
+
+    megavariabile = update;
 
 }
 
@@ -156,6 +246,12 @@ int main(int argc, char **argv)
 {
 
     ros::init(argc, argv, "listener");
+
+    /// This sets the logger level; use this to disable all ROS prints
+    if ( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) )
+        ros::console::notifyLoggerLevelsChanged();
+    else
+        std::cout << "Error while setting the logger level!" << std::endl;
 
     ros::NodeHandle n;
 
