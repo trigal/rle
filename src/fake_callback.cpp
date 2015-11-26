@@ -111,6 +111,10 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         // se ci sono almeno due linee, quindi almeno una corsia
         if (msg_lines.goodLines > 1)
         {
+            /// msg_lines.width is grater than standardLaneWidth and we have
+            /// more than 1 good-tracked-line. Using the offsets, we can create
+            /// some guesses
+
             while (extra_corsie + 1)
             {
                 /// In quale delle corsie su hypothesisCurrentLanes sono?
@@ -153,11 +157,16 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                     if ( (sum > (standardLaneWidth - threshold)) &&
                             (sum < (standardLaneWidth + threshold)) )
                             ROS_INFO_STREAM("Inside a lane created by lines " << i << " and " << i + 1 << " " << sum);
+                            //ROS_INFO_STREAM("Inside a lane created by lines " << i << " and " << i + 1 << " " << sum);
             }
 
         }
         else
         {
+            /// msg_lines.width is grater than standardLaneWidth, meaning that
+            /// the only detected line should not be part of the "current lane".
+            /// Thus, we can say that we're somewhere else but not in that lane
+
             ROS_WARN_STREAM("Not enough goodLines: " << msg_lines.goodLines << " - width: " << msg_lines.width );
 
             // standardLaneWidth > Threshold BUT goodLines = 1 AKA
@@ -209,6 +218,9 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     }
     else
     {
+        /// msg_lines.width is less than standardLaneWidth. We're close to the
+        /// only one detected line, so I can't say nothing at all.
+
         tentative.setConstant(corsie, 1.0f / corsie);
         //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
         string s;
@@ -243,14 +255,15 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     sensor.setZero(4);
     sensor << a,b;
 
-    cout << "sensor    :\t" <<sensor.transpose().format(CleanFmt) << endl;
-    cout << "prediction:\t" <<prediction.transpose().format(CleanFmt) << endl;
+    cout << "sensor     :\t" <<sensor.transpose().format(CleanFmt) << endl;
+    cout << "prediction :\t" <<prediction.transpose().format(CleanFmt) << endl;
     Eigen::Vector4d update; update << sensor.array() * prediction.array() ;
-    cout << "update 1  :\t" << update.transpose().format(CleanFmt) << endl;
+    //cout << "no-norm-upd:\t" << update.transpose().format(CleanFmt) << endl;
     double sum = update.sum();
-    cout << "sum       :\t" << sum << endl;
+    //cout << "norm. fact :\t" << sum << endl;
     update /= sum;
-    cout << "update 2  :\t" <<update.transpose().format(CleanFmt) << endl;
+    cout << "update     :\t" <<update.transpose().format(CleanFmt) << endl;
+    cout << "summarize  :\t" <<update(0)+update(2) << " | " << update(1)+update(3) << endl;
 
     ROS_ASSERT( (1 - update.sum()) <= 0.00001f);
 
