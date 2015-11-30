@@ -138,9 +138,9 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
             //ROS_DEBUG_STREAM(msg_lines.lines.at(0).offset);
             //ROS_ASSERT (((tentative[0]>0)||(tentative[1]>0)));
 
-            /// Add noise to every guess
-            tentative += 0.001f;
-            tentative /= tentative.sum();
+            /// Add noise to every guess (moved outside the if)
+            //tentative += 0.001f;
+            //tentative /= tentative.sum();
 
             //string s;
             //for (int i = 0; i <= tentative.cols(); i++)
@@ -208,9 +208,9 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                     }
                 }
 
-                /// Add noise to every guess
-                tentative += 0.001f;
-                tentative /= tentative.sum();
+                /// Add noise to every guess (moved outside the if)
+                //tentative += 0.001f;
+                //tentative /= tentative.sum();
             }
             else
                 ROS_ASSERT_MSG(1,"nope ... ");
@@ -230,6 +230,13 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " ** Detected width less than standardLaneWidth (" << standardLaneWidth << "): " << msg_lines.width);
         //ROS_WARN_STREAM("Detected width less than standardLaneWidth: " << msg_lines.width);
     }
+
+    /// Add noise to every guess and normalize
+    tentative += 0.001f;
+    tentative /= tentative.sum();
+
+    /// After all this mess, I may have put valid lines inside some LANE that is
+    /// is the opposite driving direction.
 
     // Sums the counter inside VALID lines.
     int counter=0;

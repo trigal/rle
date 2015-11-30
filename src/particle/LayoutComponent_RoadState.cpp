@@ -93,8 +93,8 @@ void LayoutComponent_RoadState::calculateComponentScore()
         ROS_DEBUG_STREAM("Width       Score (normalized-to-1 normal pdf): " << std::fixed << scoreWidth      << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_width())      );
         ROS_DEBUG_STREAM("Naive Width Score (normalized-to-1 normal pdf): " << std::fixed << scoreNaiveWidth << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_naiveWidth()) );
 
-        // 1. SCORE LANES
-        // If we have the number of lanes, update the scoreLanes value. Otherwise leave unchanged = 1.0f
+        /// 1. SCORE LANES
+        /// If we have the number of lanes, update the scoreLanes value. Otherwise leave unchanged = 1.0f
         if (getHighwayInfo.response.number_of_lanes)
         {
             // Initialize the POISSON distribution
@@ -108,8 +108,8 @@ void LayoutComponent_RoadState::calculateComponentScore()
 
         ROS_DEBUG_STREAM ("GOOD LINES: " << this->msg_lines.goodLines << "\tALL LINES: " << this->msg_lines.number_of_lines);
 
-        // 2. SCORE WIDTH
-        // Calculate the scoreWith depending from the goodLines value.
+        /// 2. SCORE WIDTH
+        /// Calculate the scoreWith depending from the goodLines value.
         if (this->msg_lines.goodLines != 0)
         {
             // return the normalized scorewidth, scaled by a factor equal to the good lines tracked over the expected number of lines of OSM.
@@ -156,7 +156,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
     }
     else
     {
-        ROS_WARN_STREAM("Can't get HighwayInfo with wayId = " << this->getWay_id());
+        ROS_ERROR_STREAM("Can't get HighwayInfo with wayId = " << this->getWay_id());
 
         this->totalComponentScore = 0.0f;
         this->scoreLanes          = 0.0f;

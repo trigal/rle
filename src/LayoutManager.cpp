@@ -433,7 +433,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // update particle score using OpenStreetMap
                 if (LayoutManager::openstreetmap_enabled)
                 {
-                    tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle.getParticleState().getPose());
+                    tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle.getParticleState().getPosition());
 
                     // Build request
                     ira_open_street_map::snap_particle_xy srv;
@@ -881,7 +881,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         //                                                                     &this->getHighwayInfo_client
                         //                                                                     );
 
-                        VectorXd state = new_particle.getParticleState().getPose();
+                        VectorXd state = new_particle.getParticleState().getPosition();
                         roadState->setComponentState(state);
                         ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
                         new_particle.addComponent(roadState);
@@ -896,6 +896,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     new_particle.addComponent(roadLane);
                     //////////// CREATE COMPONENT ROAD_LANE ////////////
                     ////////////////////////////////////////////////////
+                    ///
 
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout.push_back(new_particle);
@@ -973,7 +974,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             //                                                                     &this->getHighwayInfo_client
                             //                                                                     );
 
-                            VectorXd state = new_particle_opposite.getParticleState().getPose();
+                            VectorXd state = new_particle_opposite.getParticleState().getPosition();
                             (*roadState).setComponentState(state);
                             new_particle_opposite.addComponent(roadState);
                         }
@@ -1325,9 +1326,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
                 if ((*inner_particle_itr).in_cluster == -1)
                     continue;
 
-                euclidean_distance = sqrt(   (*particle_itr).getParticleState().getPose()(0) - (*inner_particle_itr).getParticleState().getPose()(0) +
-                                             (*particle_itr).getParticleState().getPose()(1) - (*inner_particle_itr).getParticleState().getPose()(1) +
-                                             (*particle_itr).getParticleState().getPose()(2) - (*inner_particle_itr).getParticleState().getPose()(2)
+                euclidean_distance = sqrt(   (*particle_itr).getParticleState().getPosition()(0) - (*inner_particle_itr).getParticleState().getPosition()(0) +
+                                             (*particle_itr).getParticleState().getPosition()(1) - (*inner_particle_itr).getParticleState().getPosition()(1) +
+                                             (*particle_itr).getParticleState().getPosition()(2) - (*inner_particle_itr).getParticleState().getPosition()(2)
                                          );
 
                 Eigen::Quaterniond q1 = Eigen::Quaterniond((*particle_itr).getParticleState().getRotation());
@@ -1403,9 +1404,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
             state = (*particle_itr).getParticleState();
             if (enabled_clustering)
-                average_pose += state.getPose() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
+                average_pose += state.getPosition() * (*particle_itr).getParticleScore() / cluster_score; //tot_score;
             else
-                average_pose += state.getPose() * (*particle_itr).getParticleScore() / tot_score;
+                average_pose += state.getPosition() * (*particle_itr).getParticleScore() / tot_score;
 
             //sum += (*particle_itr).getParticleScore() / tot_score;
             Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
@@ -1649,6 +1650,8 @@ bool LayoutManager::checkHasMoved()
 /// \brief LayoutManager::roadLaneCallback
 /// \param msg
 ///
+/// This is the callback to the ISIS LAB line detector
+///
 ///
 void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
@@ -1724,7 +1727,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         /// Since it is not "detected" retrieve it from the particle state.
         /// TODO: handle this, maybe we can add this in the propagateComponent etc
 
-        tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(particle->getParticleState().getPose());
+        tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(particle->getParticleState().getPosition());
         snapParticle.request.x = tf_pose_map_frame.getOrigin().getX();
         snapParticle.request.y = tf_pose_map_frame.getOrigin().getY();
         snapParticle.request.max_distance_radius = 20;  // TODO: parametrize this value
@@ -1765,7 +1768,8 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
                 modified_msg_lines
                                                                             );
 
-        VectorXd state = particle->getParticleState().getPose();
+        // Each component has also a "State" . With getPose I request the Position 3dof
+        VectorXd state = particle->getParticleState().getPosition();
         roadState->setComponentState(state);
         ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2) << "\tWay_id: " << roadState->getWay_id() );
 
@@ -1897,7 +1901,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         tf::Quaternion q;
 
         // Get particle state
-        Vector3d p_state = (*particle_itr).getParticleState().getPose();
+        Vector3d p_state = (*particle_itr).getParticleState().getPosition();
         geometry_msgs::PoseStamped pose_local_map_frame;
         pose_local_map_frame.header.frame_id = "local_map";
         pose_local_map_frame.header.stamp = ros::Time::now();
@@ -2274,7 +2278,7 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
                 // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
                 tf::Stamped<tf::Pose> particle_map_frame, particle_local_frame;
                 particle_local_frame.frame_id_ = "local_map";
-                particle_local_frame.setOrigin(tf::Vector3((*particle_itr).getParticleState().getPose()(0), (*particle_itr).getParticleState().getPose()(1), (*particle_itr).getParticleState().getPose()(2)));
+                particle_local_frame.setOrigin(tf::Vector3((*particle_itr).getParticleState().getPosition()(0), (*particle_itr).getParticleState().getPosition()(1), (*particle_itr).getParticleState().getPosition()(2)));
                 particle_local_frame.setRotation(tf::createIdentityQuaternion());
                 // Transform pose from "local_map" to "map"
                 try
@@ -2548,8 +2552,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                                 temp_part.setId(k);
                                 temp_part.setParticleScore(1.0f);
                                 //                            stat_out_file << temp_part.getId() << "\t";
-                                //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPose())(0);
-                                //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPose())(1);
+                                //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPosition())(0);
+                                //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPosition())(1);
                                 new_current_layout.push_back(temp_part);
                                 break;
                             }

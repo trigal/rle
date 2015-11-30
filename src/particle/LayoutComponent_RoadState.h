@@ -22,10 +22,15 @@ using namespace std;
 /**
  * @brief The LayoutComponent_RoadState class
  *
+ *
  * This component should answer to the following question:
  *
  * QUANDO IL DETECTOR DI LINEE CI PERMETTE DI DIRE CHE LA 'DETECTION' SI AVVCINA
- * A QUANTO DICE OSM UTILIZZANDO N#LINEE + LARGHEZZA STRADA
+ * A QUANTO DICE OSM UTILIZZANDO
+ *
+ *               <<< N#LINEE + LARGHEZZA STRADA >>>
+ *
+ * first component, in ITSC 2015
  *
  * The state is stored using a msg_lines message
  */
@@ -65,7 +70,7 @@ private:
     double scoreLanes;
     double scoreWidth;
     double totalComponentScore;
-    const double maxValueForGoodLine = 10;
+    const double maxValueForGoodLine = 10; /*!< This parameter should reflect the isis-line-detector value */
 
 public:
 

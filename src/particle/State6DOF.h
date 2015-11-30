@@ -15,9 +15,9 @@ class   State6DOF
 
 //private:  //TODO rimettere privato ed usare i getter/setter
 public:
-    Eigen::Vector3d _pose;                      // POSE    wrt world
-    Eigen::AngleAxisd _rotation;                // POSE    wrt world
-    Eigen::Vector3d _translational_velocity;    // SPEED   wrt robot
+    Eigen::Vector3d   _pose;                    // POSE    wrt world (POSITION)
+    Eigen::AngleAxisd _rotation;                // POSE    wrt world (ORIENTATION)
+    Eigen::Vector3d   _translational_velocity;  // SPEED   wrt robot
     Eigen::AngleAxisd _rotational_velocity;     // SPEED   wrt robot
 
 
@@ -40,7 +40,7 @@ public:
     void setOrthogonalSpeedRotation();  // _rotational_velocity
 
     // getters & setters --------------------------------------------------------------
-    Vector3d getPose()
+    Vector3d getPosition()
     {
         return _pose;
     }

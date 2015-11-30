@@ -23,7 +23,7 @@ Eigen::MatrixXd State6DOF::subtract_vectXd(State6DOF &to_be_subtracted)
 State6DOF State6DOF::subtract_state6DOF(State6DOF &to_be_subtracted)
 {
     State6DOF tmp;
-    tmp.setPose(this->getPose() - to_be_subtracted.getPose());
+    tmp.setPose(this->getPosition() - to_be_subtracted.getPosition());
     tmp.setRotation(Eigen::AngleAxisd(this->getRotation().inverse() * to_be_subtracted.getRotation()));
     tmp.setTranslationalVelocity(this->getTranslationalVelocity() - to_be_subtracted.getTranslationalVelocity());
     tmp.setRotationalVelocity(Eigen::AngleAxisd(this->getRotationalVelocity().inverse() * to_be_subtracted.getRotationalVelocity()));
@@ -75,7 +75,7 @@ State6DOF State6DOF::add_vectXd(Eigen::VectorXd &to_be_added)
 State6DOF State6DOF::add_state6DOF(State6DOF &to_be_added)
 {
     State6DOF tmp;
-    tmp.setPose(this->getPose() + to_be_added.getPose());
+    tmp.setPose(this->getPosition() + to_be_added.getPosition());
     tmp.setRotation(Eigen::AngleAxisd(this->getRotation() * to_be_added.getRotation()));
     tmp.setTranslationalVelocity(this->getTranslationalVelocity() + to_be_added.getTranslationalVelocity());
     tmp.setRotationalVelocity(Eigen::AngleAxisd(this->getRotationalVelocity() * to_be_added.getRotationalVelocity()));

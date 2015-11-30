@@ -73,7 +73,7 @@ public:
         //        _measure_Delta._rotation = mrs._rotation;
         //        _measure_Delta._translational_velocity= mrs._translational_velocity;
         //        _measure_Delta._rotational_velocity= mrs._rotational_velocity;
-        _measure_Delta.setPose(mrs.getPose());
+        _measure_Delta.setPose(mrs.getPosition());
         _measure_Delta.setRotation(mrs.getRotation());
         _measure_Delta.setTranslationalVelocity(mrs.getTranslationalVelocity());
         _measure_Delta.setRotationalVelocity(mrs.getRotationalVelocity());
@@ -107,7 +107,7 @@ public:
         Vector3d tmpVector3d;
         AngleAxisd tmpAngleAxisd;
 
-        tmpVector3d = _measure_Delta.getPose();
+        tmpVector3d = _measure_Delta.getPosition();
         tmpAngleAxisd = _measure_Delta.getRotation();
 
         tmpVector3d(0) /= scaling_factor;

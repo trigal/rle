@@ -14,6 +14,8 @@ using namespace std;
  *
  * This component should answer to the following question: IN WHICH LANE I AM?
  *
+ * second component, Alcala de Henares 2015
+ *
  */
 class LayoutComponent_RoadLane : public LayoutComponent
 {

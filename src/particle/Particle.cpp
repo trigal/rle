@@ -161,7 +161,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
             {
                 VectorXd state;
-                state = stato_ut_predetto.getPose();
+                state = stato_ut_predetto.getPosition();
                 ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0) << "\t" << state(1) << "\t" << state(2));
 
                 (*itr)->setComponentState(state); //virtual call
@@ -183,13 +183,13 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 //    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
 
     //State6DOF predicted_measure;
-    //predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    //predicted_measure.setPose(stato_t.getPosition() + stato_t.getRotation() * delta_measure.getPosition());
     //predicted_measure.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
     //predicted_measure.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
     //predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
 
     State6DOF predicted_measure_zt;
-    predicted_measure_zt.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    predicted_measure_zt.setPose(stato_t.getPosition() + stato_t.getRotation() * delta_measure.getPosition());
     predicted_measure_zt.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
     //ROS_ASSERT (predicted_measure_zt.getRotation().isUnitary());
     predicted_measure_zt.setTranslationalVelocity(delta_measure.getTranslationalVelocity());

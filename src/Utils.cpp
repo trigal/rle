@@ -402,7 +402,7 @@ void Utils::printOdomAngleAxisToCout(const nav_msgs::Odometry& msg)
     State6DOF tmp(msg);
 
     std::cout << "[measure_t ]" << std::endl;
-    std::cout << "       pose: " << tmp.getPose().transpose() << std::endl << "orientation: " << tmp.getRotation().angle() << " " << tmp.getRotation().axis().transpose() << std::endl;
+    std::cout << "       pose: " << tmp.getPosition().transpose() << std::endl << "orientation: " << tmp.getRotation().angle() << " " << tmp.getRotation().axis().transpose() << std::endl;
     std::cout << "     linear: " << tmp.getTranslationalVelocity().transpose() << std::endl << "    angular: " << tmp.getRotationalVelocity().angle() << " " << tmp.getRotationalVelocity().axis().transpose() << std::endl << std::endl;
 
     std::cout << std::endl;
