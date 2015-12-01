@@ -31,6 +31,8 @@
 using namespace Eigen;
 using std::vector;
 
+/// Forward declaration, refs #523
+class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wiki/Circular_dependency
 
 class Particle
 {

@@ -19,18 +19,11 @@ bool LayoutComponent_RoadLane::myCompare(road_layout_estimation::msg_lineInfo a,
         return false;
 }
 
-void LayoutComponent_RoadLane::calculateComponentScore()
-{
-    ROS_DEBUG_STREAM ("Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
-}
-
-void LayoutComponent_RoadLane::componentPerturbation()
-{
-    ROS_DEBUG_STREAM ("Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
-}
 
 /**
  * @brief LayoutComponent_RoadLane::componentPoseEstimation
+ *
+ * STEP 1/3 of ComponentEstimation
  *
  * Disabled right now. Here we should update the detected lines using the
  * ego-motion and weighting again everything. With the ISIS lane detector
@@ -41,6 +34,58 @@ void LayoutComponent_RoadLane::componentPoseEstimation()
 {
     ROS_DEBUG_STREAM ("Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id );
 }
+
+
+/**
+ * @brief LayoutComponent_RoadLane::componentPerturbation
+ *
+ * STEP 2/3 of ComponentEstimation
+ *
+ * We can put some random noise inside the filtered values here.
+ */
+void LayoutComponent_RoadLane::componentPerturbation()
+{
+    ROS_DEBUG_STREAM ("Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
+}
+
+
+/**
+ * @brief LayoutComponent_RoadLane::calculateComponentScore
+ *
+ * STEP 3/3 of ComponentEstimation (called from calculateLayoutComponentsWeight)
+ *
+ * Here calculate the score of the component, using the values of megavariabile
+ * and some "logic". Finally updates the componentWeight (remember that it must
+ * be in the 0..1 range)
+ *
+ */
+void LayoutComponent_RoadLane::calculateComponentScore()
+{
+    ROS_DEBUG_STREAM ("Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
+
+//    this->particle
+
+    ///////     // THIS IS RELATED WITH #502
+    ///////     ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
+    ///////     getDistanceFromLaneCenter_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
+    ///////     getDistanceFromLaneCenter_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
+    ///////     //getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIX: find the right component (check also the cast)
+    ///////     getDistanceFromLaneCenter_serviceMessage.request.way_id = (*particle_itr).getWayIDHelper(); // refs #502
+    ///////     getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
+    ///////
+    ///////     if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
+    ///////     {
+    ///////         //ROS_ERROR_STREAM ("STICA!   " << getDistanceFromLaneCenter_serviceMessage.request.way_id << "\t " << getDistanceFromLaneCenter_serviceMessage.response.distance_from_lane_center << "\t" << getDistanceFromLaneCenter_serviceMessage.response.distance_from_way_center);
+    ///////     }
+
+
+
+
+
+    //need to sum up to ONE;
+    this->setComponentWeight(0);
+}
+
 
 /**
  * @brief LayoutComponent_RoadLane::filter

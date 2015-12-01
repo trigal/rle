@@ -4,14 +4,19 @@
 #include <vector>
 #include <Eigen/Eigen>
 #include <ros/ros.h>
+
 using namespace Eigen;
 using std::vector;
+
+/// Forward declaration, refs #523
+class Particle; //also in Particle.h https://en.wikipedia.org/wiki/Circular_dependency
 
 class LayoutComponent
 {
 
 protected:
-    unsigned int particle_id;   /// Tells particle ID of where this component is living
+    Particle *particle;         /// Pointer to the parent particle. refs #523
+    unsigned int particle_id;   /// Tells particle ID of where this component is living. This is the id of the *particle
     unsigned int component_id;  /// Component ID
     double component_weight;    /// Used for resampling
     VectorXd component_state;   /// Particle-component pose
@@ -93,6 +98,7 @@ public:
     // destructor
     ~LayoutComponent()
     {
+        particle = NULL; //refs #523
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -104,6 +110,7 @@ public:
     LayoutComponent()
     {
         ROS_DEBUG_STREAM(__PRETTY_FUNCTION__);
+        particle = NULL; //refs #523
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -115,6 +122,8 @@ public:
 //    LayoutComponent(unsigned int p_id, unsigned int id, VectorXd& pose) :
 //        particle_id(p_id), component_id(id), component_state(pose) {}
 
+    Particle *getParticle() const;      ///refs #523
+    void setParticle(Particle *value);  ///refs #523
 };
 
 

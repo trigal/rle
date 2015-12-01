@@ -881,6 +881,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                 &this->getHighwayInfo_client,
                                 lines
                                                                                             );
+                        roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
+
 
                         //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                         //                                                                     1,
@@ -907,6 +909,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                 component_id++,
                                 getHighwayService.response.number_of_lanes);
+                        roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
                         new_particle.addComponent(roadLane);
                     }
                     else
@@ -980,6 +983,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                     &this->getHighwayInfo_client,
                                     lines
                                                                                                 );
+                            roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
 
                             //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                             //                                                                     1,
@@ -999,6 +1003,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                     component_id++,
                                     getHighwayService.response.number_of_lanes);
+                            roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
                             new_particle.addComponent(roadLane);
 
                             ////////////////////////////////////////////////////
@@ -1664,23 +1669,22 @@ bool LayoutManager::checkHasMoved()
     return true;
 }
 
-///
-/// \brief LayoutManager::roadLaneCallback
-/// \param msg
-///
-/// This is the callback to the ISIS LAB line detector
-///
-///
+/**
+ * @brief LayoutManager::roadLaneCallback
+ * @param msg_lines
+ *
+ * This is the callback to the ISIS LAB line detector interface.
+ * Calling 'filter' inside RoadLaneComponent to execute the analysis HMM/DBN
+ *
+ * This function does not delete the component RoadLane, rather updates it.
+ *
+ */
 void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
     ROS_ERROR_STREAM("> Entering " << __PRETTY_FUNCTION__);
 
     // Variables declaration
     vector<Particle>::iterator particle_itr;
-
-    // Clear old layout_components
-    //layout_components->clear();
-    //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
 
     // Iterate through all particles
     for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
@@ -1698,14 +1702,14 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
     ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
 }
 
-///
-/// \brief LayoutManager::roadStateCallback
-/// \param msg_lines
-/// \todo {Parametrize snapParticle.request.max_distance_radius value}
-///
-/// This function update (by creating new ones) the RoadState Component.
-/// It calls the snapParticle to get the WAY ID.
-///
+/**
+ * @brief LayoutManager::roadStateCallback
+ * @param msg_lines
+ * @todo {Parametrize snapParticle.request.max_distance_radius value}
+ *
+ * This function update (by creating new ones) the RoadState Component.
+ * It calls the snapParticle to get the WAY ID.
+ */
 void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
 
@@ -1738,7 +1742,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         if (snap_particle_xy_client.call(snapParticle))
         {
             ROS_DEBUG_STREAM("Snap OK in roadStateCallback " << snapParticle.response.way_id;);
-            modified_msg_lines.way_id = snapParticle.response.way_id;
+            modified_msg_lines.way_id = snapParticle.response.way_id;            
         }
         else
         {
@@ -1885,7 +1889,7 @@ void LayoutManager::calculateLayoutComponentsWeight()
  * @param particle_itr
  *
  * This is the geometric part, EUCLIDEAN and ANGULAR distance from the OSM road net
- *
+ * As written in #522, this should become part of a new OSM-DISTANCE component.
  */
 void LayoutManager::calculateGeometricScores(Particle *particle_itr)
 {
@@ -1952,18 +1956,18 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         snapParticle_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
         snapParticle_serviceMessage.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
-        ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
-        getDistanceFromLaneCenter_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
-        getDistanceFromLaneCenter_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
-        //getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIX: find the right component (check also the cast)
-        getDistanceFromLaneCenter_serviceMessage.request.way_id = (*particle_itr).getWayIDHelper(); // refs #502
-        getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
-
-        if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
-        {
-            //ROS_ERROR_STREAM ("STICA!   " << getDistanceFromLaneCenter_serviceMessage.request.way_id << "\t " << getDistanceFromLaneCenter_serviceMessage.response.distance_from_lane_center << "\t" << getDistanceFromLaneCenter_serviceMessage.response.distance_from_way_center);
-
-        }
+        ///////     // THIS IS RELATED WITH #502
+        ///////     ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
+        ///////     getDistanceFromLaneCenter_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
+        ///////     getDistanceFromLaneCenter_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
+        ///////     //getDistanceFromLaneCenter_serviceMessage.request.way_id = (dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id(); //FIX: find the right component (check also the cast)
+        ///////     getDistanceFromLaneCenter_serviceMessage.request.way_id = (*particle_itr).getWayIDHelper(); // refs #502
+        ///////     getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
+        ///////
+        ///////     if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
+        ///////     {
+        ///////         //ROS_ERROR_STREAM ("STICA!   " << getDistanceFromLaneCenter_serviceMessage.request.way_id << "\t " << getDistanceFromLaneCenter_serviceMessage.response.distance_from_lane_center << "\t" << getDistanceFromLaneCenter_serviceMessage.response.distance_from_way_center);
+        ///////     }
 
         // Get distance from snapped particle pose and set it as particle score
         if (LayoutManager::snap_particle_xy_client.call(snapParticle_serviceMessage))
@@ -2385,7 +2389,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         this->deltaTimerTime = 0.1;
     }
 
-    // Check if car has moved, if it has moved then estimate new layout
+    // Check if car has moved, if it has moved then estimate new layout.
+    // Actually set to TRUE hard coded.
     if ( checkHasMoved() )
     {
         /// ----------------- predict and update layout poses using E.K.F ----------------- //
@@ -2408,7 +2413,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         ///
 
 
-        /// GET SOME GEOMETRIC VALUES
+        /// GET SOME GEOMETRIC VALUES -- check #522 for some ideas about the following FOR cycle
         for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
             this->calculateGeometricScores(&(*particle_itr));
 

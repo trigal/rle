@@ -256,8 +256,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 }
 
 /**
- * @brief Utils::getWayIDHelper
- * @return the wayId of the LayoutComponent Roadstate
+ * @brief Particle::getWayIDHelper
+ * @return the wayId inside the LayoutComponent Roadstate
  *
  * refs #502
  */
