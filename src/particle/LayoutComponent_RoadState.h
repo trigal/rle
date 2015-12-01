@@ -39,6 +39,7 @@ class LayoutComponent_RoadState : public LayoutComponent
 private:
 
     char            current_lane;     // -1 don't know
+    int32_t         oneway;             ///< oneway, retrieved using getHighwayService service
 
     // Description msg_lines
     // Header header
@@ -46,7 +47,7 @@ private:
     // float64         goodLines        #how many good lines are currently found
     // float64         width            #full road width, calculated with valid line offsets
     // float64         naive_width      #full road width, calculated with all line offsets (even invalid)
-    // int32           oneway           #MAKE SENSE?
+    // ###int32           oneway           #MAKE SENSE? nope, moved to LayoutComponent_RoadState as class parameter
     // int64           way_id           #FOR COMPATIBILITY WITH roadStateComponent FAKE
     // msg_lineInfo[]  lines            #details of each line (from the detector) see the next message
 
@@ -111,6 +112,7 @@ public:
         timestamp = ros::Time(0);
 
         getHighwayInfo_client = NULL;
+        oneway=0;
     }
 
     /// This constructor should be used only in the initialization phase
@@ -134,7 +136,7 @@ public:
     }
 
     /// This constructor should be used during the normal filter iteration
-    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager, const road_layout_estimation::msg_lines &msg_lines)
+    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager, const road_layout_estimation::msg_lines &msg_lines, int32_t oneway)
     {
         this->particle_id   = particle_id;
         this->component_id  = component_id;
@@ -145,6 +147,8 @@ public:
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12, 12);
+
+        this->oneway = oneway;
 
         getHighwayInfo_client = serviceClientFromLayoutManager;
     }
@@ -158,16 +162,21 @@ public:
         component_cov.resize(0, 0);
         timestamp = ros::Time(0);
     }
+
     int64_t getWay_id() const;
-    void setWay_id(const int64_t &value);
-    double getScoreLanes() const;
-    void setScoreLanes(double value);
-    double getScoreWidth() const;
-    void setScoreWidth(double value);
-    double getTotalComponentScore() const;
-    void setTotalComponentScore(double value);
-    road_layout_estimation::msg_lines getMsg_lines() const;
-    void setMsg_lines(const road_layout_estimation::msg_lines &value);
+    void    setWay_id(const int64_t &value);
+    int32_t getOneway() const;
+    void    setOneway(const int32_t &value);
+    double  getScoreLanes() const;
+    void    setScoreLanes(double value);
+    double  getScoreWidth() const;
+    void    setScoreWidth(double value);
+    double  getTotalComponentScore() const;
+    void    setTotalComponentScore(double value);
+
+    road_layout_estimation::msg_lines   getMsg_lines() const;
+    void                                setMsg_lines(const road_layout_estimation::msg_lines &value);
+
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H

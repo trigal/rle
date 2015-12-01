@@ -233,17 +233,17 @@ void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_l
     msg_lines = value;
 }
 
-///
-/// \brief LayoutComponent_RoadState::componentPoseEstimation
-///
-/// Implementation of pure virtual method 'componentPoseEstimation'
-/// In roadStateComponent this routine does the following, to 'predict' the new component 'state':
-///      1. given the particle position call snap_particle_xy, this return the way_id
-///      2. call getHighwayInfo(way_id)
-///      3. set new values to into the component
-///
-///      @now <<<do not update the values>>>
-///
+/**
+ * @brief LayoutComponent_RoadState::componentPoseEstimation
+ *
+ * Implementation of pure virtual method 'componentPoseEstimation'
+ * In roadStateComponent this routine does the following, to 'predict' the new component 'state':
+ *      1. given the particle position call snap_particle_xy, this return the way_id
+ *      2. call getHighwayInfo(way_id)
+ *      3. set new values to into the component
+ *
+ *      @now <<<do not update the values>>>
+ */
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " << particle_id << " componentState: " << getComponentState()(0) << ";" << getComponentState()(1) << ";" << getComponentState()(2));
@@ -268,3 +268,12 @@ void LayoutComponent_RoadState::componentPoseEstimation()
 }
 
 
+int32_t LayoutComponent_RoadState::getOneway() const
+{
+    return oneway;
+}
+
+void LayoutComponent_RoadState::setOneway(const int32_t &value)
+{
+    oneway = value;
+}

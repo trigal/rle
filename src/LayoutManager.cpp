@@ -156,6 +156,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     get_closest_way_distance_utm_client = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
     getHighwayInfo_client               = node_handler_parameter.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
     getDistanceFromLaneCenter_client    = node_handler_parameter.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
+    oneWay_client                       = node_handler_parameter.serviceClient<ira_open_street_map::oneway>                       ("/ira_open_street_map/oneWay");
 
     // Init ROS service server
     server_getAllParticlesLatLon        = node_handler_parameter.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
@@ -879,7 +880,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                 component_id++,
                                 ros::Time::now(),
                                 &this->getHighwayInfo_client,
-                                lines
+                                lines,
+                                getHighwayService.response.oneway
                                                                                             );
                         roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
 
@@ -981,7 +983,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                     component_id++,
                                     ros::Time::now(),
                                     &this->getHighwayInfo_client,
-                                    lines
+                                    lines,
+                                    getHighwayService.response.width
                                                                                                 );
                             roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
 
@@ -1707,15 +1710,20 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
  * @param msg_lines
  * @todo {Parametrize snapParticle.request.max_distance_radius value}
  *
- * This function update (by creating new ones) the RoadState Component.
- * It calls the snapParticle to get the WAY ID.
+ * This function update (by creating new ones, means deleting + creating) the
+ * RoadState Component. It calls the snapParticle Service to get the wayId,
+ * but IF NOT found, the component is NOT created again.
+ *
+ * This code is related to the following REDMINE issues: #520
+ *
  */
 void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
 
     ROS_INFO_STREAM("> Entering roadStateCallback");
 
-    ira_open_street_map::snap_particle_xy snapParticle;
+    ira_open_street_map::snap_particle_xy   snapParticleRequestResponse; ///< ROS parameter for service call
+    ira_open_street_map::oneway             oneWayRequestResponse;       ///< ROS parameter for service call
 
     road_layout_estimation::msg_lines modified_msg_lines;
     modified_msg_lines = msg_lines;
@@ -1735,53 +1743,57 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         /// TODO: handle this, maybe we can add this in the propagateComponent etc
 
         tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(particle->getParticleState().getPosition());
-        snapParticle.request.x = tf_pose_map_frame.getOrigin().getX();
-        snapParticle.request.y = tf_pose_map_frame.getOrigin().getY();
-        snapParticle.request.max_distance_radius = 20;  // TODO: parametrize this value
+        snapParticleRequestResponse.request.x = tf_pose_map_frame.getOrigin().getX();
+        snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
+        snapParticleRequestResponse.request.max_distance_radius = 20;  // TODO: parametrize this value
 
-        if (snap_particle_xy_client.call(snapParticle))
+        LayoutComponent_RoadState *roadState ;
+
+        if (snap_particle_xy_client.call(snapParticleRequestResponse))
         {
-            ROS_DEBUG_STREAM("Snap OK in roadStateCallback " << snapParticle.response.way_id;);
-            modified_msg_lines.way_id = snapParticle.response.way_id;            
+            ROS_DEBUG_STREAM("Snap OK in roadStateCallback " << snapParticleRequestResponse.response.way_id;);
+            modified_msg_lines.way_id = snapParticleRequestResponse.response.way_id;
+
+            oneWayRequestResponse.request.way_id = snapParticleRequestResponse.response.way_id;
+            if (oneWay_client.call(oneWayRequestResponse))
+            {
+                // Response TRUE means TAG found. It may be true or false, use the response.oneway
+                roadState = new LayoutComponent_RoadState(particle->getId(),
+                        1,                             //component Id
+                        ros::Time::now(),
+                        &this->getHighwayInfo_client,
+                        modified_msg_lines,
+                        oneWayRequestResponse.response.oneway
+                                                                                    );
+            }
+            else
+            {
+                // Otherwise the tag is not found, we assume oneway = false (in osm_query_node.cpp)
+                roadState = new LayoutComponent_RoadState(particle->getId(),
+                        1,                             //component Id
+                        ros::Time::now(),
+                        &this->getHighwayInfo_client,
+                        modified_msg_lines,
+                        false
+                                                                                    );
+            }
+
+            ROS_DEBUG_STREAM("Adding roadState component! way_id: " << modified_msg_lines.way_id << "\tDetected lanes: " << modified_msg_lines.number_of_lines << "\tDetected width: " << modified_msg_lines.width);
+
+            // Each component has also a "State" . With getPose I request the Position 3dof
+            VectorXd state = particle->getParticleState().getPosition();
+            roadState->setComponentState(state);
+            ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2) << "\tWay_id: " << roadState->getWay_id() );
+
+            // Add lane to layout components
+            particle->addComponent(roadState);
+
         }
         else
         {
-            ROS_WARN_STREAM("Warning, snap failed in roadStateCallback in the radius of " << snapParticle.request.max_distance_radius << "m");
-            snapParticle.response.way_id = 0;
-            // WARNING: do not set  modified_msg_lines.way_id here!
+            ROS_WARN_STREAM("WARNING! Snap failed in roadStateCallback in the radius of " << snapParticleRequestResponse.request.max_distance_radius << "m, and thus RoadStateComponent IS NOT CREATED!);
         }
 
-
-        ROS_DEBUG_STREAM("Adding roadState component! way_id: " << modified_msg_lines.way_id << "\tDetected lanes: " << modified_msg_lines.number_of_lines << "\tDetected width: " << modified_msg_lines.width);
-
-        //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle->getId(),
-        //                                                                     1,                             //component Id
-        //                                                                     msg_lanes.way_id,
-        //                                                                     msg_lanes.number_of_lanes,
-        //                                                                     -1,                            //curren lane
-        //                                                                     msg_lanes.width,
-        //                                                                     ros::Time::now(),
-        //                                                                     &this->getHighwayInfo_client
-        //                                                                     );
-
-
-        // I need to get the way_id value of the particle and put it to the message in order to enable the computevalue of the component.
-        // this was included in the fake detector before.
-
-        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle->getId(),
-                1,                             //component Id
-                ros::Time::now(),
-                &this->getHighwayInfo_client,
-                modified_msg_lines
-                                                                            );
-
-        // Each component has also a "State" . With getPose I request the Position 3dof
-        VectorXd state = particle->getParticleState().getPosition();
-        roadState->setComponentState(state);
-        ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2) << "\tWay_id: " << roadState->getWay_id() );
-
-        // Add lane to layout components
-        particle->addComponent(roadState);
     }
 
     ROS_INFO_STREAM("< Exiting roadStateCallback");

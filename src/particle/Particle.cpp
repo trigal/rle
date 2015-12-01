@@ -257,8 +257,9 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
 /**
  * @brief Particle::getWayIDHelper
- * @return the wayId inside the LayoutComponent Roadstate
+ * @return the wayId inside the LayoutComponent Roadstate. -1 if not found
  *
+ * Performs a check inside the components in order to retrieve the WAYID
  * refs #502
  */
 int64_t Particle::getWayIDHelper()
@@ -277,3 +278,5 @@ int64_t Particle::getWayIDHelper()
 
     //(dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id();
 }
+
+

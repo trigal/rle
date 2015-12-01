@@ -162,8 +162,8 @@ public:
         return 0;
     }
 
-
-    int64_t getWayIDHelper();
+    int64_t getWayIDHelper();   ///< Performs a check inside the components in order to retrieve the WAYID
+    int32_t getOneWayHelper();  ///< Performs a check inside the components, returning if the way is oneway or not
 
     vector<LayoutComponent*> getLayoutComponents()
     {

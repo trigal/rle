@@ -52,6 +52,7 @@
 #include "ira_open_street_map/xy_2_latlon.h"
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
+#include "ira_open_street_map/oneway.h"
 
 // COMPONENTS
 #include "particle/LayoutComponent.h"
@@ -167,6 +168,7 @@ public:
     ros::ServiceClient get_closest_way_distance_utm_client;
     ros::ServiceClient getHighwayInfo_client;
     ros::ServiceClient getDistanceFromLaneCenter_client;
+    ros::ServiceClient oneWay_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;
