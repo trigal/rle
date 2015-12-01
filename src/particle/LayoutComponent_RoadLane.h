@@ -30,6 +30,10 @@ private:
 
     Eigen::VectorXd sensor;
     Eigen::ArrayXd megavariabile;
+    Eigen::MatrixXd stateTransitionMatrix;
+    int lanes;
+    double standardLaneWidth = 3.0f; //maybe minLaneWidth
+    int MAX_COUNT = 10; ///< Counter upper limit -- this value need to be the same of RoadMarks.h
 
     bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b); ///< Function used to sort the list of lines in the array, using std::sort
 
@@ -64,22 +68,55 @@ public:
     LayoutComponent_RoadLane()
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+        setLanes(0);
     }
 
-    LayoutComponent_RoadLane(const unsigned int particle_id, const unsigned int component_id,unsigned int lanes)
+    LayoutComponent_RoadLane(const unsigned int particle_id, const unsigned int component_id, unsigned int lanes)
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
 
-        // Resize the State and the SensorModel
-        megavariabile.resize(lanes);
-        sensor.resize(lanes);
+        // Set component variables
+        //resetMegavariabile(lanes);
+        //resetSensor(lanes);
+        //setLanes(lanes);
+        //setStateTransitionMatrix();
 
-        megavariabile.setConstant(1.0f/double(lanes));
+        setLanes(2);
+        resetMegavariabile();
+        resetSensor();
+        setStateTransitionMatrix();
 
+        // Set inherited variables (LayoutComponent)
         this->particle_id  = particle_id;
         this->component_id = component_id;
     }
 
+    /**
+     * @brief filter
+     * @param msg_lines
+     *
+     * This is the porting of the test-function: fake_callback.cpp
+     */
+    void filter(const road_layout_estimation::msg_lines & msg_lines);
+
+    /**
+     * @brief resetSensor
+     * @param lanes, if zero, getLanes will be used
+     * This function resets the Sensor matrix
+     */
+    void resetSensor(int lanes = 0);
+
+    /**
+     * @brief resetMegavariabile
+     * @param lanes, if zero, getLanes will be used
+     * This function resets the Megavariabile
+     */
+    void resetMegavariabile(int lanes = 0);
+
+    void setStateTransitionMatrix();
+
+    int getLanes() const;
+    void setLanes(int value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADLANE_H

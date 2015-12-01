@@ -1675,39 +1675,24 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
 {
     ROS_ERROR_STREAM("> Entering " << __PRETTY_FUNCTION__);
 
+    // Variables declaration
+    vector<Particle>::iterator particle_itr;
+
     // Clear old layout_components
     //layout_components->clear();
     //particle->clearLayoutComponentType<LayoutComponent_RoadLane>();
 
-    double standardLaneWidth = 4.0f;
-    unsigned int hypothesisCurrentLanes = 0.0f; //hypothesis of current lane
-
-    /// Heuristic for number of lanes given the detected/naive width
-    if (std::fmod(msg_lines.naive_width, standardLaneWidth) >= (standardLaneWidth / 2))
-        hypothesisCurrentLanes = round(msg_lines.naive_width / standardLaneWidth );
-    else
-        hypothesisCurrentLanes = round(msg_lines.naive_width / standardLaneWidth ) + 1;
-
-    /// Iterate through all particles
-    for (int i = 0; i < current_layout.size(); ++i)
+    // Iterate through all particles
+    for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
     {
-        // Get all layout components of particle
-        vector<Particle>::iterator particle_itr;
-        for ( particle_itr = current_layout.begin(); particle_itr != current_layout.end(); particle_itr++ )
-        {
-            vector<LayoutComponent*> layoutComponentVector = particle_itr->getLayoutComponents();
-            for (int j = 0; j < layoutComponentVector.size(); j++)
-            {
-                if (dynamic_cast<LayoutComponent_RoadLane*>(layoutComponentVector.at(j)))
-                {
-                    ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << __LINE__ << " of " << __FILE__);
-                    //LayoutComponent_RoadLane* RL = layoutComponentVector.at(j);
-                }
-            }
-        }
+        // Retrieve the RoadLane component from the particle-iterator
+        LayoutComponent_RoadLane* RoadLaneComponentPtr = particle_itr->giveMeThatComponent<LayoutComponent_RoadLane>();
 
-
-
+        // check if we have the pointer (null otherwise)
+        if (RoadLaneComponentPtr)
+            RoadLaneComponentPtr->filter(msg_lines); //call the filter, HMM/DBN. refs #519
+        else
+            ROS_WARN("No RoadLaneComponent found");
     }
 
     ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
