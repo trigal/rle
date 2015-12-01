@@ -1,11 +1,17 @@
 #ifndef LAYOUTCOMPONENT_ROADLANE_H
 #define LAYOUTCOMPONENT_ROADLANE_H
 
-#include "LayoutComponent.h"
+#include <algorithm>    // std::sort
+#include <eigen3/Eigen/Core>
 #include <iostream>
+#include <limits>
 #include <ros/ros.h>
+#include <vector>       // std::vector
 
+#include "LayoutComponent.h"
 #include "../Utils.h"
+#include "road_layout_estimation/msg_lines.h"
+#include "road_layout_estimation/msg_lineInfo.h"
 
 using namespace std;
 
@@ -22,7 +28,10 @@ class LayoutComponent_RoadLane : public LayoutComponent
 
 private:
 
-    std::vector <double> laneP;
+    Eigen::VectorXd sensor;
+    Eigen::ArrayXd megavariabile;
+
+    bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b); ///< Function used to sort the list of lines in the array, using std::sort
 
 public:
 
@@ -55,8 +64,22 @@ public:
     LayoutComponent_RoadLane()
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
-        laneP.clear();
     }
+
+    LayoutComponent_RoadLane(const unsigned int particle_id, const unsigned int component_id,unsigned int lanes)
+    {
+        ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+
+        // Resize the State and the SensorModel
+        megavariabile.resize(lanes);
+        sensor.resize(lanes);
+
+        megavariabile.setConstant(1.0f/double(lanes));
+
+        this->particle_id  = particle_id;
+        this->component_id = component_id;
+    }
+
 };
 
 #endif // LAYOUTCOMPONENT_ROADLANE_H

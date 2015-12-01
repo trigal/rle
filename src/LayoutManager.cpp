@@ -12,12 +12,12 @@
  ***************************************************************************/
 #include "LayoutManager.h"
 
-bool    LayoutManager::openstreetmap_enabled = true;     /// Check this flag if we want to initialize particle-set with OSM and GPS
-double  LayoutManager::deltaOdomTime = 1;                /// Initialize static member value for C++ compilation
-double  LayoutManager::deltaTimerTime = 0.1;             /// Initialize static member value for C++ compilation
-bool    LayoutManager::layoutManagerFirstRun = true;     /// Flag used for initiliazing particle-set with gps
-bool    LayoutManager::first_msg = true;                 /// First odometry msg flag
-int     LayoutManager::odometryMessageCounter = 0;       /// Filter step counter
+bool    LayoutManager::openstreetmap_enabled = true;     ///< Check this flag if we want to initialize particle-set with OSM and GPS
+double  LayoutManager::deltaOdomTime = 1;                ///< Initialize static member value for C++ compilation
+double  LayoutManager::deltaTimerTime = 0.1;             ///< Initialize static member value for C++ compilation
+bool    LayoutManager::layoutManagerFirstRun = true;     ///< Flag used for initiliazing particle-set with gps
+bool    LayoutManager::first_msg = true;                 ///< First odometry msg flag
+int     LayoutManager::odometryMessageCounter = 0;       ///< Filter step counter
 
 visualization_msgs::Marker marker1;
 visualization_msgs::Marker marker2;
@@ -67,7 +67,7 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<Particle>&
  *
  * TODO: bagfile is still needed even in the case of kittiplayer
  */
-LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
+LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::string& visualOdometryTopic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
 {
 
     /// This sets the logger level; use this to disable all ROS prints
@@ -82,7 +82,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopi
     resampling_count = 0;
     LayoutManager::first_msg = true;
     visualOdometryOldMsg.header.stamp = ros::Time::now();    // init header timestamp
-    node_handle = n;                                         // set this node_handle as the same of 'road_layout_manager'
+    node_handle = node_handler_parameter;                    // set this node_handle as the same of 'road_layout_manager'
     start_with_gps_message  = true;                          // select RLE mode, hard-coded KITTI initializations, or GPS message TODO:FIX this shame
 
     this->bagfile = bagfile;
@@ -131,41 +131,42 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopi
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
-    LayoutManager::array_pub                            = n.advertise<geometry_msgs::PoseArray>              ("/road_layout_estimation/layout_manager/particle_pose_array", 1);
-    LayoutManager::gps_pub                              = n.advertise<sensor_msgs::NavSatFix>                ("/road_layout_estimation/layout_manager/gps_fix", 1);
-    LayoutManager::street_publisher                     = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/quaternion_pose", 1);
-    LayoutManager::particle_publisher                   = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/particle_pose", 1);
-    LayoutManager::diff_publisher                       = n.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/diff_pose", 1);
-    LayoutManager::marker_pub                           = n.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle", 1);
-    LayoutManager::marker_pub2                          = n.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle2", 1);
-    LayoutManager::publisher_marker_array               = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/particle_set", 1);
-    LayoutManager::publisher_marker_array_distances     = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/marker_array_distances", 1);
-    LayoutManager::publisher_marker_array_angles        = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
-    LayoutManager::publisher_z_particle                 = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
-    LayoutManager::publisher_z_snapped                  = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
-    LayoutManager::publisher_GT_RTK                     = n.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
-    LayoutManager::publisher_average_pose               = n.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
+    // Publisher Section
+    LayoutManager::array_pub                            = node_handler_parameter.advertise<geometry_msgs::PoseArray>              ("/road_layout_estimation/layout_manager/particle_pose_array", 1);
+    LayoutManager::gps_pub                              = node_handler_parameter.advertise<sensor_msgs::NavSatFix>                ("/road_layout_estimation/layout_manager/gps_fix", 1);
+    LayoutManager::street_publisher                     = node_handler_parameter.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/quaternion_pose", 1);
+    LayoutManager::particle_publisher                   = node_handler_parameter.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/particle_pose", 1);
+    LayoutManager::diff_publisher                       = node_handler_parameter.advertise<geometry_msgs::PoseStamped>            ("/road_layout_estimation/layout_manager/diff_pose", 1);
+    LayoutManager::marker_pub                           = node_handler_parameter.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle", 1);
+    LayoutManager::marker_pub2                          = node_handler_parameter.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle2", 1);
+    LayoutManager::publisher_marker_array               = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/particle_set", 1);
+    LayoutManager::publisher_marker_array_distances     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/marker_array_distances", 1);
+    LayoutManager::publisher_marker_array_angles        = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
+    LayoutManager::publisher_z_particle                 = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
+    LayoutManager::publisher_z_snapped                  = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
+    LayoutManager::publisher_GT_RTK                     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
+    LayoutManager::publisher_average_pose               = node_handler_parameter.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
 
-    LayoutManager::publisher_debugInformation           = n.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
+    LayoutManager::publisher_debugInformation           = node_handler_parameter.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
 
-    /// Init ROS service clients
-    latlon_2_xy_client                  = n.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
-    xy_2_latlon_client                  = n.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
-    snap_particle_xy_client             = n.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
-    get_closest_way_distance_utm_client = n.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
-    getHighwayInfo_client               = n.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
-    getDistanceFromLaneCenter_client    = n.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
+    // Init ROS service clients
+    latlon_2_xy_client                  = node_handler_parameter.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
+    xy_2_latlon_client                  = node_handler_parameter.serviceClient<ira_open_street_map::xy_2_latlon>                  ("/ira_open_street_map/xy_2_latlon");
+    snap_particle_xy_client             = node_handler_parameter.serviceClient<ira_open_street_map::snap_particle_xy>             ("/ira_open_street_map/snap_particle_xy");
+    get_closest_way_distance_utm_client = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_way_distance_utm> ("/ira_open_street_map/get_closest_way_distance_utm");
+    getHighwayInfo_client               = node_handler_parameter.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
+    getDistanceFromLaneCenter_client    = node_handler_parameter.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
 
-    /// Init ROS service server
-    server_getAllParticlesLatLon        = n.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
+    // Init ROS service server
+    server_getAllParticlesLatLon        = node_handler_parameter.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
 
 
-    /// RLE system initialization
+    // RLE system initialization
 
     latlon_2_xy_client.waitForExistence();      // WAIT FOR SERVICE -- the function prints some pretty comments
 
-    deltaTimerTime = timerInterval;             //deltaTimer of the LayoutManager Class is initialy set as the requested interval
-    RLE_timer_loop = n.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
+    deltaTimerTime = timerInterval;             ///< deltaTimer of the LayoutManager Class is initialy set as the requested interval
+    RLE_timer_loop = node_handler_parameter.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
     /// For debug purposes, print default paramenters (from .launch or .cfg file)
     road_layout_estimation::road_layout_estimationConfig defaultConfigFromLaunchFile;
@@ -186,6 +187,14 @@ LayoutManager::LayoutManager(ros::NodeHandle& n, std::string& visualOdometryTopi
     ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_z  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z);
     ROS_DEBUG_STREAM("propagate_rotational_percentage_vel_error       ------------  " << defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error     );
 
+    //nodelet::M_string   remappings;
+    //nodelet::V_string   my_argv;
+    //manager = new nodelet::Loader(node_handler_parameter);
+    //manager.load("isis_line_detector" ,"isis_line_detector/get_principal_plane"   ,remappings,my_argv);
+    //manager.load("lineTracker"        ,"isis_line_detector/lineTracker"           ,remappings,my_argv);
+
+
+    // Finally, setup the reconfigureCallback. This will initialize the components.
     dynamicReconfigureCallback = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     dynamicReconfigureServer.setCallback(dynamicReconfigureCallback);
 }
@@ -761,6 +770,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
             /// Setep 02 - Populate current_layout with *ONLY* valid particles
             int particle_id = 1;
+            int component_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
             while ((while_ctr < 1000) && (current_layout.size() < config.particles_number))
             {
@@ -842,8 +852,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
 
-                    /// Step 04 - Create Component ROAD STATE
-                    //////////// CREATE COMPONENT ROAD_STATE ////////////
+                    /// Step 04 - Create ROAD-RELATED Components
+                    /// ROAD_STATE  Checks width + Lane number wrt OSM
+                    /// ROAD_LANE   Checks lane displacement wrt OSM
                     ira_open_street_map::getHighwayInfo getHighwayService;
                     getHighwayService.request.way_id = snapParticleXYService.response.way_id;
                     if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
@@ -865,7 +876,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         ROS_INFO_STREAM("Adding roadState component!");
                         LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                1,                             //component Id
+                                component_id++,
                                 ros::Time::now(),
                                 &this->getHighwayInfo_client,
                                 lines
@@ -885,18 +896,24 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         roadState->setComponentState(state);
                         ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
                         new_particle.addComponent(roadState);
+
+
+                        /*
+                         * Creating this second component here; this ensure that
+                         * we have same number of both components in each particle
+                         */
+
+                        ROS_INFO_STREAM("Adding roadLane component!");
+                        LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
+                                component_id++,
+                                getHighwayService.response.number_of_lanes);
+                        new_particle.addComponent(roadLane);
                     }
-                    //////////// CREATE COMPONENT ROAD_STATE ////////////
+                    else
+                        ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
+                    //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
 
-                    ////////////////////////////////////////////////////
-                    //////////// CREATE COMPONENT ROAD_LANE ////////////
-                    ROS_INFO_STREAM("Adding roadLane component!");
-                    LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane();
-                    new_particle.addComponent(roadLane);
-                    //////////// CREATE COMPONENT ROAD_LANE ////////////
-                    ////////////////////////////////////////////////////
-                    ///
 
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout.push_back(new_particle);
@@ -936,7 +953,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
 
 
-                        //////////// CREATE COMPONENT ROAD_STATE ////////////
+                        //////////// CREATE ROAD RELATED COMPONENTS - inside OPPOSITE DIRECTION ////////////
                         ira_open_street_map::getHighwayInfo getHighwayService;
                         getHighwayService.request.way_id = snapParticleXYService.response.way_id;
                         if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
@@ -958,7 +975,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                             ROS_INFO_STREAM("Adding roadState component!");
                             LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                    1,                             //component Id
+                                    component_id++,
                                     ros::Time::now(),
                                     &this->getHighwayInfo_client,
                                     lines
@@ -977,16 +994,17 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             VectorXd state = new_particle_opposite.getParticleState().getPosition();
                             (*roadState).setComponentState(state);
                             new_particle_opposite.addComponent(roadState);
-                        }
-                        //////////// CREATE COMPONENT ROAD_STATE ////////////
 
-                        ////////////////////////////////////////////////////
-                        //////////// CREATE COMPONENT ROAD_LANE ////////////
-                        ROS_INFO_STREAM("Adding roadLane component!");
-                        LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane();
-                        new_particle_opposite.addComponent(roadLane);
-                        //////////// CREATE COMPONENT ROAD_LANE ////////////
-                        ////////////////////////////////////////////////////
+                            ROS_INFO_STREAM("Adding roadLane component!");
+                            LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
+                                    component_id++,
+                                    getHighwayService.response.number_of_lanes);
+                            new_particle.addComponent(roadLane);
+
+                            ////////////////////////////////////////////////////
+                        }
+                        //////////// CREATE ROAD RELATED COMPONENTS ////////////
+
 
                         /// Push particle inside particle-set
                         current_layout.push_back(new_particle_opposite);

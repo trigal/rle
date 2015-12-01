@@ -16,6 +16,7 @@
 
 
 #include "Utils.h"
+
 #include "geometry_msgs/PoseArray.h"
 #include "MeasurementModel.h"
 #include "nav_msgs/Odometry.h"
@@ -27,18 +28,24 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
+
+// ROS CORE STUFF
 #include <ros/console.h>
+#include <nodelet/loader.h>
+#include <nodelet/nodelet.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "eigenmultivariatenormal.hpp"
 
+// BOOST
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/uniform_real.hpp>
 
 #include <road_layout_estimation/road_layout_estimationConfig.h>
 #include <road_layout_estimation/getAllParticlesLatLon.h>
 
+// OPENSTREETMAPS MODULE
 #include "ira_open_street_map/get_closest_way_distance_utm.h"
 #include "ira_open_street_map/latlon_2_xy.h"
 #include "ira_open_street_map/snap_particle_xy.h"
@@ -46,7 +53,7 @@
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
 
-//Components
+// COMPONENTS
 #include "particle/LayoutComponent.h"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
@@ -117,15 +124,16 @@ using std::vector;
  */
 
 
-///
-/// \brief The LayoutManager class
-/// Implementation of the current layout estimator
+/**
+ * @brief The LayoutManager class
+ * Implementation of the current layout estimator
+ */
 class LayoutManager
 {
 public:
-    MeasurementModel* measurement_model;    /// our Measurment Model [created in the CLASS CONSTRUCTOR]
-    MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
-    static double deltaOdomTime;                  /// time between current message and last arrived message (static should be unnecessary here)
+    MeasurementModel* measurement_model; ///< our Measurment Model created in the CLASS CONSTRUCTOR
+    MotionModel default_mtn_model;       ///< default motion model applied to new particles TODO: allineare a measurement_model
+    static double deltaOdomTime;         ///< time between current message and last arrived message (static should be unnecessary here)
     static double deltaTimerTime;
 
     // Publishers
@@ -165,12 +173,14 @@ public:
 
     int num_particles;
 
-    static int odometryMessageCounter;           /// stores the current layout_manager step
+    static int odometryMessageCounter;          ///< stores the current layout_manager step
+
+    //TODO: this is a copy!?
+    ros::NodeHandle node_handle;                ///< Default ROS - LayoutManager handler
 
     // Dynamic reconfigure
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> dynamicReconfigureServer;
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType dynamicReconfigureCallback;
-    ros::NodeHandle node_handle;
 
     geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
 
@@ -245,7 +255,7 @@ public:
 
 
     // Timers
-    ros::Timer RLE_timer_loop;                  //main loop timer
+    ros::Timer RLE_timer_loop;                  ///< main loop timer
     void rleStart();
     void rleStop();
 
@@ -267,33 +277,31 @@ public:
 private:
 
     tf::TransformListener tf_listener;
-    boost::mt19937 rng;                         // The uniform pseudo-random algorithm
-    double street_distribution_sigma;           // Street gaussian distribution sigma
-    double angle_distribution_sigma;            // Angle difference gaussian distribution sigma
-    double street_distribution_weight;          // Tells how does street pdf weight on score calculation
-    double angle_distribution_weight;           // Tells how does angle pdf weight on score calculation
-    double roadState_distribution_weight;       // Tells how does roadStateComponents weight on the score calculation
-    int    resampling_interval;                 // The resampling interval of the main Particle Filter
+    boost::mt19937 rng;                         ///< The uniform pseudo-random algorithm
+    double street_distribution_sigma;           ///< Street gaussian distribution sigma
+    double angle_distribution_sigma;            ///< Angle difference gaussian distribution sigma
+    double street_distribution_weight;          ///< Tells how does street pdf weight on score calculation
+    double angle_distribution_weight;           ///< Tells how does angle pdf weight on score calculation
+    double roadState_distribution_weight;       ///< Tells how does roadStateComponents weight on the score calculation
+    int    resampling_interval;                 ///< The resampling interval of the main Particle Filter
 
+    static bool openstreetmap_enabled;          ///< check this flag if we want to initialize particle-set with GPS and associate OSM score
+    static bool layoutManagerFirstRun;          ///< flag used for initiliazing particle-set with gps
+    static bool first_msg;                      ///< flag used for init particle-set
+    nav_msgs::Odometry visualOdometryOldMsg;    ///< used for delta_t calculation
 
-
-    static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
-    static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
-    static bool first_msg;                      // flag used for init particle-set
-    nav_msgs::Odometry visualOdometryOldMsg;    // used for delta_t calculation
-
-    bool new_detections;                        // indicates detectors found new detections (not used)
-    vector<Particle> current_layout;            // stores the current layout
+    bool new_detections;                        ///< indicates detectors found new detections (not used)
+    vector<Particle> current_layout;            ///< stores the current layout
     double current_layoutScore;
     long resampling_count;
 
-    MatrixXd particle_poses_statistics;         // To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+    MatrixXd particle_poses_statistics;         ///< To calculate the statistics of the particle set for evaluation purposes (localization confidence)
 
-    // output files
-    ofstream stat_out_file;
-    ofstream LIBVISO_out_file;
-    ofstream RLE_out_file;
-    ofstream RTK_GPS_out_file;
+    // Output files
+    ofstream stat_out_file;                     ///< output file, for framework evaluation
+    ofstream LIBVISO_out_file;                  ///< output file, for framework evaluation
+    ofstream RLE_out_file;                      ///< output file, for framework evaluation
+    ofstream RTK_GPS_out_file;                  ///< output file, for framework evaluation
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
@@ -302,73 +310,74 @@ private:
     visualization_msgs::MarkerArray marker_z_particle;
     visualization_msgs::MarkerArray marker_array_GT_RTK;
 
-    string bagfile;
+    string bagfile;                             ///< This is used to cache the KITTI_XX.bags initialization parameters rather than GPS
 
+    // Loader for nodelets.
+    //nodelet::Loader     *manager;               ///< Loader for the nodelets.
 
-    bool start_with_gps_message;                // select RLE mode, hard-coded KITTI initializations, or GPS message
+    bool start_with_gps_message; ///< select RLE mode, hard-coded KITTI initializations, or GPS message
 
-
-    ///
-    /// \brief checkHasMoved
-    /// \return
-    ///
+    /**
+     * @brief checkHasMoved
+     * @return
+     */
     bool checkHasMoved();
 
-    ///
-    /// \brief componentsEstimation
-    /// STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
-    /// STEP 2: PERTURBATE COMPONENT POSES
-    /// STEP 3: WEIGHT LAYOUT-COMPONENTS
-    ///
+    /**
+     * @brief componentsEstimation
+     * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+     * STEP 2: PERTURBATE COMPONENT POSES
+     * STEP 3: WEIGHT LAYOUT-COMPONENTS
+     */
     void componentsEstimation();
 
-    ///
-    /// \brief sampling
-    /// Sampling from the state transition p(x_t | u_t , x_t-1):
-    /// we propagate the particle and its components with the motion model
-    /// and generate a predicted particle-set
-    ///
+    /**
+     * @brief sampling
+     * Sampling from the state transition p(x_t | u_t , x_t-1):
+     * we propagate the particle and its components with the motion model
+     * and generate a predicted particle-set
+     */
     void sampling();
+
     void componentsPerturbation();
+
     void calculateLayoutComponentsWeight();
 
-
-    ///
-    /// \brief resampling
-    /// \param particle-set predetto
-    /// \return particle-set con resampling
-    ///
-    /// Resampling sul particle-set predetto, utilizzando lo score delle particelle:
-    /// chi ha peso più alto è più probabile che venga preso [roulette-wheel]
-    ///
+    /**
+     * @brief resampling
+     * @param particle-set predetto
+     * @return particle-set con resampling
+     *
+     * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
+     * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
+     */
     void resampling();
 
 
-    ///
-    /// \brief calculateScore
-    /// \param particle_itr
-    ///
-    /// Cardinalità unaria (Particella presa INDIVIDUALMENTE)
-    ///  1- Kalman gain sulla pose della particella
-    ///  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
-    ///
-    /// Cardinalità >= 2
-    ///  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
-    ///  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
-    ///
-    /// Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
-    /// essa sarà mantenuta in vita nonostante lo score sia basso.
-    /// In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
-    /// uno score di valore basso per motivi di natura diversa.
-    ///
+    /**
+     * @brief calculateScore
+     * @param particle_itr
+     *
+     * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
+     *  1- Kalman gain sulla pose della particella
+     *  2- Somma dei WEIGHT delle varie componenti della particella (ottenuti dal filtraggio a particelle)
+     *
+     * Cardinalità >= 2
+     *  1- plausibilità di esistenza tra le varie componenti di stesso tipo (due building sovrapposti ecc.)
+     *  2- plausibilità di esistenza tra componenti di diverso tipo (building sovrapposto a una macchina ecc.)
+     *
+     * Nessuna particella verrà eliminata durante il procedimento di calcolo dello score,
+     * essa sarà mantenuta in vita nonostante lo score sia basso.
+     * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
+     * uno score di valore basso per motivi di natura diversa.
+     */
     void calculateScore(Particle *particle_itr);
 
-    ///
-    /// \brief calculateGeometricScores
-    /// \param particle_itr
-    ///
-    /// helper function, while the distance (metric+angular) aren't components.
-    ///
+    /**
+     * @brief calculateGeometricScores
+     * @param particle_itr
+     * helper function, while the distance (metric+angular) aren't components.
+     */
     void calculateGeometricScores(Particle *particle_itr);
 
 };

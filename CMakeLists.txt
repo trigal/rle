@@ -11,7 +11,18 @@ SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules message_generation std_msgs road_lane_detection ira_open_street_map)
+find_package(catkin REQUIRED COMPONENTS     roscpp
+                                            tf
+                                            nav_msgs
+                                            geometry_msgs
+                                            dynamic_reconfigure
+                                            cmake_modules
+                                            message_generation
+                                            std_msgs
+                                            road_lane_detection
+                                            ira_open_street_map
+                                            nodelet
+)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})

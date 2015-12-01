@@ -57,6 +57,9 @@
             />
 
 
+        <!-- to debug in QtCreator, run the road_layout_estimation node with
+             /stereo_odometer/odometry 2011_10_03_drive_0042_sync as arguments and
+             disable the following node from the launcher -->
         <!-- Launch ROAD LAYOUT ESTIMATION node-->
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
@@ -81,8 +84,8 @@
             />
          -->
 
-        <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB**-->
-        <include file="$(find isis_line_detector)/launch/linedetector.launch" />
+        <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB**
+        <include file="$(find isis_line_detector)/launch/linedetector.launch" />-->
 
         <!-- KITTI PLAYER -->
         <include file="$(find kitti_player)/launch/kittiplayer_libviso2.launch" />

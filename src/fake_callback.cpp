@@ -10,9 +10,8 @@
 
 using namespace std;
 
-Eigen::Vector4d sensor;
-//Eigen::Array4d megavariabile(0.495, 0.495, 0.005, 0.005);
-Eigen::Array4d megavariabile(0.005, 0.005, 0.495, 0.495);
+Eigen::VectorXd sensor;
+Eigen::Array4d megavariabile;
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
@@ -44,6 +43,12 @@ int lanesFromLines(int goodLines)
         return (goodLines - 1);
 }
 
+/**
+ * @brief chatterCallback
+ * @param msg_lines
+ *
+ * this should became the roadLaneCallback
+ */
 void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 {
     cout << "================================================================"<< endl << endl;
@@ -63,26 +68,14 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     //    cout << megavariabile.transpose() << " * " << state.col(0).array().transpose() << endl; //checking column/row multiplcation...
 
-    Eigen::Array4d prediction;
-    prediction[0] = (megavariabile * state.col(0).array()).sum();
-    prediction[1] = (megavariabile * state.col(1).array()).sum();
-    prediction[2] = (megavariabile * state.col(2).array()).sum();
-    prediction[3] = (megavariabile * state.col(3).array()).sum();
+    Eigen::ArrayXd prediction(4);
+    for (int i=0;i<4;i++)
+        prediction[i] = (megavariabile * state.col(i).array()).sum();
+
 
     double standardLaneWidth = 3.0f; //maybe minLaneWidth
     unsigned int hypothesisCurrentLanesNaive = 0.0f; //hypothesis of current lane
     unsigned int hypothesisCurrentLanes = 0.0f; //hypothesis of current lane
-
-    /// Heuristic for number of lanestd::fmod(msg_lines.naive_width, standardLaneWidth)s given the detected/naive width
-//    if (std::fmod(msg_lines.naive_width, standardLaneWidth) >= (standardLaneWidth / 1.0f))
-//        hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth );
-//    else
-//        hypothesi-sCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth ) + 1;
-//
-//    if (std::fmod(msg_lines.naive_width, standardLaneWidth)  >= (standardLaneWidth / 1.0f))
-//        hypothesisCurrentLanes = round(msg_lines.width / standardLaneWidth );
-//    else
-//        hypothesisCurrentLanes = round(msg_lines.width / standardLaneWidth ) + 1;
 
     hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth );
     hypothesisCurrentLanes =      round(msg_lines.width / standardLaneWidth );
@@ -97,7 +90,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     }
     std::sort (validAndSorted.begin(), validAndSorted.end(), myCompare);
 
-    int corsie = lanesFromLines(msg_lines.number_of_lines) ; // ?goodlines? qui osm
+    int corsie = lanesFromLines(msg_lines.number_of_lines) ; // ?goodlines? qui osm BUT FROM THE PARTICLE.
     int extra_corsie = corsie - hypothesisCurrentLanes; // quante altre penso che ci siano oltre a quella trovata OSM - TROVATE
     if (extra_corsie < 0)
         extra_corsie = 0; //non può essere minore di zero. caso in cui ho più detection di quelle che dovrebbero esserci
@@ -135,18 +128,6 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                 corsie--;
                 extra_corsie--;
             }
-            //ROS_DEBUG_STREAM(msg_lines.lines.at(0).offset);
-            //ROS_ASSERT (((tentative[0]>0)||(tentative[1]>0)));
-
-            /// Add noise to every guess (moved outside the if)
-            //tentative += 0.001f;
-            //tentative /= tentative.sum();
-
-            //string s;
-            //for (int i = 0; i <= tentative.cols(); i++)
-            //    s = s + " " + std::to_string(tentative[i]);
-            //ROS_WARN_STREAM(s);
-            //ROS_DEBUG_STREAM(tentative[0] << " " << tentative[1] << );
 
             /// Does some couple of lines create a plausible "lane?"
             for (int i = 0; i < validAndSorted.size() - 1; i++)
@@ -253,8 +234,6 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     ROS_INFO_STREAM("Sensor OK/BAD:" << SensorOK << "/" << SensorBAD << " - counter: " << counter << "/" << msg_lines.number_of_lines * 10);
 
-    //tentative.setConstant(2, 0.5f);
-
     Eigen::Array2d a;
     Eigen::Array2d b;
     a = (tentative * SensorOK ) ; //<< endl;
@@ -290,6 +269,9 @@ int main(int argc, char **argv)
         std::cout << "Error while setting the logger level!" << std::endl;
 
     ros::NodeHandle n;
+
+    megavariabile.resize(4);
+    megavariabile.setConstant(1.0f / 4.0f);
 
     ros::Subscriber sub = n.subscribe("/kitti_player/lanes", 1, chatterCallback);
 
