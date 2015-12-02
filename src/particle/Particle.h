@@ -13,9 +13,12 @@
 #ifndef PARTICLE_H_
 #define PARTICLE_H_
 
+/// Forward declaration, refs #523
+class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wiki/Circular_dependency
+
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "LayoutComponent.h"
+//#include "LayoutComponent.h"
 #include "LayoutComponent_RoadState.h"
 #include "LayoutComponent_RoadLane.h"
 #include "MotionModel.h"
@@ -31,8 +34,6 @@
 using namespace Eigen;
 using std::vector;
 
-/// Forward declaration, refs #523
-class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wiki/Circular_dependency
 
 class Particle
 {
@@ -163,7 +164,7 @@ public:
     }
 
     int64_t getWayIDHelper();   ///< Performs a check inside the components in order to retrieve the WAYID
-    int32_t getOneWayHelper();  ///< Performs a check inside the components, returning if the way is oneway or not
+    bool getOneWayHelper();     ///< Performs a check inside the components, returning if the way is oneway or not
 
     vector<LayoutComponent*> getLayoutComponents()
     {

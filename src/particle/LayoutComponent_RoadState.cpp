@@ -268,12 +268,12 @@ void LayoutComponent_RoadState::componentPoseEstimation()
 }
 
 
-int32_t LayoutComponent_RoadState::getOneway() const
+bool LayoutComponent_RoadState::getOneway() const
 {
     return oneway;
 }
 
-void LayoutComponent_RoadState::setOneway(const int32_t &value)
+void LayoutComponent_RoadState::setOneway(const bool &value)
 {
     oneway = value;
 }

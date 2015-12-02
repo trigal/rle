@@ -259,7 +259,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
  * @brief Particle::getWayIDHelper
  * @return the wayId inside the LayoutComponent Roadstate. -1 if not found
  *
- * Performs a check inside the components in order to retrieve the WAYID
+ * Performs a check inside the components in order to return the WAYID
  * refs #502
  */
 int64_t Particle::getWayIDHelper()
@@ -277,6 +277,28 @@ int64_t Particle::getWayIDHelper()
     return -1;
 
     //(dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id();
+}
+
+/**
+ * @brief Particle::getOneWayHelper
+ * @return oneway tag value
+ *
+ * Performs a check inside the components in order to return if the current way
+ * has the TAG:ONEWAY and if it is true/false
+ */
+bool Particle::getOneWayHelper()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            bool a=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
+            return a;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return false;
 }
 
 

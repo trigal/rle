@@ -1791,7 +1791,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         }
         else
         {
-            ROS_WARN_STREAM("WARNING! Snap failed in roadStateCallback in the radius of " << snapParticleRequestResponse.request.max_distance_radius << "m, and thus RoadStateComponent IS NOT CREATED!);
+            ROS_WARN_STREAM("WARNING! Snap failed in roadStateCallback in the radius of " << snapParticleRequestResponse.request.max_distance_radius << "m, and thus RoadStateComponent IS NOT CREATED!");
         }
 
     }

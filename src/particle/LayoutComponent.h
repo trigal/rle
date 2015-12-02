@@ -1,15 +1,17 @@
 #ifndef LAYOUTCOMPONENT_H
 #define LAYOUTCOMPONENT_H
 
+/// Forward declaration, refs #523
+class Particle; //also in Particle.h https://en.wikipedia.org/wiki/Circular_dependency
+
 #include <vector>
 #include <Eigen/Eigen>
 #include <ros/ros.h>
 
+
 using namespace Eigen;
 using std::vector;
 
-/// Forward declaration, refs #523
-class Particle; //also in Particle.h https://en.wikipedia.org/wiki/Circular_dependency
 
 class LayoutComponent
 {

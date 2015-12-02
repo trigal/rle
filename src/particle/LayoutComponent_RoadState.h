@@ -39,7 +39,7 @@ class LayoutComponent_RoadState : public LayoutComponent
 private:
 
     char            current_lane;     // -1 don't know
-    int32_t         oneway;             ///< oneway, retrieved using getHighwayService service
+    bool            oneway;             ///< oneway, retrieved using getHighwayService service
 
     // Description msg_lines
     // Header header
@@ -58,7 +58,7 @@ private:
     // int32   counter
     // float32 offset
 
-    road_layout_estimation::msg_lines msg_lines;
+    road_layout_estimation::msg_lines msg_lines;    ///< full message containing info
 
     ros::ServiceClient *getHighwayInfo_client;
 
@@ -112,7 +112,7 @@ public:
         timestamp = ros::Time(0);
 
         getHighwayInfo_client = NULL;
-        oneway=0;
+        oneway = 0;
     }
 
     /// This constructor should be used only in the initialization phase
@@ -165,8 +165,8 @@ public:
 
     int64_t getWay_id() const;
     void    setWay_id(const int64_t &value);
-    int32_t getOneway() const;
-    void    setOneway(const int32_t &value);
+    bool    getOneway() const;
+    void    setOneway(const bool &value);
     double  getScoreLanes() const;
     void    setScoreLanes(double value);
     double  getScoreWidth() const;

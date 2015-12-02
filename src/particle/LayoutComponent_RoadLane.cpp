@@ -1,5 +1,5 @@
 #include "LayoutComponent_RoadLane.h"
-
+#include "Particle.h"
 
 int LayoutComponent_RoadLane::getLanes() const
 {
@@ -58,12 +58,14 @@ void LayoutComponent_RoadLane::componentPerturbation()
  * and some "logic". Finally updates the componentWeight (remember that it must
  * be in the 0..1 range)
  *
+ * To retrieve the ONEWAY flag, use the LayoutComponent-particle pointer, #523
+ *
  */
 void LayoutComponent_RoadLane::calculateComponentScore()
 {
     ROS_DEBUG_STREAM ("Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
 
-//    this->particle
+    bool isOneWay = this->particle->getOneWayHelper();
 
     ///////     // THIS IS RELATED WITH #502
     ///////     ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
@@ -79,9 +81,6 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     ///////     }
 
 
-
-
-
     //need to sum up to ONE;
     this->setComponentWeight(0);
 }
@@ -94,6 +93,8 @@ void LayoutComponent_RoadLane::calculateComponentScore()
  * Updates the Hidden Markov Model
  * In the future, convert HMM to DBN will be required.
  * This routine is related to #519, follows #469
+ *
+ * It is called from the roadLaneCallback (inside the LayoutManager)
  */
 void LayoutComponent_RoadLane::filter(const road_layout_estimation::msg_lines & msg_lines)
 {
