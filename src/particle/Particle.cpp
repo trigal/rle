@@ -41,6 +41,11 @@ void Particle::propagateLayoutComponents()
             ROS_DEBUG_STREAM("roadStateComponent detected");
             (*itr)->componentPoseEstimation(); //virtual
         }
+        else if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
+        {
+            ROS_DEBUG_STREAM("roadLaneComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+        }
         else
         {
             ROS_WARN_STREAM("Unkown component");
