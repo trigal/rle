@@ -22,7 +22,6 @@ using namespace std;
 /**
  * @brief The LayoutComponent_RoadState class
  *
- *
  * This component should answer to the following question:
  *
  * QUANDO IL DETECTOR DI LINEE CI PERMETTE DI DIRE CHE LA 'DETECTION' SI AVVCINA
@@ -30,7 +29,8 @@ using namespace std;
  *
  *               <<< N#LINEE + LARGHEZZA STRADA >>>
  *
- * first component, in ITSC 2015
+ * first component, Alcala de Henares 2015
+ * http://projects.ira.disco.unimib.it/issues/404
  *
  * The state is stored using a msg_lines message
  */
@@ -38,8 +38,8 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
-    char            current_lane;     // -1 don't know
-    bool            oneway;             ///< oneway, retrieved using getHighwayService service
+    char            current_lane;           ///< here the lane in which the hypothesis should be wrt OSM lat/lon;
+    bool            oneway;                 ///< oneway, retrieved using getHighwayService service
 
     // Description msg_lines
     // Header header
@@ -62,10 +62,6 @@ private:
 
     ros::ServiceClient *getHighwayInfo_client;
 
-    // Particle info
-    double          latitude;
-    double          longitude;
-
     ros::Time       timestamp;
 
     double scoreLanes;
@@ -75,29 +71,26 @@ private:
 
 public:
 
-    void componentPoseEstimation();
+    // Virtual functions -------------------------------------------------------
+    void componentPoseEstimation(); //this is evoked by the chain Sampling > PropagateLayoutComponents > ComponentPoseEstimation ...
     void calculateComponentScore();
     void componentPerturbation();
 
-    double        getRoad_width()               const;
-    double        getRoad_naiveWidth()          const;
-    char          getCurrent_lane()             const;
-    int           getLanes_number()             const;
-    void          setRoad_width                 (double value);
-    void          setRoad_naiveWidth            (double value);
-    void          setCurrent_lane               (char value);
+    // Getters and setters -----------------------------------------------------
+    double      getRoad_width()               const;
+    double      getRoad_naiveWidth()          const;
+    char        getCurrent_lane()             const;
+    ros::Time   getTimestamp();
+    void        setRoad_width                 (double value);
+    void        setRoad_naiveWidth            (double value);
+    void        setCurrent_lane               (char value);
+    void        setTimestamp(ros::Time time);
 
-    // Getters and setters ----------------------------------------------------------------------
-    void          setTimestamp(ros::Time time)
-    {
-        timestamp = time;
-    }
-    ros::Time     getTimestamp()
-    {
-        return timestamp;
-    }
+    // Other public functions --------------------------------------------------
+    int         getLanes_number()             const;///< Calculate the number of LANES given the number of lines stored inside msg_lines
+    void        calculateCurrentLane();             ///< Calculate the current lane using the
 
-    // Constructors and destructors -------------------------------------------------------------
+    // Constructors and destructors --------------------------------------------
     LayoutComponent_RoadState()
     {
         particle_id = 0;
@@ -116,7 +109,14 @@ public:
     }
 
     /// This constructor should be used only in the initialization phase
-    ROS_DEPRECATED LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, int way_id, int lanes_number, const unsigned char current_lane, double road_width, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager)
+    ROS_DEPRECATED LayoutComponent_RoadState(const unsigned int particle_id,
+            const unsigned int component_id,
+            int way_id,
+            int lanes_number,
+            const unsigned char current_lane,
+            double road_width,
+            ros::Time timestamp,
+            ros::ServiceClient *serviceClientFromLayoutManager)
     {
         this->particle_id = particle_id;
         this->component_id = component_id;
@@ -136,7 +136,12 @@ public:
     }
 
     /// This constructor should be used during the normal filter iteration
-    LayoutComponent_RoadState(const unsigned int particle_id, const unsigned int component_id, ros::Time timestamp, ros::ServiceClient *serviceClientFromLayoutManager, const road_layout_estimation::msg_lines &msg_lines, int32_t oneway)
+    LayoutComponent_RoadState(const unsigned int particle_id,
+                              const unsigned int component_id,
+                              ros::Time timestamp,
+                              ros::ServiceClient *serviceClientFromLayoutManager,
+                              const road_layout_estimation::msg_lines &msg_lines,
+                              int32_t oneway)
     {
         this->particle_id   = particle_id;
         this->component_id  = component_id;
