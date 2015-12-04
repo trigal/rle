@@ -443,25 +443,27 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 // update particle score using OpenStreetMap
                 if (LayoutManager::openstreetmap_enabled)
                 {
-                    tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle.getParticleState().getPosition());
 
                     // Build request
-                    ira_open_street_map::snap_particle_xy srv;
-                    srv.request.x = tf_pose_map_frame.getOrigin().getX();
-                    srv.request.y = tf_pose_map_frame.getOrigin().getY();
-                    srv.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
+                    ira_open_street_map::snap_particle_xy snapParticleRequestResponse;
+
+                    tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle.getParticleState().getPosition());
+                    snapParticleRequestResponse.request.x = tf_pose_map_frame.getOrigin().getX();
+                    snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
+                    snapParticleRequestResponse.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
 
                     // Get distance from closest street and set it as particle score
                     // init normal distribution
                     boost::math::normal normal_dist(0, street_distribution_sigma);
-                    if (LayoutManager::snap_particle_xy_client.call(srv))
+                    if (LayoutManager::snap_particle_xy_client.call(snapParticleRequestResponse))
                     {
                         // calculate difference between original particle position and snapped particle position
                         // use it to set particle score using normal distribution PDF
-                        double dx = tf_pose_map_frame.getOrigin().getX() - srv.response.snapped_x;
-                        double dy = tf_pose_map_frame.getOrigin().getY() - srv.response.snapped_y;
+                        double dx = tf_pose_map_frame.getOrigin().getX() - snapParticleRequestResponse.response.snapped_x;
+                        double dy = tf_pose_map_frame.getOrigin().getY() - snapParticleRequestResponse.response.snapped_y;
                         double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
                         double distance = sqrt(dx * dx + dy * dy + dz * dz);
+                        new_particle.distance_to_closest_segment = distance;
                         new_particle.setParticleScore(pdf(normal_dist, distance));
                     }
                     else
@@ -844,13 +846,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     ROS_DEBUG_STREAM("p_sigma" << endl << endl << p_sigma << endl);
 
-                    /// Create particle and set its score
+                    // Create particle, set its score and other parameters
                     Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
+                    new_particle.distance_to_closest_segment = 0.0f; //distance is ZERO because particle is snapped
+
                     //new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
                     new_particle.setParticleScore(1); // dont' calculate score with distance because particle is snapped
                     // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
                     // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle.getParticleScore());
+
 
 
                     /// Step 04 - Create ROAD-RELATED Components
@@ -949,8 +954,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         p_pose.setRotation(rotation_opposite);
 
-                        // Create particle and set its score
+                        // Create particle, set its score and other parameters
                         Particle new_particle_opposite(particle_id, p_pose, p_sigma, default_mtn_model);
+                        new_particle_opposite.distance_to_closest_segment = 0.0f; //distance is ZERO because particle is snapped
                         //new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
                         new_particle_opposite.setParticleScore(1); // don't calculate score with distance because particle is snapped
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
@@ -2050,6 +2056,10 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
             double dz = tf_pose_local_map_frame.getOrigin().getZ() - 0; // particle Z axis is forced to be next to zero
             double distance = sqrt(dx * dx + dy * dy + dz * dz);
 
+            /// update the particle variable; this is also used in the
+            /// CREATING STATISTICS FOR RLE OUTPUT section
+            (*particle_itr).distance_to_closest_segment = distance;
+
             /// For debuggin purposes: add line to marker array distances
             //publishMarkerArrayDistances((*particle_itr).getId(),
             //                            tf_pose_local_map_frame.getOrigin().getX(),
@@ -2140,6 +2150,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         {
             // Either service is down or particle is too far from a street
             (*particle_itr).setParticleScore(0);
+            (*particle_itr).distance_to_closest_segment = std::numeric_limits::infinity();
             ROS_ERROR_STREAM("RLE Main loop, snap_particle_xy service call");
             ROS_ERROR_STREAM("Either service is down or particle is too far from a street. Shutdown in LayoutManager.cpp");
             ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug

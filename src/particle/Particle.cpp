@@ -24,7 +24,7 @@ using std::vector;
 
 
 /**
- * Update every particle's components pose using motion model equations
+ * @brief propagateLayoutComponents Update every particle's components pose using motion model equations
  */
 void Particle::propagateLayoutComponents()
 {
@@ -142,7 +142,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
 
     // Check if the measure is valid
-    if (true) // set to TRUE if using "With Odometry"
+    if (true) // set to TRUE if using "With Odometry" TODO: it is ok, but an IF(TRUE) is something bad to have in the code in this case
         //if(!odometry->isMeasureValid())
     {
         ROS_DEBUG_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
@@ -158,7 +158,6 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
         //cout << "--------------------------------------------------------------------------------" << endl;
 
         /// set roadStateComponent state
-        ///
         vector<LayoutComponent*>::iterator itr;
         unsigned char component_counter = 0; // preferred over (it - vec.begin())
         for (itr = particle_components.begin(); itr != particle_components.end(); itr++)
@@ -289,16 +288,18 @@ int64_t Particle::getWayIDHelper()
  * @return oneway tag value
  *
  * Performs a check inside the components in order to return if the current way
- * has the TAG:ONEWAY and if it is true/false
+ * has the TAG:ONEWAY and if it is true/false. This tag is updated in the RoadState
+ * every time a new msg_lines is received (the component is deleted/created every time)
+ *
  */
-bool Particle::getOneWayHelper()
+bool Particle::getOneWayFlag()
 {
     for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))
         {
-            bool a=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
-            return a;
+            bool oneway=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
+            return oneway;
         }
     }
 
@@ -307,3 +308,12 @@ bool Particle::getOneWayHelper()
 }
 
 
+double Particle::getDistance_to_closest_segment() const
+{
+    return distance_to_closest_segment;
+}
+
+void Particle::setDistance_to_closest_segment(double value)
+{
+    distance_to_closest_segment = value;
+}

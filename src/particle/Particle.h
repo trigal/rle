@@ -13,7 +13,7 @@
 #ifndef PARTICLE_H_
 #define PARTICLE_H_
 
-/// Forward declaration, refs #523
+// Forward declaration, refs #523
 class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wiki/Circular_dependency
 
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -34,36 +34,42 @@ class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wik
 using namespace Eigen;
 using std::vector;
 
-
+/**
+ * @brief The Particle class
+ */
 class Particle
 {
 
 private:
-    unsigned int particle_id;   /// particle id
-    State6DOF particle_state;   /// particle state (12x1: 6DoF pose + 6 Speed Derivates)
-    MatrixXd particle_sigma;    /// particle state error covariance (12x12)
-    vector<LayoutComponent*> particle_components; /// array of particle-components
+    unsigned int particle_id;                       ///< particle id
+    State6DOF particle_state;                       ///< particle state (12x1: 6DoF pose + 6 Speed Derivates)
+    MatrixXd particle_sigma;                        ///< particle state error covariance (12x12)
+    vector<LayoutComponent*> particle_components;   ///< array of particle-components
 
-    MatrixXd kalman_gain;    /// kalman gain got while estimating the pose
-    double particle_score;   /// score got with particle-score formula
-    MotionModel particle_mtn_model;  /// particle motion model
+    MatrixXd kalman_gain;                           ///< kalman gain got while estimating the pose
+    double particle_score;                          ///< score got with particle-score formula
+    MotionModel particle_mtn_model;                 ///< particle motion model
 
 
 public:
 
-    int in_cluster;
-    double distance_to_closest_segment;
+    int in_cluster;                                 ///< used to calculate statistics; the statistics are not always enabled, there is a flag to activate them
 
-    double pose_diff_score_component;
-    double final_angle_diff_score_component;
+    /// stores the last calculated euclidean distance from the OSM road segment
+    /// it is updated in the <<<calculateGeometricScores>>> routine
+    double distance_to_closest_segment;      // have a look to #522, or move to the private section and use getter/setters
+
+    double pose_diff_score_component;        // have a look to #522
+    double final_angle_diff_score_component; // have a look to #522
 
     /**
+     * @brief propagateLayoutComponents
      * This function will use "motion-model" class to propagate all particle's components
      */
     void propagateLayoutComponents();
 
     /**
-     * Add new component to the particle
+     * @brief addComponent Add new component to the particle
      * @param component
      *
      * Here I check the type of Layout Component and push back to the component
@@ -83,10 +89,10 @@ public:
         }
     }
 
-    /**
-     * Remove the selected component from the particle
-     * @param component
-     */
+//    /**
+//     * Remove the selected component from the particle
+//     * @param component
+//     */
 //    void removeComponent(LayoutComponent component){
 //      this->LayoutComponents.erase(component);
 //
@@ -98,15 +104,6 @@ public:
 //  }
 
 
-    //getters & setters -----------------------------------------------------------------
-    int getId() const
-    {
-        return particle_id;
-    }
-    void setId(int id)
-    {
-        particle_id = id;
-    }
 
     void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime = 0.0f, double deltaOdomTime = 0.0f);
 
@@ -164,8 +161,17 @@ public:
     }
 
     int64_t getWayIDHelper();   ///< Performs a check inside the components in order to retrieve the WAYID
-    bool getOneWayHelper();     ///< Performs a check inside the components, returning if the way is oneway or not
+    bool getOneWayFlag();     ///< Performs a check inside the components, returning if the way is oneway or not
 
+    //getters & setters -----------------------------------------------------------------
+    int getId() const
+    {
+        return particle_id;
+    }
+    void setId(int id)
+    {
+        particle_id = id;
+    }
     vector<LayoutComponent*> getLayoutComponents()
     {
         return particle_components;
@@ -244,6 +250,8 @@ public:
             angular_uncertainty
         );
     }
+    double getDistance_to_closest_segment() const;
+    void setDistance_to_closest_segment(double value);
 
     //constructor ----------------------------------------------------------------------
     Particle()
@@ -251,19 +259,22 @@ public:
         particle_id = 0;
         kalman_gain = MatrixXd::Zero(12, 12);
         particle_sigma = MatrixXd::Zero(12, 12);
-        particle_score = 0;
+        particle_score = 0.0f;
+        distance_to_closest_segment = 0.0f;
     }
     Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md)
     {
         kalman_gain = MatrixXd::Zero(12, 12);
         particle_sigma = MatrixXd::Zero(12, 12);
-        particle_score = 0;
+        particle_score = 0.0f;
+        distance_to_closest_segment = 0.0f;
     }
     Particle(unsigned int id, State6DOF& state, MotionModel mt_md )
         : particle_id(id), particle_state(state), particle_mtn_model(mt_md)
     {
         particle_sigma = MatrixXd::Zero(12, 12);
-        particle_score = 0;
+        particle_score = 0.0f;
+        distance_to_closest_segment = 0.0f;
     }
     Particle(unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
         : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
@@ -272,7 +283,8 @@ public:
         ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_absolute_vel_error_x << "\t" << mt_md.propagate_translational_absolute_vel_error_y << "\t" << mt_md.propagate_translational_absolute_vel_error_z);
         ROS_DEBUG_STREAM("Motion Model    %     Translational Velocity errors:\t" << mt_md.getPropagate_translational_percentage_vel_error_x() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_y() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_z());
         kalman_gain = MatrixXd::Zero(12, 12);
-        particle_score = 0;
+        particle_score = 0.0f;
+        distance_to_closest_segment = 0.0f;
     }
 
     //destructor -------------------------------------------------------------
@@ -282,7 +294,8 @@ public:
         kalman_gain.resize(0, 0);
         particle_sigma.resize(0, 0);
         particle_components.resize(0);
-        particle_score = 0;
+        particle_score = 0.0f;
+        distance_to_closest_segment = 0.0f;
 
         // delete all particle's components
         for (int i = 0; i < particle_components.size(); ++i)
@@ -290,6 +303,7 @@ public:
             delete particle_components.at(i);
         }
     }
+
 };
 
 #endif /* PARTICLE_H_ */
