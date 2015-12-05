@@ -888,7 +888,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                 lines,
                                 getHighwayService.response.oneway
                                                                                             );
-                        roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
+                        roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug.
 
 
                         //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
@@ -916,7 +916,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                 component_id++,
                                 getHighwayService.response.number_of_lanes);
-                        roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
+                        roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug.
                         new_particle.addComponent(roadLane);
                     }
                     else
@@ -1753,19 +1753,23 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
         snapParticleRequestResponse.request.max_distance_radius = 20;  // TODO: parametrize this value
 
-        LayoutComponent_RoadState *roadState ;
+        LayoutComponent_RoadState *roadStatePtr ;
 
         if (snap_particle_xy_client.call(snapParticleRequestResponse))
         {
-            ROS_DEBUG_STREAM("Snap OK in roadStateCallback " << snapParticleRequestResponse.response.way_id;);
+            ROS_DEBUG_STREAM("Snap OK in LayoutManager::roadStateCallback " << snapParticleRequestResponse.response.way_id;);
             modified_msg_lines.way_id = snapParticleRequestResponse.response.way_id;
+
+            // BUG: #528
+            // this should be the OPPOSITE of >>>>> snapParticleRequestResponse.response.way_dir_opposite_particles
+            // oneway = NOT way_dir_opposite_particles
 
             oneWayRequestResponse.request.way_id = snapParticleRequestResponse.response.way_id;
             if (oneWay_client.call(oneWayRequestResponse))
             {
                 // Response TRUE means TAG found. It may be true or false, use the response.oneway
-                roadState = new LayoutComponent_RoadState(particle->getId(),
-                        1,                             //component Id
+                roadStatePtr = new LayoutComponent_RoadState(particle->getId(),
+                        1,                             //component Id, since we're deleting and recreating it, is is fake. BUG: #525
                         ros::Time::now(),
                         &this->getHighwayInfo_client,
                         modified_msg_lines,
@@ -1775,8 +1779,8 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
             else
             {
                 // Otherwise the tag is not found, we assume oneway = false (in osm_query_node.cpp)
-                roadState = new LayoutComponent_RoadState(particle->getId(),
-                        1,                             //component Id
+                roadStatePtr = new LayoutComponent_RoadState(particle->getId(),
+                        1,                             //component Id, since we're deleting and recreating it, is is fake. BUG: #525
                         ros::Time::now(),
                         &this->getHighwayInfo_client,
                         modified_msg_lines,
@@ -1788,11 +1792,11 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
 
             // Each component has also a "State" . With getPose I request the Position 3dof
             VectorXd state = particle->getParticleState().getPosition();
-            roadState->setComponentState(state);
-            ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadState->getComponentId() << "\tState: " << roadState->getComponentState()(0) << " " << roadState->getComponentState()(1) << " " << roadState->getComponentState()(2) << "\tWay_id: " << roadState->getWay_id() );
+            roadStatePtr->setComponentState(state);
+            ROS_DEBUG_STREAM("roadState just created, ComponentID: " << roadStatePtr->getComponentId() << "\tState: " << roadStatePtr->getComponentState()(0) << " " << roadStatePtr->getComponentState()(1) << " " << roadStatePtr->getComponentState()(2) << "\tWay_id: " << roadStatePtr->getWay_id() );
 
             // Add lane to layout components
-            particle->addComponent(roadState);
+            particle->addComponent(roadStatePtr);
 
         }
         else
@@ -1807,11 +1811,10 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
 
 
 
-///
-/// \brief LayoutManager::componentsEstimation
-///
-/// Estimate particles' components using particle filter
-///
+/**
+ * @brief LayoutManager::componentsEstimation
+ * Estimate particles' components using particle filter
+ */
 void LayoutManager::componentsEstimation()
 {
     ROS_DEBUG("> Entering componentsEstimation");
@@ -1889,7 +1892,7 @@ void LayoutManager::calculateLayoutComponentsWeight()
         Particle p = current_layout.at(i);
         ROS_DEBUG_STREAM("Particle p.getId() : " << p.getId());
         vector<LayoutComponent*> vec = p.getLayoutComponents();
-
+        int sss=vec.size();
         // second, iterate over all layout-components of current 'particle'
         for (int j = 0; j < vec.size(); j++)
         {
@@ -1926,18 +1929,18 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         tf::Quaternion q;
 
         // Get particle state
-        Vector3d p_state = (*particle_itr).getParticleState().getPosition();
+        Vector3d particle_position_state = (*particle_itr).getParticleState().getPosition();
         geometry_msgs::PoseStamped pose_local_map_frame;
         pose_local_map_frame.header.frame_id = "local_map";
         pose_local_map_frame.header.stamp = ros::Time::now();
-        pose_local_map_frame.pose.position.x = p_state(0);
-        pose_local_map_frame.pose.position.y =  p_state(1);
-        pose_local_map_frame.pose.position.z =  p_state(2);
-        Eigen::Quaterniond tmp_quat((*particle_itr).getParticleState().getRotation());
-        pose_local_map_frame.pose.orientation.w = tmp_quat.w();
-        pose_local_map_frame.pose.orientation.x = tmp_quat.x();
-        pose_local_map_frame.pose.orientation.y = tmp_quat.y();
-        pose_local_map_frame.pose.orientation.z = tmp_quat.z();
+        pose_local_map_frame.pose.position.x = particle_position_state(0);
+        pose_local_map_frame.pose.position.y =  particle_position_state(1);
+        pose_local_map_frame.pose.position.z =  particle_position_state(2);
+        Eigen::Quaterniond particle_orientation_state_quaterion((*particle_itr).getParticleState().getRotation());
+        pose_local_map_frame.pose.orientation.w = particle_orientation_state_quaterion.w();
+        pose_local_map_frame.pose.orientation.x = particle_orientation_state_quaterion.x();
+        pose_local_map_frame.pose.orientation.y = particle_orientation_state_quaterion.y();
+        pose_local_map_frame.pose.orientation.z = particle_orientation_state_quaterion.z();
 
         tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
         tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
@@ -1972,7 +1975,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
         snapParticle_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
         snapParticle_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
-        snapParticle_serviceMessage.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap
+        snapParticle_serviceMessage.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap WARNING: parametrize this value
 
         ///////     // THIS IS RELATED WITH #502
         ///////     ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
@@ -2017,7 +2020,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
             transform.setRotation(tf_snapped_map_frame.getRotation());
             br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "tf_snapped_map_frame"));
 
-            ///Augusto: TEST 2. CHECKED LATER IN THE CODE, BUT KNOW BY ME.
+            ///Augusto: TEST 2. CHECKED LATER IN THE CODE, BUT KNOWN BY ME.
             //if (srv.response.way_dir_opposite_particles)
             //{
             //    tf_snapped_map_frame.setRotation(tf_snapped_map_frame*tf::createQuaternionFromYaw(M_PI));
@@ -2150,7 +2153,7 @@ void LayoutManager::calculateGeometricScores(Particle *particle_itr)
         {
             // Either service is down or particle is too far from a street
             (*particle_itr).setParticleScore(0);
-            (*particle_itr).distance_to_closest_segment = std::numeric_limits::infinity();
+            (*particle_itr).distance_to_closest_segment = std::numeric_limits<double>::infinity();
             ROS_ERROR_STREAM("RLE Main loop, snap_particle_xy service call");
             ROS_ERROR_STREAM("Either service is down or particle is too far from a street. Shutdown in LayoutManager.cpp");
             ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
@@ -2424,8 +2427,8 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
             (*particle_itr).particlePoseEstimation(measurement_model, this->deltaTimerTime, this->deltaOdomTime);
         }
 
-        // -------------- sampling + perturbation + weight layout-components ------------- //
-        this->componentsEstimation();
+        // -------------- Sampling + Perturbation + Weight layout-components ------------- //
+        this->componentsEstimation();       // componentsEstimation throws the execution chain over all particle components
         // ------------------------------------------------------------------------------- //
 
         /// ------------------------------ calculate score -------------------------------- ///

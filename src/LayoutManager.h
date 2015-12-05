@@ -166,7 +166,7 @@ public:
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
-    ros::ServiceClient getHighwayInfo_client;
+    ros::ServiceClient getHighwayInfo_client;   ///< this service is used during the initialization phase inside reconfigureCallBack and RoadStateCallback (just because I delete/create this component all the times)
     ros::ServiceClient getDistanceFromLaneCenter_client;
     ros::ServiceClient oneWay_client;
 
