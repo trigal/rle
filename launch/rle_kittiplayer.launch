@@ -2,7 +2,7 @@
 
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="2"/>
+        <param name="/road_layout_estimation/particles_number"                  value="1"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10-->
@@ -61,18 +61,18 @@
         <!-- to debug in QtCreator, run the road_layout_estimation node with
              /stereo_odometer/odometry 2011_10_03_drive_0042_sync as arguments and
              disable the following node from the launcher -->
-        <!-- Launch ROAD LAYOUT ESTIMATION node-->
+        <!-- Launch ROAD LAYOUT ESTIMATION node
 	<node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
-        />
+        />-->
 
         <!-- VISUALIZATION STUFF -->
-            <!-- Launch RViz -->
+            <!-- Launch RViz
             <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d $(arg rviz)" output="screen">
-            </node>
+            </node>-->
 
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->

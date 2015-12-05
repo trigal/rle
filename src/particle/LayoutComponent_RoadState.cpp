@@ -33,10 +33,10 @@ void LayoutComponent_RoadState::setCurrent_lane(char value)
     current_lane = value;
 }
 
-///
-/// \brief LayoutComponent_RoadState::getLanes_number
-/// \return the number of LANES given the number of lines.
-///
+/**
+ * @brief LayoutComponent_RoadState::getLanes_number
+ * @return the number of LANES given the number of lines.
+ */
 int LayoutComponent_RoadState::getLanes_number() const
 {
     if (msg_lines.goodLines > 0)
@@ -45,10 +45,20 @@ int LayoutComponent_RoadState::getLanes_number() const
         return 0;// or ? Utils::lanesFromLines(msg_lines.number_of_lines);
 }
 
+void LayoutComponent_RoadState::setTimestamp(ros::Time time)
+{
+    timestamp = time;
+}
+
+ros::Time LayoutComponent_RoadState::getTimestamp()
+{
+    return timestamp;
+}
+
 int64_t LayoutComponent_RoadState::getWay_id() const
 {
     return msg_lines.way_id;
-//    return way_id;
+    //    return way_id;
 }
 
 void LayoutComponent_RoadState::setWay_id(const int64_t &value)
@@ -234,36 +244,33 @@ void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_l
 }
 
 /**
- * @brief LayoutComponent_RoadState::componentPoseEstimation
+ * @brief LayoutComponent_RoadState::componentPoseEstimation Implementation of pure virtual method 'componentPoseEstimation'
  *
- * Implementation of pure virtual method 'componentPoseEstimation'
  * In roadStateComponent this routine does the following, to 'predict' the new component 'state':
  *      1. given the particle position call snap_particle_xy, this return the way_id
  *      2. call getHighwayInfo(way_id)
  *      3. set new values to into the component
  *
- *      @now <<<do not update the values>>>
+ *      @now <<<do not update the values>>> because ... read the following carefully
+ *
+ * Since this components stores the STATE of the road in which the particle lies
+ * it contains also information regarding "current lane", "oneway" or "wayid"
+ *
+ * The component deleted/created every time a new "msg_lines" is received, this
+ * is the reason because here nothing is really updated.
+ *
+ * The latter is performed inside <<LayoutManager::roadStateCallback>>
+ *
  */
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " << particle_id << " componentState: " << getComponentState()(0) << ";" << getComponentState()(1) << ";" << getComponentState()(2));
 
-    /*
-     * il componente ha come <VectorXd component_state> lo stato (position) della particella .
-     * come stimare il nuovo stato (è sbagliato componentPOSE dovrebbe essere componentSTATE estimation):
-     *     this***          1- teniamo uguali quelli che ci sono
-     *                      2- guardiamo cosa c'è nella strada più vicina dove l'ipotesi vive
-     */
-
-    // this measures are 'sensed', can't estimate
-
-    //    this->lanes_number = this->lanes_number;
-    //    this->road_width   = this->road_width;
-    //    this->way_id       = this->way_id;
-
+    // carefully read the documentation to understand why these naive lines!
     this->setRoad_width     (this->getRoad_width());
     this->setWay_id         (this->getWay_id());
-    //this->setLanes_number   (this->getLanes_number()); // deleted , see #446 for details
+    this->setOneway         (this->getOneway());
+    this->setCurrent_lane   (this->getCurrent_lane());
 
 }
 

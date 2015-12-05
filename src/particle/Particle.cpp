@@ -287,13 +287,15 @@ int64_t Particle::getWayIDHelper()
  * @brief Particle::getOneWayHelper
  * @return oneway tag value
  *
- * Performs a check inside the components in order to return if the current way
+ * Performs a check inside the components in or
+ * der to return if the current way
  * has the TAG:ONEWAY and if it is true/false. This tag is updated in the RoadState
  * every time a new msg_lines is received (the component is deleted/created every time)
  *
  */
 bool Particle::getOneWayFlag()
 {
+    int sss=this->particle_components.size();
     for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))

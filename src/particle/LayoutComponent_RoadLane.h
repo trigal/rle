@@ -21,6 +21,7 @@ using namespace std;
  * This component should answer to the following question: IN WHICH LANE I AM?
  *
  * second component, Alcala de Henares 2015
+ * http://projects.ira.disco.unimib.it/issues/527
  *
  */
 class LayoutComponent_RoadLane : public LayoutComponent
@@ -29,11 +30,12 @@ class LayoutComponent_RoadLane : public LayoutComponent
 private:
 
     Eigen::VectorXd sensor;
-    Eigen::ArrayXd megavariabile;
+    Eigen::ArrayXd  megavariabile;
     Eigen::MatrixXd stateTransitionMatrix;
-    int lanes;
-    double standardLaneWidth = 3.0f; //maybe minLaneWidth
-    int MAX_COUNT = 10; ///< Counter upper limit -- this value need to be the same of RoadMarks.h
+
+    int howManyLanes;                   ///< The number of lanes in the current hypothesis
+    double standardLaneWidth = 3.0f;    // maybe minLaneWidth
+    int MAX_COUNT = 10;                 ///< Counter upper limit -- this value need to be the same of RoadMarks.h
 
     bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b); ///< Function used to sort the list of lines in the array, using std::sort
 
@@ -104,14 +106,14 @@ public:
      * @param lanes, if zero, getLanes will be used
      * This function resets the Sensor matrix
      */
-    void resetSensor(int lanes = 0);
+    void resetSensor(int howManyLanes = 0);
 
     /**
      * @brief resetMegavariabile
      * @param lanes, if zero, getLanes will be used
      * This function resets the Megavariabile
      */
-    void resetMegavariabile(int lanes = 0);
+    void resetMegavariabile(int howManyLanes = 0);
 
     void setStateTransitionMatrix();
 

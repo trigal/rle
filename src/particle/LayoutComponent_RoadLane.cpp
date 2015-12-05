@@ -3,12 +3,12 @@
 
 int LayoutComponent_RoadLane::getLanes() const
 {
-    return lanes;
+    return howManyLanes;
 }
 
 void LayoutComponent_RoadLane::setLanes(int value)
 {
-    lanes = value;
+    howManyLanes = value;
 }
 bool LayoutComponent_RoadLane::myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
@@ -65,7 +65,51 @@ void LayoutComponent_RoadLane::calculateComponentScore()
 {
     ROS_DEBUG_STREAM ("Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
 
-    bool isOneWay = this->particle->getOneWayHelper();
+    // this is "safe" since the RoadStateComponent is created every time a new msg_lines arrives.
+    // with safe I mean it is updated almost frequently
+
+    /// check if the associated particle has the TAG oneway; this is done asking
+    /// to the parent particle to access the RoadLane component and retrieving
+    /// the oneway flag using the getOneWayHelper function;
+    bool isOneWay           = this->particle->getOneWayFlag();
+
+    double roadWidth = 6.0f;                // rotal width of the OSM road
+    double distanceFromWayCenter = -1.8f;   // distance from ROAD/Osm-Way center
+    int currentLaneOSM = -1 ;                  ///< store the lane number here. -1 is not initialized. Let set 1 (one) as minimum, people count from 1 (strange thing..)
+
+    Eigen::VectorXd  currentLaneStatusSummarized; //in this variable are summarized both probabilities of IsInLaneX+SensorOK and IsInLaneX+SensorBAD
+    currentLaneStatusSummarized.resize(2);
+    currentLaneStatusSummarized.setZero(2);
+    for(int i = 0; i< megavariabile.rows() / 2; i++)
+        currentLaneStatusSummarized(i) = megavariabile(i) + megavariabile(int(megavariabile.rows()/2)+i);
+
+    // Testing phase here
+    distanceFromWayCenter   = this->particle->distance_to_closest_segment;
+
+    // check the returned flag
+    if (isOneWay)
+    {
+        /// In this case we're in a road with ONEWAY tag active.
+        /// Where is the 1st lane? It depends on the driving direction of course
+        /// identified with the order of the nodes, eccept if we the opposite
+        /// flag is rised
+
+        // TODO: CHECK OPPOSITE FLAG. It should be sufficient to modify getOneWayFlag
+        // again to int instead of boolean anche changing the sign
+        // from +distanceFromWayCenter to -distanceFromWayCenter
+
+        currentLaneOSM = int(((roadWidth) / 2.0f + distanceFromWayCenter) / standardLaneWidth) + 1;
+
+        this->setComponentWeight(currentLaneStatusSummarized(currentLaneOSM));
+
+    }
+    else
+    {
+        //TODO: handle this possibility
+
+
+    }
+
 
     ///////     // THIS IS RELATED WITH #502
     ///////     ira_open_street_map::getDistanceFromLaneCenter getDistanceFromLaneCenter_serviceMessage;
@@ -75,7 +119,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     ///////     getDistanceFromLaneCenter_serviceMessage.request.way_id = (*particle_itr).getWayIDHelper(); // refs #502
     ///////     getDistanceFromLaneCenter_serviceMessage.request.current_lane = 0; //FIX: unused?!
     ///////
-    ///////     if (LayoutManager::getDistanceFromLaneCenter_client.call(getDistanceFromLaneCenter_serviceMessage))
+    ///////     if (LayoutManager::.call(getDistanceFromLaneCenter_serviceMessage))
     ///////     {
     ///////         //ROS_ERROR_STREAM ("STICA!   " << getDistanceFromLaneCenter_serviceMessage.request.way_id << "\t " << getDistanceFromLaneCenter_serviceMessage.response.distance_from_lane_center << "\t" << getDistanceFromLaneCenter_serviceMessage.response.distance_from_way_center);
     ///////     }
@@ -307,7 +351,7 @@ void LayoutComponent_RoadLane::filter(const road_layout_estimation::msg_lines & 
 
 void LayoutComponent_RoadLane::resetSensor(int lanes)
 {
-    ROS_ASSERT_MSG(lanes>=0,"lanes must be greater than zero");
+    ROS_ASSERT_MSG(lanes >= 0, "lanes must be greater than zero");
 
     if (lanes == 0)
         sensor.resize(getLanes());
@@ -317,17 +361,17 @@ void LayoutComponent_RoadLane::resetSensor(int lanes)
 
 void LayoutComponent_RoadLane::resetMegavariabile(int lanes)
 {
-    ROS_ASSERT_MSG(lanes>=0,"lanes must be greater than zero");
+    ROS_ASSERT_MSG(lanes >= 0, "lanes must be greater than zero");
 
     if (lanes == 0)
     {
-        megavariabile.resize(getLanes()*2);
-        megavariabile.setConstant(1.0f / double(getLanes()*2));
+        megavariabile.resize(getLanes() * 2);
+        megavariabile.setConstant(1.0f / double(getLanes() * 2));
     }
     else
     {
-        megavariabile.resize(lanes*2);
-        megavariabile.setConstant(1.0f / double(lanes)*2);
+        megavariabile.resize(lanes * 2);
+        megavariabile.setConstant(1.0f / double(lanes) * 2);
     }
 
 }

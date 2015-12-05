@@ -255,6 +255,17 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     megavariabile = update;
 
+
+    Eigen::Vector2d test;
+    test.setZero(2);
+
+    for(int i = 0; i< update.rows() / 2; i++)
+    {
+        cout << i << " - " << int(update.rows()/2)+i << endl;
+        test(i) = update(i) + update(int(update.rows()/2)+i);
+    }
+    cout <<endl<< "TEST       :\t" <<test(0) << " | " << test(1)<< endl;
+
 }
 
 int main(int argc, char **argv)

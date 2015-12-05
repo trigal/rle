@@ -924,7 +924,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
 
-
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout.push_back(new_particle);
 
@@ -992,7 +991,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                     lines,
                                     getHighwayService.response.width
                                                                                                 );
-                            roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
+                            roadState->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug.
 
                             //LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
                             //                                                                     1,
@@ -1012,7 +1011,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                     component_id++,
                                     getHighwayService.response.number_of_lanes);
-                            roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523
+                            roadLane->setParticle(&new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug.
                             new_particle.addComponent(roadLane);
 
                             ////////////////////////////////////////////////////
