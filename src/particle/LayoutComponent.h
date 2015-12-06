@@ -8,7 +8,7 @@ class Particle; //also in Particle.h https://en.wikipedia.org/wiki/Circular_depe
 #include <Eigen/Eigen>
 #include <ros/ros.h>
 
-
+using namespace std;
 using namespace Eigen;
 using std::vector;
 
@@ -17,7 +17,8 @@ class LayoutComponent
 {
 
 protected:
-    Particle *particle;         /// Pointer to the parent particle. refs #523
+    ROS_DEPRECATED Particle *particle;         /// Pointer to the parent particle. refs #523
+    shared_ptr<Particle> particlePtr;          /// shared Pointer to the parent particle. refs #523
     unsigned int particle_id;   /// Tells particle ID of where this component is living. This is the id of the *particle
     unsigned int component_id;  /// Component ID
     double component_weight;    /// Used for resampling
@@ -100,7 +101,7 @@ public:
     // destructor
     ~LayoutComponent()
     {
-        particle = NULL; //refs #523
+        //particle = NULL; //refs #523 TODO: delete thin line when exiting pointersVersion branch
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -112,7 +113,7 @@ public:
     LayoutComponent()
     {
         ROS_DEBUG_STREAM(__PRETTY_FUNCTION__);
-        particle = NULL; //refs #523
+        //particle = NULL; //refs #523 TODO: delete thin line when exiting pointersVersion branch
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -124,8 +125,10 @@ public:
 //    LayoutComponent(unsigned int p_id, unsigned int id, VectorXd& pose) :
 //        particle_id(p_id), component_id(id), component_state(pose) {}
 
-    Particle *getParticle() const;      ///refs #523
-    void setParticle(Particle *value);  ///refs #523
+    ROS_DEPRECATED Particle *getParticle() const;      ///refs #523
+    ROS_DEPRECATED void setParticle(Particle *value);  ///refs #523
+    shared_ptr<Particle> getParticlePtr() const;
+    void setParticlePtr(const shared_ptr<Particle> &value);
 };
 
 

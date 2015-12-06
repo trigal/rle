@@ -139,6 +139,10 @@ add_executable(fake_callback
         src/fake_callback.cpp
 )
 
+add_executable(shared_test
+        src/shared_test.cpp
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)

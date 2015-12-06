@@ -45,6 +45,7 @@ private:
     State6DOF particle_state;                       ///< particle state (12x1: 6DoF pose + 6 Speed Derivates)
     MatrixXd particle_sigma;                        ///< particle state error covariance (12x12)
     vector<LayoutComponent*> particle_components;   ///< array of particle-components
+    vector<shared_ptr<LayoutComponent>> particle_componentsPtr;
 
     MatrixXd kalman_gain;                           ///< kalman gain got while estimating the pose
     double particle_score;                          ///< score got with particle-score formula

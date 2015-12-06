@@ -71,7 +71,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     /// check if the associated particle has the TAG oneway; this is done asking
     /// to the parent particle to access the RoadLane component and retrieving
     /// the oneway flag using the getOneWayHelper function;
-    bool isOneWay           = this->particle->getOneWayFlag();
+    bool isOneWay           = this->particlePtr->getOneWayFlag();
 
     double roadWidth = 6.0f;                // rotal width of the OSM road
     double distanceFromWayCenter = -1.8f;   // distance from ROAD/Osm-Way center
@@ -84,7 +84,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
         currentLaneStatusSummarized(i) = megavariabile(i) + megavariabile(int(megavariabile.rows()/2)+i);
 
     // Testing phase here
-    distanceFromWayCenter   = this->particle->distance_to_closest_segment;
+    distanceFromWayCenter   = this->particlePtr->distance_to_closest_segment;
 
     // check the returned flag
     if (isOneWay)

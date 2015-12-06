@@ -184,7 +184,7 @@ public:
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> dynamicReconfigureServer;
     dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType dynamicReconfigureCallback;
 
-    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
+    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<shared_ptr<Particle> > &particles);
 
     ///
     /// \brief layoutEstimation
@@ -220,14 +220,6 @@ public:
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }
 
-    vector<Particle> getCurrentLayout()
-    {
-        return current_layout;
-    }
-    void setCurrentLayout(vector<Particle>& p_set)
-    {
-        current_layout = p_set;
-    }
 
     // costructor & destructor ----------------------------------------------------------------------
     LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel);
@@ -238,7 +230,8 @@ public:
     ~LayoutManager()
     {
         ROS_INFO_STREAM("RLE is stopping ...");
-        current_layout.clear();
+        //current_layout.clear();
+        current_layout_shared.clear();
 //        stat_out_file.close();
         LIBVISO_out_file.close();
         RLE_out_file.close();
@@ -276,6 +269,14 @@ public:
     double getCurrent_layoutScore() const;
     void setCurrent_layoutScore(double value);
 
+    // shared version of current layout
+    vector<shared_ptr<Particle> > getCurrent_layout_shared() const;
+    void setCurrent_layout_shared(const vector<shared_ptr<Particle> > &value);
+
+    // old version of curren layout
+    ROS_DEPRECATED vector<Particle> getCurrentLayout();
+    ROS_DEPRECATED void setCurrentLayout(vector<Particle>& p_set);
+
 private:
 
     tf::TransformListener tf_listener;
@@ -293,7 +294,8 @@ private:
     nav_msgs::Odometry visualOdometryOldMsg;    ///< used for delta_t calculation
 
     bool new_detections;                        ///< indicates detectors found new detections (not used)
-    vector<Particle> current_layout;            ///< stores the current layout
+    ROS_DEPRECATED vector<Particle> current_layout;            ///< stores the current layout, changing Particle to Particle* to fix #529
+    vector< shared_ptr<Particle> > current_layout_shared;           ///< stores the current layout, changing Particle to Particle* to fix #529
     double current_layoutScore;
     long resampling_count;
 
@@ -373,14 +375,14 @@ private:
      * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
      * uno score di valore basso per motivi di natura diversa.
      */
-    void calculateScore(Particle *particle_itr);
+    void calculateScore(const shared_ptr<Particle>& particle_itr);//(Particle *particle_itr);
 
     /**
      * @brief calculateGeometricScores
      * @param particle_itr
      * helper function, while the distance (metric+angular) aren't components.
      */
-    void calculateGeometricScores(Particle *particle_itr);
+    void calculateGeometricScores(const shared_ptr<Particle>& particle_itr);//(Particle *particle_itr);
 
 };
 

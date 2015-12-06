@@ -25,3 +25,18 @@ void LayoutComponent::setParticle(Particle *value)
 {
     particle = value;
 }
+
+
+
+
+
+
+shared_ptr<Particle> LayoutComponent::getParticlePtr() const
+{
+    return particlePtr;
+}
+
+void LayoutComponent::setParticlePtr(const shared_ptr<Particle> &value)
+{
+    particlePtr = value;
+}
