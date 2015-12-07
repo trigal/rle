@@ -434,7 +434,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 shared_ptr<Particle> newParticlePtr = make_shared<Particle>(counter,default_mtn_model);
 
                 newParticlePtr->in_cluster = -1;
-                newParticlePtr->distance_to_closest_segment = 0.0f;
+                newParticlePtr->distance_to_closest_segment = 0.0f; //default value
 
                 State6DOF tmp;
                 tmp.addNoise(0.5, 0.5, 0.5, 0.5);
@@ -1822,13 +1822,13 @@ void LayoutManager::componentsEstimation()
 {
     ROS_DEBUG("> Entering componentsEstimation");
 
-    /// STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
+    // STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
     sampling();
 
-    //// STEP 2: PERTURBATE COMPONENT POSES
+    // STEP 2: PERTURBATE COMPONENT POSES
     componentsPerturbation();
 
-    //// STEP 3: WEIGHT LAYOUT-COMPONENTS
+    // STEP 3: WEIGHT LAYOUT-COMPONENTS
     calculateLayoutComponentsWeight();
 
     ROS_DEBUG("< Exiting componentsEstimation");
@@ -2423,17 +2423,31 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
     // Actually set to TRUE hard coded.
     if ( checkHasMoved() )
     {
-        /// ----------------- predict and update layout poses using E.K.F ----------------- //
-        vector<shared_ptr<Particle>>::iterator particle_itr;
+
+        //  ----------------- predict and update layout poses using E.K.F --------------------
+        //    This involves *ONLY* the particle EKF routine, none of the components is used!
+        //  ----------------------------------------------------------------------------------
+        vector<shared_ptr<Particle>>::iterator particle_itr; //this iterator is used in all cycles
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         {
             ROS_DEBUG_STREAM("Estimating pose of particle n# " << (*particle_itr)->getId());
-            (*particle_itr)->particlePoseEstimation(measurement_model, this->deltaTimerTime, this->deltaOdomTime);
+            (*particle_itr)->particlePoseEstimation(measurement_model, this->deltaTimerTime, this->deltaOdomTime); //ekf
         }
 
+
+
+
         // -------------- Sampling + Perturbation + Weight layout-components ------------- //
-        this->componentsEstimation();       // componentsEstimation throws the execution chain over all particle components
+        // componentsEstimation throws the execution chain over *ALL* particle COMPONENTS
+        //     1.sampling --> propagateLayoutComponents --> ComponentPoseEstimation
+        //     2.componentsPerturbation();
+        //     3.calculateLayoutComponentsWeight();
+        this->componentsEstimation();
         // ------------------------------------------------------------------------------- //
+
+
+
+
 
         /// ------------------------------ calculate score -------------------------------- ///
         ///
@@ -2669,12 +2683,12 @@ void LayoutManager::setCurrent_layout_shared(const vector<shared_ptr<Particle> >
     current_layout_shared = value;
 }
 
-vector<Particle> LayoutManager::getCurrentLayout()
-{
-    return current_layout;
-}
-
-void LayoutManager::setCurrentLayout(vector<Particle> &p_set)
-{
-    current_layout = p_set;
-}
+//vector<Particle> LayoutManager::getCurrentLayout()
+//{
+//    return current_layout;
+//}
+//
+//void LayoutManager::setCurrentLayout(vector<Particle> &p_set)
+//{
+//    current_layout = p_set;
+//}

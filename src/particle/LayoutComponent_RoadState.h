@@ -38,8 +38,8 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
-    char            current_lane;           ///< here the lane in which the hypothesis should be wrt OSM lat/lon;
-    bool            oneway;                 ///< oneway, retrieved using getHighwayService service
+    char            current_lane_wrt_OSM_distance;  ///< here the lane in which the hypothesis should be wrt OSM lat/lon;
+    bool            oneway;                         ///< oneway, retrieved using getHighwayService service
 
     // Description msg_lines
     // Header header
@@ -67,7 +67,7 @@ private:
     double scoreLanes;
     double scoreWidth;
     double totalComponentScore;
-    const double maxValueForGoodLine = 10; /*!< This parameter should reflect the isis-line-detector value */
+    const double maxValueForGoodLine = 10;          ///< This parameter should reflect the isis-line-detector value
 
 public:
 
@@ -121,7 +121,7 @@ public:
         this->particle_id = particle_id;
         this->component_id = component_id;
         this->timestamp = timestamp;
-        this->current_lane = current_lane;
+        this->current_lane_wrt_OSM_distance = current_lane;
 
         //this->lanes_number= lanes_number;
         //this->road_width = road_width;
@@ -146,7 +146,7 @@ public:
         this->particle_id   = particle_id;
         this->component_id  = component_id;
         this->timestamp     = timestamp;
-        this->current_lane  = 0;                // current lane is not set.
+        this->current_lane_wrt_OSM_distance  = 0;                // current lane is not set.
         this->msg_lines     = msg_lines;
 
         this->component_weight = 0;

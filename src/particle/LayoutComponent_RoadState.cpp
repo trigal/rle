@@ -25,12 +25,12 @@ void LayoutComponent_RoadState::setRoad_naiveWidth(double value)
 
 char LayoutComponent_RoadState::getCurrent_lane() const
 {
-    return current_lane;
+    return current_lane_wrt_OSM_distance;
 }
 
 void LayoutComponent_RoadState::setCurrent_lane(char value)
 {
-    current_lane = value;
+    current_lane_wrt_OSM_distance = value;
 }
 
 /**

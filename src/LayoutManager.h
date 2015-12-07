@@ -274,38 +274,38 @@ public:
     void setCurrent_layout_shared(const vector<shared_ptr<Particle> > &value);
 
     // old version of curren layout
-    ROS_DEPRECATED vector<Particle> getCurrentLayout();
-    ROS_DEPRECATED void setCurrentLayout(vector<Particle>& p_set);
+    //ROS_DEPRECATED vector<Particle> getCurrentLayout();
+    //ROS_DEPRECATED void setCurrentLayout(vector<Particle>& p_set);
 
 private:
 
     tf::TransformListener tf_listener;
-    boost::mt19937 rng;                         ///< The uniform pseudo-random algorithm
-    double street_distribution_sigma;           ///< Street gaussian distribution sigma
-    double angle_distribution_sigma;            ///< Angle difference gaussian distribution sigma
-    double street_distribution_weight;          ///< Tells how does street pdf weight on score calculation
-    double angle_distribution_weight;           ///< Tells how does angle pdf weight on score calculation
-    double roadState_distribution_weight;       ///< Tells how does roadStateComponents weight on the score calculation
-    int    resampling_interval;                 ///< The resampling interval of the main Particle Filter
+    boost::mt19937 rng;                                     ///< The uniform pseudo-random algorithm
+    double street_distribution_sigma;                       ///< Street gaussian distribution sigma
+    double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
+    double street_distribution_weight;                      ///< Tells how does street pdf weight on score calculation
+    double angle_distribution_weight;                       ///< Tells how does angle pdf weight on score calculation
+    double roadState_distribution_weight;                   ///< Tells how does roadStateComponents weight on the score calculation
+    int    resampling_interval;                             ///< The resampling interval of the main Particle Filter
 
-    static bool openstreetmap_enabled;          ///< check this flag if we want to initialize particle-set with GPS and associate OSM score
-    static bool layoutManagerFirstRun;          ///< flag used for initiliazing particle-set with gps
-    static bool first_msg;                      ///< flag used for init particle-set
-    nav_msgs::Odometry visualOdometryOldMsg;    ///< used for delta_t calculation
+    static bool openstreetmap_enabled;                      ///< check this flag if we want to initialize particle-set with GPS and associate OSM score
+    static bool layoutManagerFirstRun;                      ///< flag used for initiliazing particle-set with gps
+    static bool first_msg;                                  ///< flag used for init particle-set
+    nav_msgs::Odometry visualOdometryOldMsg;                ///< used for delta_t calculation
 
-    bool new_detections;                        ///< indicates detectors found new detections (not used)
-    ROS_DEPRECATED vector<Particle> current_layout;            ///< stores the current layout, changing Particle to Particle* to fix #529
-    vector< shared_ptr<Particle> > current_layout_shared;           ///< stores the current layout, changing Particle to Particle* to fix #529
+    bool new_detections;                                    ///< indicates detectors found new detections (not used)
+    //ROS_DEPRECATED vector<Particle> current_layout;         ///< stores the current layout, changing Particle to Particle* to fix #529
+    vector< shared_ptr<Particle> > current_layout_shared;   ///< stores the current layout, changing Particle to Particle* to fix #529
     double current_layoutScore;
     long resampling_count;
 
-    MatrixXd particle_poses_statistics;         ///< To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+    MatrixXd particle_poses_statistics;                     ///< To calculate the statistics of the particle set for evaluation purposes (localization confidence)
 
     // Output files
-    ofstream stat_out_file;                     ///< output file, for framework evaluation
-    ofstream LIBVISO_out_file;                  ///< output file, for framework evaluation
-    ofstream RLE_out_file;                      ///< output file, for framework evaluation
-    ofstream RTK_GPS_out_file;                  ///< output file, for framework evaluation
+    ofstream stat_out_file;                                 ///< output file, for framework evaluation
+    ofstream LIBVISO_out_file;                              ///< output file, for framework evaluation
+    ofstream RLE_out_file;                                  ///< output file, for framework evaluation
+    ofstream RTK_GPS_out_file;                              ///< output file, for framework evaluation
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;

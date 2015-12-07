@@ -100,7 +100,8 @@ void LayoutComponent_RoadLane::calculateComponentScore()
 
         currentLaneOSM = int(((roadWidth) / 2.0f + distanceFromWayCenter) / standardLaneWidth) + 1;
 
-        this->setComponentWeight(currentLaneStatusSummarized(currentLaneOSM));
+        double thisIsTheWeight =currentLaneStatusSummarized(currentLaneOSM -1);
+        this->setComponentWeight(thisIsTheWeight);
 
     }
     else
@@ -126,7 +127,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
 
 
     //need to sum up to ONE;
-    this->setComponentWeight(0);
+    //this->setComponentWeight(0);
 }
 
 
