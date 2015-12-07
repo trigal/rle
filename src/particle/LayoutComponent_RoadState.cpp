@@ -23,16 +23,6 @@ void LayoutComponent_RoadState::setRoad_naiveWidth(double value)
 }
 
 
-char LayoutComponent_RoadState::getCurrent_lane() const
-{
-    return current_lane_wrt_OSM_distance;
-}
-
-void LayoutComponent_RoadState::setCurrent_lane(char value)
-{
-    current_lane_wrt_OSM_distance = value;
-}
-
 /**
  * @brief LayoutComponent_RoadState::getLanes_number
  * @return the number of LANES given the number of lines.
@@ -270,7 +260,6 @@ void LayoutComponent_RoadState::componentPoseEstimation()
     this->setRoad_width     (this->getRoad_width());
     this->setWay_id         (this->getWay_id());
     this->setOneway         (this->getOneway());
-    this->setCurrent_lane   (this->getCurrent_lane());
 
 }
 
