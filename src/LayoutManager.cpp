@@ -1914,6 +1914,9 @@ void LayoutManager::calculateLayoutComponentsWeight()
  *
  * This is the geometric part, EUCLIDEAN and ANGULAR distance from the OSM road net
  * As written in #522, this should become part of a new OSM-DISTANCE component.
+ * These two valules are stored in the particle parameters:
+ *          pose_diff_score_component
+ *          final_angle_diff_score_component
  */
 void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particle_itr)//(Particle *particle_itr)
 {
@@ -2461,6 +2464,10 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
             this->calculateGeometricScores(*particle_itr);
 
+
+
+
+
         /// COMPUTE NORMALIZATON (disabled, I just print some values here)
         double minDistance = std::numeric_limits<double>::max();
         double minAngle    = std::numeric_limits<double>::max();
@@ -2495,20 +2502,23 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         //}
 
 
+
+
+
         /// EVALUATE PARTICLE SCORES AND SAVE BEST PARTICLE POINTER
         //Particle *bestParticle   = NULL;
         shared_ptr<Particle> bestParticle;
         double bestParticleScore = 0.0f;
-        double currentScore      = 0.0f;
+        double currentParticleScore      = 0.0f;
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         {
             this->calculateScore(*particle_itr);             /// Evaluate the SCORE of the particle
 
-            currentScore = (*particle_itr)->getParticleScore();  /// Get the score of the current particle
+            currentParticleScore = (*particle_itr)->getParticleScore();  /// Get the score of the current particle
 
-            current_layoutScore += currentScore;
+            current_layoutScore += currentParticleScore;
 
-            if (currentScore > bestParticleScore)
+            if (currentParticleScore > bestParticleScore)
             {
                 bestParticleScore = (*particle_itr)->getParticleScore();
                 bestParticle = *(particle_itr);
@@ -2635,7 +2645,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
         /// Other
-        LayoutManager::publishMarkerArray((*bestParticle).getParticleScore()); // L^infinity-Normalization
+        LayoutManager::publishMarkerArray((*bestParticle).getParticleScore()); // L^infinity-Normalization, passing the normalization-factor (the best particle score)
 
     }
     else
