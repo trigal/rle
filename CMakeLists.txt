@@ -127,6 +127,7 @@ add_executable(road_layout_estimation
         src/particle/State6DOF.cpp
         src/eigenmultivariatenormal.hpp
         src/particle/LayoutComponent_RoadState.cpp
+        src/particle/LayoutComponent_OSMDistance.cpp
 )
 
 add_executable(visual_odometry_nvm

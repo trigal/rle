@@ -83,8 +83,8 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     for(int i = 0; i< megavariabile.rows() / 2; i++)
         currentLaneStatusSummarized(i) = megavariabile(i) + megavariabile(int(megavariabile.rows()/2)+i);
 
-    // Testing phase here
-    distanceFromWayCenter   = this->particlePtr->distance_to_closest_segment;
+    // Testing phase here, now feasable thanks to #522
+    distanceFromWayCenter   = this->particlePtr->getDistance_to_closest_segment();
 
     // check the returned flag
     if (isOneWay)
@@ -106,8 +106,12 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     }
     else
     {
-        //TODO: handle this possibility
-
+        /* TODO: handle this possibility
+         *
+         * We can be here also because there is no LayoutComponent_RoadState
+         * component (is is always deleted/recreated, if we're far away from
+         * a road segment, no RoadState component will be created!
+         */
 
     }
 
@@ -161,7 +165,7 @@ void LayoutComponent_RoadLane::filter(const road_layout_estimation::msg_lines & 
 
     //    cout << megavariabile.transpose() << " * " << state.col(0).array().transpose() << endl; //checking column/row multiplcation...
 
-    Eigen::ArrayXd prediction(4);
+    Eigen::ArrayXd prediction(4); // have a look here #520
     for (int i = 0; i < 4; i++)
         prediction[i] = (megavariabile * stateTransitionMatrix.col(i).array()).sum();
 
@@ -379,6 +383,7 @@ void LayoutComponent_RoadLane::resetMegavariabile(int lanes)
 
 void LayoutComponent_RoadLane::setStateTransitionMatrix()
 {
+    // have a look here #520
     stateTransitionMatrix.resize(4, 4);
     stateTransitionMatrix << 0.693  , 0.297 , 0.007 , 0.003,
                           0.297  , 0.693 , 0.003 , 0.007,

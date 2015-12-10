@@ -59,6 +59,7 @@
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
 #include "particle/LayoutComponent_RoadState.h"
+#include "particle/LayoutComponent_OSMDistance.h"
 
 #include "particle/Particle.h"
 #include "road_lane_detection/road_lane_array.h"
@@ -177,7 +178,7 @@ public:
 
     static int odometryMessageCounter;          ///< stores the current layout_manager step
 
-    //TODO: this is a copy!?
+    //WARNING: this is a copy!?
     ros::NodeHandle node_handle;                ///< Default ROS - LayoutManager handler
 
     // Dynamic reconfigure
@@ -281,10 +282,10 @@ private:
 
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                                     ///< The uniform pseudo-random algorithm
-    double street_distribution_sigma;                       ///< Street gaussian distribution sigma
-    double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
-    double street_distribution_weight;                      ///< Tells how does street pdf weight on score calculation
-    double angle_distribution_weight;                       ///< Tells how does angle pdf weight on score calculation
+    ROS_DEPRECATED double street_distribution_sigma;                       ///< Street gaussian distribution sigma
+    ROS_DEPRECATED double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
+    ROS_DEPRECATED double street_distribution_weight;                      ///< Tells how does street pdf weight on score calculation
+    ROS_DEPRECATED double angle_distribution_weight;                       ///< Tells how does angle pdf weight on score calculation
     double roadState_distribution_weight;                   ///< Tells how does roadStateComponents weight on the score calculation
     int    resampling_interval;                             ///< The resampling interval of the main Particle Filter
 
@@ -375,7 +376,7 @@ private:
      * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
      * uno score di valore basso per motivi di natura diversa.
      */
-    void calculateScore(const shared_ptr<Particle>& particle_itr);//(Particle *particle_itr);
+    ROS_DEPRECATED void calculateScore(const shared_ptr<Particle>& particle_itr_shared);//(Particle *particle_itr);
 
     /**
      * @brief calculateGeometricScores

@@ -36,20 +36,26 @@ void Particle::propagateLayoutComponents()
     {
         ROS_DEBUG_STREAM("Cycling through component id: " << (int)(component_counter++) << " of " << (*itr)->getComponentId());
 
+        if (dynamic_cast<LayoutComponent_OSMDistance* >(*itr))
+        {
+            ROS_DEBUG_STREAM("OSMDistanceComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+            continue;
+        }
         if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
             ROS_DEBUG_STREAM("roadStateComponent detected");
             (*itr)->componentPoseEstimation(); //virtual
+            continue;
         }
-        else if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
+        if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
         {
             ROS_DEBUG_STREAM("roadLaneComponent detected");
             (*itr)->componentPoseEstimation(); //virtual
+            continue;
         }
-        else
-        {
-            ROS_WARN_STREAM("Unkown component");
-        }
+
+        ROS_WARN_STREAM("Unkown component");
 
         // propagate component pose with motion model equations
         // VectorXd pc_state = (*itr)->getComponentState();
@@ -295,7 +301,6 @@ int64_t Particle::getWayIDHelper()
  */
 bool Particle::getOneWayFlag()
 {
-    int sss=this->particle_components.size();
     for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))
@@ -309,13 +314,28 @@ bool Particle::getOneWayFlag()
     return false;
 }
 
-
-double Particle::getDistance_to_closest_segment() const
+/**
+ * @brief Particle::getDistance_to_closest_segment This Particle function calls
+ * the getDistance_to_closest_segment of the LayoutComponent_OSMDistance component.
+ * Previously this distance was stored inside the particle but with #522 I
+ * created a *real* GeometricComponent called OSMDistance.
+ *
+ * @return distance from the closest segment or "infinity" if the Geometric
+ * component does not exist.
+ */
+double Particle::getDistance_to_closest_segment()
 {
-    return distance_to_closest_segment;
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
+        {
+            double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
+            return distance_to_closest_segment;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return std::numeric_limits<double>::infinity();
+
 }
 
-void Particle::setDistance_to_closest_segment(double value)
-{
-    distance_to_closest_segment = value;
-}

@@ -55,7 +55,7 @@ public:
 
     /**
      * @brief componentPoseEstimation
-     * Implementation of pure virtual method 'componentPerturbation'
+     * Implementation of pure virtual method 'componentPoseEstimation'
      *
      * called from this tree:
      *      2. Particle::propagateLayoutComponents()
@@ -83,7 +83,7 @@ public:
         //setLanes(lanes);
         //setStateTransitionMatrix();
 
-        setLanes(2);
+        setLanes(2); // have a look here #520
         resetMegavariabile();
         resetSensor();
         setStateTransitionMatrix();
