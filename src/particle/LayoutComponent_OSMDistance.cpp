@@ -1,6 +1,11 @@
 #include "LayoutComponent_OSMDistance.h"
 #include "Particle.h"
 
+double LayoutComponent_OSMDistance::getAlphas()
+{
+    return street_distribution_alpha + angle_distribution_alpha;
+}
+
 void LayoutComponent_OSMDistance::calculateComponentScore()
 {
     // get PDF score FOR DISTANCE
@@ -45,8 +50,8 @@ void LayoutComponent_OSMDistance::calculateComponentScore()
 
 
     /// This is the final weight of the component
-    this->component_weight = this->street_distribution_weight * this->pose_diff_score_component          +
-                             this->angle_distribution_weight  * this->final_angle_diff_score_component;
+    this->component_weight = this->street_distribution_alpha * this->pose_diff_score_component          +
+                             this->angle_distribution_alpha  * this->final_angle_diff_score_component;
 
 
 }

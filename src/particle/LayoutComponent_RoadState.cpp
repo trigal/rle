@@ -1,23 +1,23 @@
 #include "LayoutComponent_RoadState.h"
 
-double LayoutComponent_RoadState::getRoad_width() const
+double LayoutComponent_RoadState::getComponentRoad_width() const
 {
     return msg_lines.width;
 //    return road_width;
 }
 
-void LayoutComponent_RoadState::setRoad_width(double value)
+void LayoutComponent_RoadState::setComponentRoad_width(double value)
 {
     msg_lines.width = value;
 //    road_width = value;
 }
 
-double LayoutComponent_RoadState::getRoad_naiveWidth() const
+double LayoutComponent_RoadState::getComponentRoad_naiveWidth() const
 {
     return msg_lines.naive_width;
 }
 
-void LayoutComponent_RoadState::setRoad_naiveWidth(double value)
+void LayoutComponent_RoadState::setComponentRoad_naiveWidth(double value)
 {
     msg_lines.naive_width = value;
 }
@@ -83,15 +83,15 @@ void LayoutComponent_RoadState::calculateComponentScore()
     if (getHighwayInfo_client->call(getHighwayInfo))
     {
         ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says width:       " << this->getRoad_width()      );
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says naive_width: " << this->getRoad_naiveWidth() );
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says width:       " << this->getComponentRoad_width()      );
+        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says naive_width: " << this->getComponentRoad_naiveWidth() );
         ROS_DEBUG_STREAM("calculateComponentScore, OSM says n#lanes: " << getHighwayInfo.response.number_of_lanes << ", component says:             " << this->getLanes_number()    );
 
         boost::math::normal  normal_distribution(getHighwayInfo.response.width, 1.0f);     // Normal distribution.
-        scoreWidth      = pdf(normal_distribution, this->getRoad_width())      / pdf(normal_distribution, getHighwayInfo.response.width);
-        scoreNaiveWidth = pdf(normal_distribution, this->getRoad_naiveWidth()) / pdf(normal_distribution, getHighwayInfo.response.width);
-        ROS_DEBUG_STREAM("Width       Score (normalized-to-1 normal pdf): " << std::fixed << scoreWidth      << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_width())      );
-        ROS_DEBUG_STREAM("Naive Width Score (normalized-to-1 normal pdf): " << std::fixed << scoreNaiveWidth << "\t not-Normalized: " << pdf(normal_distribution, this->getRoad_naiveWidth()) );
+        scoreWidth      = pdf(normal_distribution, this->getComponentRoad_width())      / pdf(normal_distribution, getHighwayInfo.response.width);
+        scoreNaiveWidth = pdf(normal_distribution, this->getComponentRoad_naiveWidth()) / pdf(normal_distribution, getHighwayInfo.response.width);
+        ROS_DEBUG_STREAM("Width       Score (normalized-to-1 normal pdf): " << std::fixed << scoreWidth      << "\t not-Normalized: " << pdf(normal_distribution, this->getComponentRoad_width())      );
+        ROS_DEBUG_STREAM("Naive Width Score (normalized-to-1 normal pdf): " << std::fixed << scoreNaiveWidth << "\t not-Normalized: " << pdf(normal_distribution, this->getComponentRoad_naiveWidth()) );
 
         /// 1. SCORE LANES
         /// If we have the number of lanes, update the scoreLanes value. Otherwise leave unchanged = 1.0f
@@ -141,7 +141,7 @@ void LayoutComponent_RoadState::calculateComponentScore()
         }
 
         // Normalize the totalComponentScore to sum up to one.
-        totalComponentScore = (scoreLanes + scoreWidth) / (2.0f - (1 - scaling_factor)); // refs #446
+        totalComponentScore = roadState_distribution_alpha * ((scoreLanes + scoreWidth) / (2.0f - (1 - scaling_factor))); // refs #446 & #534 [alpha]
 
         ROS_DEBUG_STREAM("SCORE WIDTH: " << scoreWidth << "\tSCORE LANES: " << scoreLanes << "\tTOTAL SCORE: " << totalComponentScore);
 
@@ -183,12 +183,17 @@ void LayoutComponent_RoadState::componentPerturbation()
     //boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
     //double road_width = this->getRoad_width() * var_nor();
 
-    double road_width = this->getRoad_width() * Utils::box_muller(1, 0.001);
+    double road_width = this->getComponentRoad_width() * Utils::box_muller(1, 0.001);
 
 
-    ROS_DEBUG_STREAM("roadWith: " << this->getRoad_width() << "\tPerturbed: " << road_width);
+    ROS_DEBUG_STREAM("roadWith: " << this->getComponentRoad_width() << "\tPerturbed: " << road_width);
 
-    this->setRoad_width(road_width);
+    this->setComponentRoad_width(road_width);
+}
+
+double LayoutComponent_RoadState::getAlphas()
+{
+    return roadState_distribution_alpha;
 }
 
 
@@ -257,7 +262,7 @@ void LayoutComponent_RoadState::componentPoseEstimation()
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " << particle_id << " componentState: " << getComponentState()(0) << ";" << getComponentState()(1) << ";" << getComponentState()(2));
 
     // carefully read the documentation to understand why these naive lines!
-    this->setRoad_width     (this->getRoad_width());
+    this->setComponentRoad_width     (this->getComponentRoad_width());
     this->setWay_id         (this->getWay_id());
     this->setOneway         (this->getOneway());
 
@@ -272,4 +277,14 @@ bool LayoutComponent_RoadState::getOneway() const
 void LayoutComponent_RoadState::setOneway(const bool &value)
 {
     oneway = value;
+}
+
+double LayoutComponent_RoadState::getRoadState_distribution_alpha() const
+{
+    return roadState_distribution_alpha;
+}
+
+void LayoutComponent_RoadState::setRoadState_distribution_alpha(double value)
+{
+    roadState_distribution_alpha = value;
 }

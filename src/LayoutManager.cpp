@@ -169,24 +169,15 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     deltaTimerTime = timerInterval;             ///< deltaTimer of the LayoutManager Class is initialy set as the requested interval
     RLE_timer_loop = node_handler_parameter.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
-    /// For debug purposes, print default paramenters (from .launch or .cfg file)
-    road_layout_estimation::road_layout_estimationConfig defaultConfigFromLaunchFile;
-    this->node_handle.param("propagate_translational_absolute_vel_error_x"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_x   , 0.0);
-    this->node_handle.param("propagate_translational_absolute_vel_error_y"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_y   , 0.0);
-    this->node_handle.param("propagate_translational_absolute_vel_error_z"  ,            defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_z   , 0.0);
-    this->node_handle.param("propagate_rotational_absolute_vel_error"       ,            defaultConfigFromLaunchFile.propagate_rotational_absolute_vel_error        , 0.0);
-    this->node_handle.param("propagate_translational_percentage_vel_error_x",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_x , 0.0);
-    this->node_handle.param("propagate_translational_percentage_vel_error_y",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_y , 0.0);
-    this->node_handle.param("propagate_translational_percentage_vel_error_z",            defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z , 0.0);
-    this->node_handle.param("propagate_rotational_percentage_vel_error"     ,            defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error      , 0.0);
-    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_x  );
-    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_y  );
-    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << defaultConfigFromLaunchFile.propagate_translational_absolute_vel_error_z  );
-    ROS_DEBUG_STREAM("propagate_rotational_absolute_vel_error         ------------  " << defaultConfigFromLaunchFile.propagate_rotational_absolute_vel_error       );
-    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_x  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_x);
-    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_y  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_y);
-    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_z  ------------  " << defaultConfigFromLaunchFile.propagate_translational_percentage_vel_error_z);
-    ROS_DEBUG_STREAM("propagate_rotational_percentage_vel_error       ------------  " << defaultConfigFromLaunchFile.propagate_rotational_percentage_vel_error     );
+    /// For debug purposes, print default paramenters (from .launch or .cfg file)    
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_x  );
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_y  );
+    ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_z  );
+    ROS_DEBUG_STREAM("propagate_rotational_absolute_vel_error         ------------  " << currentLayoutManagerConfiguration.propagate_rotational_absolute_vel_error       );
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_x  ------------  " << currentLayoutManagerConfiguration.propagate_translational_percentage_vel_error_x);
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_y  ------------  " << currentLayoutManagerConfiguration.propagate_translational_percentage_vel_error_y);
+    ROS_DEBUG_STREAM("propagate_translational_percentage_vel_error_z  ------------  " << currentLayoutManagerConfiguration.propagate_translational_percentage_vel_error_z);
+    ROS_DEBUG_STREAM("propagate_rotational_percentage_vel_error       ------------  " << currentLayoutManagerConfiguration.propagate_rotational_percentage_vel_error     );
 
     //nodelet::M_string   remappings;
     //nodelet::V_string   my_argv;
@@ -341,17 +332,21 @@ void LayoutManager::setCurrent_layoutScore(double value)
  *                 component > ROAD_LANE
  *
  */
-void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level)
+void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &currentConfiguration, uint32_t level)
 {
     ROS_INFO_STREAM ("Reconfigure callback! " << bagfile );
 
+    // Save the configuration inside the LayoutManager #fixes 533
+    currentLayoutManagerConfiguration = currentConfiguration;
+
     // update score gaussian distribution values
-    street_distribution_sigma     = config.street_distribution_sigma;       //#522 to be deleted
-    angle_distribution_sigma      = config.angle_distribution_sigma;        //#522 to be deleted
-    street_distribution_weight    = config.street_distribution_weight;      //#522 to be deleted
-    angle_distribution_weight     = config.angle_distribution_weight;       //#522 to be deleted
-    roadState_distribution_weight = config.roadState_distribution_weight;
-    resampling_interval           = config.resampling_interval;
+    street_distribution_sigma     = currentConfiguration.street_distribution_sigma;         // #522 to be deleted
+    angle_distribution_sigma      = currentConfiguration.angle_distribution_sigma;          // #522 to be deleted
+    street_distribution_alpha     = currentConfiguration.street_distribution_alpha;         // #522 to be deleted
+    angle_distribution_alpha      = currentConfiguration.angle_distribution_alpha;          // #522 to be deleted
+    roadState_distribution_alpha  = currentConfiguration.roadState_distribution_alpha;      // #534  refactor weight>alpha
+
+    resampling_interval           = currentConfiguration.resampling_interval;
 
     // update uncertainty values -----------------------------------------------------------------------------------
     for (int i = 0; i < current_layout_shared.size(); ++i)
@@ -370,14 +365,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         //            );
 
         motionModelPointer->setPropagationError(
-            config.propagate_translational_absolute_vel_error_x,
-            config.propagate_translational_absolute_vel_error_y,
-            config.propagate_translational_absolute_vel_error_z,
-            config.propagate_rotational_absolute_vel_error,
-            config.propagate_translational_percentage_vel_error_x,
-            config.propagate_translational_percentage_vel_error_y,
-            config.propagate_translational_percentage_vel_error_z,
-            config.propagate_rotational_percentage_vel_error
+            currentConfiguration.propagate_translational_absolute_vel_error_x,
+            currentConfiguration.propagate_translational_absolute_vel_error_y,
+            currentConfiguration.propagate_translational_absolute_vel_error_z,
+            currentConfiguration.propagate_rotational_absolute_vel_error,
+            currentConfiguration.propagate_translational_percentage_vel_error_x,
+            currentConfiguration.propagate_translational_percentage_vel_error_y,
+            currentConfiguration.propagate_translational_percentage_vel_error_z,
+            currentConfiguration.propagate_rotational_percentage_vel_error
         );
     }
 
@@ -398,14 +393,14 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     //            );
 
     default_mtn_model.setPropagationError(
-        config.propagate_translational_absolute_vel_error_x,
-        config.propagate_translational_absolute_vel_error_y,
-        config.propagate_translational_absolute_vel_error_z,
-        config.propagate_rotational_absolute_vel_error,
-        config.propagate_translational_percentage_vel_error_x,
-        config.propagate_translational_percentage_vel_error_y,
-        config.propagate_translational_percentage_vel_error_z,
-        config.propagate_rotational_percentage_vel_error
+        currentConfiguration.propagate_translational_absolute_vel_error_x,
+        currentConfiguration.propagate_translational_absolute_vel_error_y,
+        currentConfiguration.propagate_translational_absolute_vel_error_z,
+        currentConfiguration.propagate_rotational_absolute_vel_error,
+        currentConfiguration.propagate_translational_percentage_vel_error_x,
+        currentConfiguration.propagate_translational_percentage_vel_error_y,
+        currentConfiguration.propagate_translational_percentage_vel_error_z,
+        currentConfiguration.propagate_rotational_percentage_vel_error
     );
 
     ///disabling
@@ -429,11 +424,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     ////////////////////////////////////////////////////////////////////////////
     if (!LayoutManager::layoutManagerFirstRun)
     {
-        if (config.particles_number > num_particles)
+        if (currentConfiguration.particles_number > num_particles)
         {
             // let's add some empty particles to particle-set:
             int counter = current_layout_shared.size(); //this will keep track of current ID
-            int particles_to_add = config.particles_number - num_particles;
+            int particles_to_add = currentConfiguration.particles_number - num_particles;
             for (int i = 0; i < particles_to_add; i++)
             {
                 ROS_WARN_STREAM("NEW PARTICLE");
@@ -462,7 +457,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Get distance from closest street and set it as particle score
                     // init normal distribution
-                    boost::math::normal normal_dist(0, config.street_distribution_sigma);
+                    boost::math::normal normal_dist(0, currentConfiguration.street_distribution_sigma);
                     if (LayoutManager::snap_particle_xy_client.call(snapParticleRequestResponse))
                     {
                         // calculate difference between original particle position and snapped particle position
@@ -489,11 +484,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 counter = counter + 1;
             }// end cycle for creating particle (FOR)
         }
-        else if (config.particles_number < num_particles)
+        else if (currentConfiguration.particles_number < num_particles)
         {
             // let's erase particles starting from particle-set tail
             // WARNING: should we remove RANDOM particles instead of 'the last N particles'?
-            int particles_to_remove = num_particles - config.particles_number;
+            int particles_to_remove = num_particles - currentConfiguration.particles_number;
             for (int i = 0; i < particles_to_remove; i++)
             {
                 // delete last element
@@ -501,7 +496,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             }
         }
 
-        num_particles = config.particles_number;
+        num_particles = currentConfiguration.particles_number;
     }
 
 
@@ -773,7 +768,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // Publish initial markers (uncertainties areas as a green flat sphere.
             publish_initial_markers(cov1, cov2, point);
 
-            particle_poses_statistics = MatrixXd(config.particles_number, 2);
+            particle_poses_statistics = MatrixXd(currentConfiguration.particles_number, 2);
 
             // Create a bivariate gaussian distribution of doubles.
             // with our chosen mean and covariance
@@ -786,7 +781,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             int particle_id = 1;
             int component_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
-            while ((while_ctr < 1000) && (current_layout_shared.size() < config.particles_number))
+            while ((while_ctr < 1000) && (current_layout_shared.size() < currentConfiguration.particles_number))
             {
                 if (while_ctr == 999)
                 {
@@ -866,7 +861,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     //new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
                     new_particle->setParticleScore(1); // dont' calculate score with distance because particle is snapped
                     // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
-                    // street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score
+                    // street_distribution_alpha * pose_diff_score_component * angle_distribution_alpha * final_angle_diff_score
                     ROS_DEBUG_STREAM("Initialized particle with score: " << new_particle->getParticleScore());
 
 
@@ -906,7 +901,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                              ros::Time::now(),
                                                                                              &this->getHighwayInfo_client,
                                                                                              lines,
-                                                                                             getHighwayService.response.oneway);
+                                                                                             getHighwayService.response.oneway,
+                                                                                             currentConfiguration.roadState_distribution_alpha);
                         roadState->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
                         roadState->setComponentState(state);
                         new_particle->addComponent(roadState);
@@ -920,7 +916,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         ROS_INFO_STREAM("Adding roadLane component!");
                         LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                                                                           component_id++,
-                                                                                          getHighwayService.response.number_of_lanes);
+                                                                                          getHighwayService.response.number_of_lanes,
+                                                                                          currentConfiguration.roadLane_distribution_alpha);
                         roadLane->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug  -- FIXED with #531
                         new_particle->addComponent(roadLane);
 
@@ -934,10 +931,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                        component_id,
                                                                                                        0.0f,    //distance_to_closest_segment
                                                                                                        0.0f,    //final_angle_diff_score_component
-                                                                                                       config.street_distribution_sigma,
-                                                                                                       config.angle_distribution_sigma,
-                                                                                                       config.street_distribution_weight,
-                                                                                                       config.angle_distribution_weight
+                                                                                                       currentConfiguration.street_distribution_sigma,
+                                                                                                       currentConfiguration.angle_distribution_sigma,
+                                                                                                       currentConfiguration.street_distribution_alpha,
+                                                                                                       currentConfiguration.angle_distribution_alpha
                                                                                                       );
                         roadOSMDistance->setParticlePtr(new_particle);
                         new_particle->addComponent(roadOSMDistance);
@@ -1020,7 +1017,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                  ros::Time::now(),
                                                                                                  &this->getHighwayInfo_client,
                                                                                                  lines,
-                                                                                                 getHighwayService.response.width);
+                                                                                                 getHighwayService.response.width,
+                                                                                                 currentConfiguration.roadState_distribution_alpha);
                             roadState->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
                             (*roadState).setComponentState(state);
                             new_particle_opposite->addComponent(roadState);
@@ -1034,7 +1032,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             ROS_INFO_STREAM("Adding roadLane component!");
                             LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
                                                                                               component_id++,
-                                                                                              getHighwayService.response.number_of_lanes);
+                                                                                              getHighwayService.response.number_of_lanes,
+                                                                                              currentConfiguration.roadLane_distribution_alpha);
                             roadLane->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
                             new_particle_opposite->addComponent(roadLane);
 
@@ -1049,10 +1048,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                            component_id,
                                                                                                            0.0f,    //distance_to_closest_segment
                                                                                                            0.0f,    //final_angle_diff_score_component
-                                                                                                           config.street_distribution_sigma,
-                                                                                                           config.angle_distribution_sigma,
-                                                                                                           config.street_distribution_weight,
-                                                                                                           config.angle_distribution_weight
+                                                                                                           currentConfiguration.street_distribution_sigma,
+                                                                                                           currentConfiguration.angle_distribution_sigma,
+                                                                                                           currentConfiguration.street_distribution_alpha,
+                                                                                                           currentConfiguration.angle_distribution_alpha
                                                                                                           );
                             roadOSMDistance->setParticlePtr(new_particle_opposite);
                             new_particle_opposite->addComponent(roadOSMDistance);
@@ -1084,7 +1083,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         {
             /// Old behaviour
             // gps initialization disabled, just generate particles with all values set to zero
-            for (int i = 0; i < config.particles_number; i++)
+            for (int i = 0; i < currentConfiguration.particles_number; i++)
             {
                 //Particle zero_part(i, default_mtn_model);
                 shared_ptr<Particle> zero_part = make_shared<Particle>(i, default_mtn_model);
@@ -1095,7 +1094,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
         }
 
         /// Update particle_set size
-        LayoutManager::num_particles = config.particles_number + num_particles; // + num_particles because we can have more particles than expected, since the driving direction checks
+        LayoutManager::num_particles = currentConfiguration.particles_number + num_particles; // + num_particles because we can have more particles than expected, since the driving direction checks
 
         // Update first_run flag
         // LayoutManager::layoutManagerFirstRun = false; //moving this to LayoutEstimation Loop
@@ -1813,7 +1812,8 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
                                                              ros::Time::now(),
                                                              &this->getHighwayInfo_client,
                                                              modified_msg_lines,
-                                                             oneWayRequestResponse.response.oneway
+                                                             oneWayRequestResponse.response.oneway,
+                                                             roadState_distribution_alpha
                                                             );
             }
             else
@@ -1824,7 +1824,8 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
                                                              ros::Time::now(),
                                                              &this->getHighwayInfo_client,
                                                              modified_msg_lines,
-                                                             false
+                                                             false,
+                                                             roadState_distribution_alpha
                                                             );
             }
 
@@ -2164,8 +2165,8 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
             br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "local_map", "tf_pose_local_map_frame_ROTATED"));
 
             // set particle score
-            //(*particle_itr).setParticleScore(street_distribution_weight/tot_weight * pose_diff_score_component + angle_distribution_weight/tot_weight * angle_diff_score_component);
-            //(*particle_itr).setParticleScore(street_distribution_weight * pose_diff_score_component * angle_distribution_weight * final_angle_diff_score);
+            //(*particle_itr).setParticleScore(street_distribution_alpha/tot_weight * pose_diff_score_component + angle_distribution_alpha/tot_weight * angle_diff_score_component);
+            //(*particle_itr).setParticleScore(street_distribution_alpha * pose_diff_score_component * angle_distribution_alpha * final_angle_diff_score);
 
             // vector<LayoutComponent*> vec = (*particle_itr).getLayoutComponents();
             // for(int j=0; j<vec.size(); j++)
@@ -2230,7 +2231,7 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
 {
     ROS_DEBUG_STREAM("Entering calculateScore() -- particleId " << particle_itr_shared->getId());
 
-    //(*particle_itr).setParticleScore(street_distribution_weight * (*particle_itr).pose_diff_score_component * angle_distribution_weight * (*particle_itr).final_angle_diff_score);
+    //(*particle_itr).setParticleScore(street_distribution_alpha * (*particle_itr).pose_diff_score_component * angle_distribution_alpha * (*particle_itr).final_angle_diff_score);
 
 
     vector<LayoutComponent*> layoutComponentVector = (*particle_itr_shared).getLayoutComponents();  //return the pointer to the LayoutComponent Array (vector)
@@ -2248,47 +2249,62 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
     double newScore = 0.0f;
 // #522    double newScore = (
 // #522                          (
-// #522                              street_distribution_weight    * (*particle_itr).pose_diff_score_component          +
-// #522                              angle_distribution_weight     * (*particle_itr).final_angle_diff_score_component
-// #522                              //roadState_distribution_weight * lc->getComponentWeight()
+// #522                              street_distribution_alpha    * (*particle_itr).pose_diff_score_component          +
+// #522                              angle_distribution_alpha     * (*particle_itr).final_angle_diff_score_component
+// #522                              //roadState_distribution_alpha * lc->getComponentWeight()
 // #522                          )
 // #522                      );
 
-    /// This is the second part I was writing about before.
-    /// This Iterates through all Layout Components to get the overall score.
-    /// Here I have a check for the object type to select the right weight factor
+
+    /*  This is the second part I was writing about before.
+     *  This Iterates through all Layout Components to get the overall score.
+     *
+     *  Before #522 and #534 here I had to check for the object type to select
+     *  the right weight factor, now the weights are already weighted inside the
+     *  component.
+     */
+    double sumOfAlphas = 0.0f;
     for (int j = 0; j < layoutComponentVector.size(); j++)
     {
         LayoutComponent* lc = layoutComponentVector.at(j); //iterator through the Layout Components
 
-        if (dynamic_cast<LayoutComponent_OSMDistance* >(lc))
-        {
-            newScore += lc->getComponentWeight();
-            continue;
-        }
+        // No need to check what kind of component I have in the pointer! :-)
+        newScore += lc->getComponentWeight();
 
-        if (dynamic_cast<LayoutComponent_RoadState* >(lc))
-        {
-            newScore += roadState_distribution_weight * lc->getComponentWeight();
-            continue;
-        }
+        // The layout component uses all the alphas he need, if more than one the
+        // getAlphas virtual routine provides to summarize them
+        sumOfAlphas += lc->getAlphas();
 
-        if (dynamic_cast<LayoutComponent_RoadLane* >(lc))
-        {
-            newScore += roadState_distribution_weight * lc->getComponentWeight();
-            continue;
-        }
+// #522        if (dynamic_cast<LayoutComponent_OSMDistance* >(lc))
+// #522        {
+// #522            newScore += lc->getComponentWeight();
+// #522            continue;
+// #522        }
+// #522
+// #522        if (dynamic_cast<LayoutComponent_RoadState* >(lc))
+// #522        {
+// #522            newScore += roadState_distribution_alpha* lc->getComponentWeight();
+// #522            continue;
+// #522        }
+// #522
+// #522        if (dynamic_cast<LayoutComponent_RoadLane* >(lc))
+// #522        {
+// #522            newScore += roadState_distribution_alpha * lc->getComponentWeight();
+// #522            continue;
+// #522        }
 
     }
 
     // L1 Normalization factor, check if the single values are > 0 (L1, sum)
-    ROS_ASSERT(street_distribution_weight   > 0.0f);
-    ROS_ASSERT(angle_distribution_weight    > 0.0f);
-    ROS_ASSERT(roadState_distribution_weight > 0.0f);
-    double sumOfWeights = street_distribution_weight + angle_distribution_weight + roadState_distribution_weight;
+// #522    ROS_ASSERT(street_distribution_alpha   > 0.0f);
+// #522    ROS_ASSERT(angle_distribution_alpha    > 0.0f);
+// #522    ROS_ASSERT(roadState_distribution_alpha> 0.0f);
+// #522        double sumOfAlphas = street_distribution_alpha + angle_distribution_alpha + roadState_distribution_alpha;
+
+
 
     /// Execute normalization
-    newScore = newScore / sumOfWeights;
+    newScore = newScore / sumOfAlphas;
 
     /// Set the score to the particle
     (*particle_itr_shared).setParticleScore( (*particle_itr_shared).getParticleScore() * newScore );
@@ -2296,7 +2312,7 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
 // #522    ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
 // #522    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log) : " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
 // #522    //ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
-// #522    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfWeights) ;
+// #522    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfAlphas) ;
 // #522    ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
 
     ROS_DEBUG_STREAM("Exiting calculateScore()");

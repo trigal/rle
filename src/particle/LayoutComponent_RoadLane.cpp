@@ -19,6 +19,11 @@ bool LayoutComponent_RoadLane::myCompare(road_layout_estimation::msg_lineInfo a,
         return false;
 }
 
+double LayoutComponent_RoadLane::getAlphas()
+{
+    return roadLane_distribution_alpha;
+}
+
 
 /**
  * @brief LayoutComponent_RoadLane::componentPoseEstimation
@@ -73,7 +78,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     /// the oneway flag using the getOneWayHelper function;
     bool isOneWay           = this->particlePtr->getOneWayFlag();
 
-    double roadWidth = 6.0f;                // rotal width of the OSM road
+    double roadWidth = 6.0f;                // total width of the OSM road
     double distanceFromWayCenter = -1.8f;   // distance from ROAD/Osm-Way center
     int currentLaneOSM = -1 ;                  ///< store the lane number here. -1 is not initialized. Let set 1 (one) as minimum, people count from 1 (strange thing..)
 
@@ -100,7 +105,11 @@ void LayoutComponent_RoadLane::calculateComponentScore()
 
         currentLaneOSM = int(((roadWidth) / 2.0f + distanceFromWayCenter) / standardLaneWidth) + 1;
 
-        double thisIsTheWeight =currentLaneStatusSummarized(currentLaneOSM -1);
+        ROS_INFO_STREAM("currentLaneOSM: " << currentLaneOSM << "\tdistanceFromWayCenter: "<<distanceFromWayCenter);
+
+        ROS_ASSERT((currentLaneOSM -1)<currentLaneStatusSummarized.rows());
+
+        double thisIsTheWeight = roadLane_distribution_alpha * currentLaneStatusSummarized(currentLaneOSM -1);
         this->setComponentWeight(thisIsTheWeight);
 
     }
@@ -112,6 +121,8 @@ void LayoutComponent_RoadLane::calculateComponentScore()
          * component (is is always deleted/recreated, if we're far away from
          * a road segment, no RoadState component will be created!
          */
+
+        this->setComponentWeight(1); //is it is 1 + alpha is one, nothing changes.
 
     }
 

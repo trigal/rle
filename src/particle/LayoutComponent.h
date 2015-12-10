@@ -48,6 +48,15 @@ public:
     ///
     virtual void componentPerturbation() = 0;
 
+    /**
+     * @brief getAlphas this function returns the sum of the alphas used in the
+     * calculateComponentScore. Before #534 these values were stored inside the
+     * LayoutComponent and there was a sumOfAlphas to summarize all the alphas.
+     * Replacing that behavior with a for through the Layouts seems to be a
+     * better and foward-thinking
+     */
+    virtual double getAlphas() = 0;
+
 
     // GETTERS & SETTERS ---------------------------------------------------------------------------------
     unsigned int getComponentId()
@@ -68,6 +77,17 @@ public:
         particle_id = id;
     }
 
+    /**
+     * @brief getComponentWeight the weight is the overall measure of a
+     * LayoutComponent. It involves some probability density function and some
+     * ALPHA value (maybe more than one). The alphas are summarized by the
+     * getAlphas() routine. This weight is used to calculate the overall SCORE
+     * of the particle (what has more than one component and so more weights)..
+     *
+     * this changes are related to #535 / #534
+     *
+     * @return the current component weight.
+     */
     double getComponentWeight()
     {
         return component_weight;

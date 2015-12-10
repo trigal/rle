@@ -36,10 +36,17 @@ private:
     int howManyLanes;                   ///< The number of lanes in the current hypothesis
     double standardLaneWidth = 3.0f;    // maybe minLaneWidth
     int MAX_COUNT = 10;                 ///< Counter upper limit -- this value need to be the same of RoadMarks.h
+    double roadLane_distribution_alpha; ///< the alphas were used inside the LayoutManager, after #534 inside each component
 
     bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b); ///< Function used to sort the list of lines in the array, using std::sort
 
 public:
+
+    /**
+     * @brief getAlphas
+     * @return street_distribution_alpha + angle_distribution_alpha
+     */
+    double getAlphas();
 
     /**
      * @brief calculateComponentScore
@@ -73,7 +80,10 @@ public:
         setLanes(0);
     }
 
-    LayoutComponent_RoadLane(const unsigned int particle_id, const unsigned int component_id, unsigned int lanes)
+    LayoutComponent_RoadLane(const unsigned int particle_id,
+                             const unsigned int component_id,
+                             unsigned int lanes,
+                             double roadLane_distribution_alpha)
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
 
@@ -89,8 +99,9 @@ public:
         setStateTransitionMatrix();
 
         // Set inherited variables (LayoutComponent)
-        this->particle_id  = particle_id;
-        this->component_id = component_id;
+        this->particle_id                   = particle_id;
+        this->component_id                  = component_id;
+        this->roadLane_distribution_alpha   = roadLane_distribution_alpha; // #534
     }
 
     /**

@@ -207,7 +207,7 @@ public:
     /// \param config
     /// \param level
     ///
-    void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level);
+    void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &currentConfiguration, uint32_t level);
 
     ///
     /// \brief roadLaneCallback
@@ -280,13 +280,16 @@ public:
 
 private:
 
+    /// Store here the configuration read with reconfigureCallBack, last configuration read.
+    road_layout_estimation::road_layout_estimationConfig currentLayoutManagerConfiguration;
+
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                                     ///< The uniform pseudo-random algorithm
     ROS_DEPRECATED double street_distribution_sigma;                       ///< Street gaussian distribution sigma
     ROS_DEPRECATED double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
-    ROS_DEPRECATED double street_distribution_weight;                      ///< Tells how does street pdf weight on score calculation
-    ROS_DEPRECATED double angle_distribution_weight;                       ///< Tells how does angle pdf weight on score calculation
-    double roadState_distribution_weight;                   ///< Tells how does roadStateComponents weight on the score calculation
+    ROS_DEPRECATED double street_distribution_alpha;                      ///< Tells how does street pdf weight on score calculation
+    ROS_DEPRECATED double angle_distribution_alpha;                       ///< Tells how does angle pdf weight on score calculation
+    double roadState_distribution_alpha;                    ///< Tells how does roadStateComponents weight on the score calculation
     int    resampling_interval;                             ///< The resampling interval of the main Particle Filter
 
     static bool openstreetmap_enabled;                      ///< check this flag if we want to initialize particle-set with GPS and associate OSM score

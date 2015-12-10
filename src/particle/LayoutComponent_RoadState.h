@@ -67,6 +67,7 @@ private:
     double scoreWidth;
     double totalComponentScore;
     const double maxValueForGoodLine = 10;          ///< This parameter should reflect the isis-line-detector value
+    double roadState_distribution_alpha;            ///< the alpha once used inside the LayoutManager, after #534 inside each component
 
 public:
 
@@ -75,12 +76,18 @@ public:
     void calculateComponentScore();
     void componentPerturbation();
 
+    /**
+     * @brief getAlphas
+     * @return street_distribution_alpha + angle_distribution_alpha
+     */
+    double getAlphas();
+
     // Getters and setters -----------------------------------------------------
-    double      getRoad_width()               const;
-    double      getRoad_naiveWidth()          const;
+    double      getComponentRoad_width()               const;
+    double      getComponentRoad_naiveWidth()          const;
     ros::Time   getTimestamp();
-    void        setRoad_width                 (double value);
-    void        setRoad_naiveWidth            (double value);
+    void        setComponentRoad_width                 (double value);
+    void        setComponentRoad_naiveWidth            (double value);
     void        setTimestamp(ros::Time time);
 
     // Other public functions --------------------------------------------------
@@ -126,6 +133,7 @@ public:
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12, 12);
+        this->roadState_distribution_alpha = -10000; // #534 , since it is not used anymore i put an unfeseable value here.
 
         getHighwayInfo_client = serviceClientFromLayoutManager;
     }
@@ -136,18 +144,22 @@ public:
                               ros::Time timestamp,
                               ros::ServiceClient *serviceClientFromLayoutManager,
                               const road_layout_estimation::msg_lines &msg_lines,
-                              int32_t oneway)
+                              int32_t oneway,
+                              double roadState_distribution_alpha)
     {
         this->particle_id   = particle_id;
         this->component_id  = component_id;
         this->timestamp     = timestamp;
         this->msg_lines     = msg_lines;
+        this->roadState_distribution_alpha = roadState_distribution_alpha;
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12, 12);
 
         this->oneway = oneway;
+
+        ROS_ASSERT(this->roadState_distribution_alpha> 0.0f);
 
         getHighwayInfo_client = serviceClientFromLayoutManager;
     }
@@ -176,6 +188,8 @@ public:
     road_layout_estimation::msg_lines   getMsg_lines() const;
     void                                setMsg_lines(const road_layout_estimation::msg_lines &value);
 
+    double getRoadState_distribution_alpha() const;
+    void setRoadState_distribution_alpha(double value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H

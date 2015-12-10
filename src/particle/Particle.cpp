@@ -336,6 +336,30 @@ double Particle::getDistance_to_closest_segment()
 
     ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
     return std::numeric_limits<double>::infinity();
-
 }
+
+///**
+// * @brief Particle::getDistance_to_closest_segment This Particle function calls
+// * the getDistance_to_closest_segment of the LayoutComponent_OSMDistance component.
+// * Previously this distance was stored inside the particle but with #522 I
+// * created a *real* GeometricComponent called OSMDistance.
+// *
+// * @return distance from the closest segment or "infinity" if the Geometric
+// * component does not exist.
+// */
+//double Particle::getComponentRoadWidth()
+//{
+//    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+//    {
+//        if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
+//        {
+//            double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
+//            return distance_to_closest_segment;
+//        }
+//    }
+
+//    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+//    return std::numeric_limits<double>::infinity();
+//}
+
 

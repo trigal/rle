@@ -35,8 +35,8 @@ private:
 
     double street_distribution_sigma;       ///< Sigma used for the normal distribution
     double angle_distribution_sigma ;       ///< Sigma used for the normal distribution
-    double street_distribution_weight;      ///< Fraction of the weigth
-    double angle_distribution_weight ;      ///< Fraction of the weigth
+    double street_distribution_alpha;      ///< Fraction of the weigth #534
+    double angle_distribution_alpha ;      ///< Fraction of the weigth #534
 
     /* The two following parameters were calculated inside the
      * LayoutManager::calculateGeometricScores and then evaluated inside the
@@ -60,6 +60,13 @@ private:
     ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
 
 public:
+
+    /**
+     * @brief getAlphas
+     * @return street_distribution_alpha + angle_distribution_alpha
+     */
+    double getAlphas();
+
 
     /**
      * @brief calculateComponentScore
@@ -104,13 +111,16 @@ public:
         this->final_angle_diff_score_component  = angularDistanceRAD;
         this->street_distribution_sigma         = street_distribution_sigma;
         this->angle_distribution_sigma          = angle_distribution_sigma ;
-        this->street_distribution_weight        = street_distribution_weight;
-        this->angle_distribution_weight         = angle_distribution_weight ;
+        this->street_distribution_alpha         = street_distribution_weight;
+        this->angle_distribution_alpha          = angle_distribution_weight ;
 
         snap_particle_xy_client                 = node_handler.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
 
         pose_diff_score_component               = 0.0f;
         final_angle_diff_score_component        = 0.0f;
+
+        ROS_ASSERT(this->street_distribution_alpha   > 0.0f);
+        ROS_ASSERT(this->angle_distribution_alpha    > 0.0f);
     }
 
     double getDistance_to_closest_segment() const;
