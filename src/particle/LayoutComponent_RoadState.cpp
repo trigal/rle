@@ -80,7 +80,8 @@ void LayoutComponent_RoadState::calculateComponentScore()
     double OSM_lines_reliability = 1.0f;
     double detector_reliability  = 1.0f;
 
-    if (getHighwayInfo_client->call(getHighwayInfo))
+//#536    if (getHighwayInfo_client->call(getHighwayInfo))
+    if (this->serviceOk)
     {
         ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
         ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says width:       " << this->getComponentRoad_width()      );
@@ -256,6 +257,8 @@ void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_l
  *
  * The latter is performed inside <<LayoutManager::roadStateCallback>>
  *
+ *
+ * UPDATE 10/dec/2015, SPLITTING calculateComponentScore according to #536
  */
 void LayoutComponent_RoadState::componentPoseEstimation()
 {
@@ -265,6 +268,32 @@ void LayoutComponent_RoadState::componentPoseEstimation()
     this->setComponentRoad_width     (this->getComponentRoad_width());
     this->setWay_id         (this->getWay_id());
     this->setOneway         (this->getOneway());
+
+
+    // #536
+    getHighwayInfo.request.way_id = this->getWay_id();
+
+    if (getHighwayInfo_client->call(getHighwayInfo))
+    {
+        /* I forget that the getHighwayInfo returns also if it is oneway, or just
+         * this is happening after the split due to #536; this oneway is retreived
+         * either here and during the creation of this component, that is re-created
+         * inside the CALLBACK routine of the LayoutManager
+         *
+         * I'm gonna put this ASSERT, if stops here something is strange ...
+         */
+
+        ROS_ASSERT_MSG(getHighwayInfo.response.oneway == this->getOneway(),"Check why the hell the oneway tags are different inside LayoutComponent_RoadState!");
+
+        serviceOk=true;
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Can't get HighwayInfo with wayId = " << this->getWay_id());
+
+        serviceOk=false;
+    }
+
 
 }
 
@@ -287,4 +316,16 @@ double LayoutComponent_RoadState::getRoadState_distribution_alpha() const
 void LayoutComponent_RoadState::setRoadState_distribution_alpha(double value)
 {
     roadState_distribution_alpha = value;
+}
+
+/**
+ * @brief LayoutComponent_RoadState::getOSMRoad_width
+ * @return returns the OSM road width, or -1 if the call to the highwayinfo service was not ok.
+ */
+double LayoutComponent_RoadState::getOSMRoad_width() const
+{
+    if (serviceOk)
+        return getHighwayInfo.response.width;
+    else
+        return -1;
 }

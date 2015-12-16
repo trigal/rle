@@ -68,6 +68,9 @@ void LayoutComponent_RoadLane::componentPerturbation()
  */
 void LayoutComponent_RoadLane::calculateComponentScore()
 {
+    this->setComponentWeight(1);
+    return;
+
     ROS_DEBUG_STREAM ("Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " << particle_id);
 
     // this is "safe" since the RoadStateComponent is created every time a new msg_lines arrives.
@@ -78,9 +81,9 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     /// the oneway flag using the getOneWayHelper function;
     bool isOneWay           = this->particlePtr->getOneWayFlag();
 
-    double roadWidth = 6.0f;                // total width of the OSM road
+    double roadWidth = this->particlePtr->getRoadWidth(); //6.0f;                // total width of the OSM road
     double distanceFromWayCenter = -1.8f;   // distance from ROAD/Osm-Way center
-    int currentLaneOSM = -1 ;                  ///< store the lane number here. -1 is not initialized. Let set 1 (one) as minimum, people count from 1 (strange thing..)
+    int currentLaneOSM = -1 ;               ///< store the lane number here. -1 is not initialized. Let set 1 (one) as minimum, people count from 1 (strange thing..)
 
     Eigen::VectorXd  currentLaneStatusSummarized; //in this variable are summarized both probabilities of IsInLaneX+SensorOK and IsInLaneX+SensorBAD
     currentLaneStatusSummarized.resize(2);
@@ -88,8 +91,11 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     for(int i = 0; i< megavariabile.rows() / 2; i++)
         currentLaneStatusSummarized(i) = megavariabile(i) + megavariabile(int(megavariabile.rows()/2)+i);
 
-    // Testing phase here, now feasable thanks to #522
+    // Testing phase here, now feasable thanks to #522 and enchanced with #538
     distanceFromWayCenter   = this->particlePtr->getDistance_to_closest_segment();
+
+//    QUESTA FUNZIONE NON HA + E -, LA DISTANZA NON È PESATA CON UN MENO O PIÙ A SECONDA CHE SIA DA UNA PARTE O DALL'ALTRA  DELLA STRADA... UP TO NOW.
+//            http://stackoverflow.com/questions/1560492/how-to-tell-whether-a-point-is-to-the-right-or-left-side-of-a-line
 
     // check the returned flag
     if (isOneWay)
@@ -105,7 +111,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
 
         currentLaneOSM = int(((roadWidth) / 2.0f + distanceFromWayCenter) / standardLaneWidth) + 1;
 
-        ROS_INFO_STREAM("currentLaneOSM: " << currentLaneOSM << "\tdistanceFromWayCenter: "<<distanceFromWayCenter);
+        ROS_INFO_STREAM("currentLaneOSM: " << currentLaneOSM << "\tdistanceFromWayCenter: "<<distanceFromWayCenter << "\troadWidth:" << roadWidth);
 
         ROS_ASSERT((currentLaneOSM -1)<currentLaneStatusSummarized.rows());
 

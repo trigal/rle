@@ -260,7 +260,9 @@ public:
         );
     }
 
+    // extra functions that provide inter-component features. Documentation in the cpp
     double getDistance_to_closest_segment();
+    double getRoadWidth();
 
     //constructor ----------------------------------------------------------------------
     Particle()

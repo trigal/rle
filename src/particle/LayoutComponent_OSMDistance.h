@@ -32,6 +32,7 @@ private:
 
     double distance_to_closest_segment;     ///< Euclidean distance, meters
     double misalignment_to_closest_segment; ///< Angular misalignment, radians
+    bool   isLeft;                            ///< stores if the the particle is on the left or right to the nearest road segment refs #538
 
     double street_distribution_sigma;       ///< Sigma used for the normal distribution
     double angle_distribution_sigma ;       ///< Sigma used for the normal distribution
@@ -125,6 +126,8 @@ public:
 
     double getDistance_to_closest_segment() const;
     void setDistance_to_closest_segment(double value);
+    bool getIsLeft() const;
+    void setIsLeft(bool value);
 };
 
 #endif // LAYOUTCOMPONENT_OSMDISTANCE_H

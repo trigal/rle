@@ -321,7 +321,8 @@ bool Particle::getOneWayFlag()
  * created a *real* GeometricComponent called OSMDistance.
  *
  * @return distance from the closest segment or "infinity" if the Geometric
- * component does not exist.
+ * component does not exist. If the particle is on the left from the roadsegment,
+ * then the distance is negative. This refs #538.
  */
 double Particle::getDistance_to_closest_segment()
 {
@@ -330,6 +331,10 @@ double Particle::getDistance_to_closest_segment()
         if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
         {
             double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
+
+            if (dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getIsLeft()) // #538
+                distance_to_closest_segment = -distance_to_closest_segment;    //if it is on the left, then the value is negative
+
             return distance_to_closest_segment;
         }
     }
@@ -338,28 +343,28 @@ double Particle::getDistance_to_closest_segment()
     return std::numeric_limits<double>::infinity();
 }
 
-///**
-// * @brief Particle::getDistance_to_closest_segment This Particle function calls
-// * the getDistance_to_closest_segment of the LayoutComponent_OSMDistance component.
-// * Previously this distance was stored inside the particle but with #522 I
-// * created a *real* GeometricComponent called OSMDistance.
-// *
-// * @return distance from the closest segment or "infinity" if the Geometric
-// * component does not exist.
-// */
-//double Particle::getComponentRoadWidth()
-//{
-//    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
-//    {
-//        if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
-//        {
-//            double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
-//            return distance_to_closest_segment;
-//        }
-//    }
+/**
+ * @brief Particle::getRoadWidth This routine ask to the RoadState component for
+ * the current nearest Road Width, from OSM.
+ *
+ * @return the road width calculated with the getHighwayInfo service in the last
+ * iteration.
+ *
+ * Created during #536
+ */
+double Particle::getRoadWidth()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            double roadWidth=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOSMRoad_width();
+            return roadWidth;
+        }
+    }
 
-//    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
-//    return std::numeric_limits<double>::infinity();
-//}
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return std::numeric_limits<double>::infinity();
+}
 
 

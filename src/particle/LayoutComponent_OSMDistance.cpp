@@ -1,6 +1,7 @@
 #include "LayoutComponent_OSMDistance.h"
 #include "Particle.h"
 
+
 double LayoutComponent_OSMDistance::getAlphas()
 {
     return street_distribution_alpha + angle_distribution_alpha;
@@ -113,6 +114,22 @@ void LayoutComponent_OSMDistance::componentPoseEstimation()
     // Get distance from snapped particle pose and set it as particle score
     if (snap_particle_xy_client.call(snapParticle_serviceMessage))
     {
+        /*
+         * This refs #538 . Checks if the particle is on the left(1) or right(0)
+         *
+         *       TRUE   FALSE
+         *     |      .      |
+         *     |      .  d1  |
+         *     |      .---*  |
+         *     |      .      |
+         *     |  *---.      |
+         *          d2
+         *
+         * this is calculated inside osm_query_node.cpp - snap_particle_xy
+         */
+
+        this->isLeft = snapParticle_serviceMessage.response.isLeft; // this refs #538
+
         // Snapped pose is is map frame, convert from MSG to TF first.
         geometry_msgs::PoseStamped snapped_map_frame;
         snapped_map_frame.header.frame_id = "map";
@@ -161,7 +178,6 @@ void LayoutComponent_OSMDistance::componentPoseEstimation()
 
 
 
-
         // calculate QUATERNIONE difference for both cases
         this->first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
@@ -200,4 +216,14 @@ double LayoutComponent_OSMDistance::getDistance_to_closest_segment() const
 void LayoutComponent_OSMDistance::setDistance_to_closest_segment(double value)
 {
     distance_to_closest_segment = value;
+}
+
+bool LayoutComponent_OSMDistance::getIsLeft() const
+{
+    return isLeft;
+}
+
+void LayoutComponent_OSMDistance::setIsLeft(bool value)
+{
+    isLeft = value;
 }

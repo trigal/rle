@@ -38,8 +38,6 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
-    bool            oneway;                         ///< oneway, retrieved using getHighwayService service
-
     // Description msg_lines
     // Header header
     // float64         number_of_lines  #adaptiveness of the filter! number of lanes that we were looking for
@@ -57,17 +55,20 @@ private:
     // int32   counter
     // float32 offset
 
-    road_layout_estimation::msg_lines msg_lines;    ///< full message containing info
+    road_layout_estimation::msg_lines msg_lines;            ///< full message containing info
 
     ros::ServiceClient *getHighwayInfo_client;
+    ira_open_street_map::getHighwayInfo getHighwayInfo;     ///< request+response from the service
+    bool oneway;                                            ///< oneway, retrieved using getHighwayService service
+    bool serviceOk;                                         ///< introduced with #536, used to check if the serviceCall was OK (stores the bool answer of the service call)
 
     ros::Time       timestamp;
 
     double scoreLanes;
     double scoreWidth;
     double totalComponentScore;
-    const double maxValueForGoodLine = 10;          ///< This parameter should reflect the isis-line-detector value
-    double roadState_distribution_alpha;            ///< the alpha once used inside the LayoutManager, after #534 inside each component
+    const double maxValueForGoodLine = 10;                  ///< This parameter should reflect the isis-line-detector value
+    double roadState_distribution_alpha;                    ///< the alpha once used inside the LayoutManager, after #534 inside each component
 
 public:
 
@@ -162,6 +163,9 @@ public:
         ROS_ASSERT(this->roadState_distribution_alpha> 0.0f);
 
         getHighwayInfo_client = serviceClientFromLayoutManager;
+
+        // this flag was introduced with #536, splittin the behavior calculateScore/componentPoseEstimation
+        serviceOk=false; ///< default false, if the getHighwayInfo_client call is OK, then true, false again otherwise.
     }
 
     ~LayoutComponent_RoadState()
@@ -190,6 +194,8 @@ public:
 
     double getRoadState_distribution_alpha() const;
     void setRoadState_distribution_alpha(double value);
+
+    double  getOSMRoad_width() const;
 };
 
 #endif // LAYOUTCOMPONENT_ROADSTATE_H
