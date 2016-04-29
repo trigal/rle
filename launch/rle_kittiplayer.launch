@@ -26,7 +26,8 @@
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="2011_10_03_drive_0042_sync" />
+            <!--<arg name="bagfile" default="2011_10_03_drive_0042_sync" />-->
+            <arg name="bagfile" default="2011_09_26_drive_0005_sync" />
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
             <arg name="publish_rate" default="0.1" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
@@ -89,7 +90,8 @@
         <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB**
         <include file="$(find isis_line_detector)/launch/linedetector.launch" />-->
 
-        <!-- KITTI PLAYER -->
-        <include file="$(find kitti_player)/launch/kittiplayer_libviso2.launch" />
+        <!-- KITTI PLAYER
+        <include file="$(find kitti_player)/launch/kittiplayer_libviso2.launch"/>-->
+        <include file="$(find kitti_player)/launch/kittiplayer_standalone.launch"/>
 
 </launch>

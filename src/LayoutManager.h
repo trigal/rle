@@ -20,13 +20,13 @@
 #include "geometry_msgs/PoseArray.h"
 #include "MeasurementModel.h"
 #include "nav_msgs/Odometry.h"
-#include "visualization_msgs/Marker.h"
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <ros/package.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf/transform_listener.h>
+#include "visualization_msgs/Marker.h"
 #include <visualization_msgs/MarkerArray.h>
 
 // ROS CORE STUFF

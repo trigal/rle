@@ -1,6 +1,6 @@
 Panels:
   - Class: rviz/Displays
-    Help Height: 78
+    Help Height: 104
     Name: Displays
     Property Tree Widget:
       Expanded:
@@ -8,12 +8,15 @@ Panels:
         - /Status1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /OSM Elements1/Namespaces1
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
-        - /Marker1/Namespaces1
-      Splitter Ratio: 0.425791
-    Tree Height: 641
+        - /GT_RTK1
+        - /GT_RTK1/Namespaces1
+        - /AerialMapDisplay1
+        - /OSM Elements1
+        - /OSM Elements1/Namespaces1
+      Splitter Ratio: 0.514196
+    Tree Height: 615
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -162,16 +165,6 @@ Visualization Manager:
       Transport Hint: raw
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /ways
-      Name: OSM Elements
-      Namespaces:
-        direction: true
-        node: true
-        way: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /road_layout_estimation/layout_manager/marker_array_distances
       Name: Part-to-Path distance
@@ -184,7 +177,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/particle_set
       Name: Particle Set
       Namespaces:
-        particle_set: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.1
@@ -199,10 +192,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
+      Marker Topic: /kitti_player/GT_RTK
       Name: GT_RTK
       Namespaces:
-        {}
+        RTK_MARKER: true
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -220,24 +213,15 @@ Visualization Manager:
       Reference Frame: visual_odometry_odom_x_forward
       Value: true
     - Alpha: 0.7
-      Blocks: 3
+      Blocks: 7
       Class: rviz_plugins/AerialMapDisplay
-      Draw Behind: false
+      Draw Behind: true
       Enabled: true
       Name: AerialMapDisplay
-      Object URI: http://otile1.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg
+      Object URI: http://ecn.t1.tiles.virtualearth.net/tiles/a{quad}.jpeg?g=3653
       Topic: /kitti_player/oxts/gps_initial
       Value: true
       Zoom: 19
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /geometries
-      Name: Marker
-      Namespaces:
-        arrow: true
-        plane: true
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -267,6 +251,26 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /buildings
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /UTM_converter
+      Name: OSM Elements
+      Namespaces:
+        buildings: true
+        direction: true
+        node: true
+        oneway: true
+        way: true
+      Queue Size: 15000
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -291,22 +295,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 79.6235
+      Distance: 226.194
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -5.46581
-        Y: -15.8739
+        X: 0
+        Y: 0
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.74778
+      Pitch: 0.594797
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 0.316496
+      Yaw: 3.32539
     Saved: ~
 Window Geometry:
   Displays:
@@ -316,7 +320,7 @@ Window Geometry:
   Hide Right Dock: true
   Left Camera:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000018200000310fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004100000310000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000261fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000f000000261000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000556000000a9fc0100000003fb00000016004c006500660074002000430061006d0065007200610000000000000005560000008400fffffffb0000000a00560069006500770073030000004e00000080000002e100000197fb0000000a0049006d00610067006501000004a20000005c000000000000000000000003000004fe0000003efc0100000002fb0000000800540069006d00650100000000000004fe000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000003760000031000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000014f00000310fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004100000310000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000310fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000004100000310000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b2000000000000000000000002000004fe000000a9fc0100000003fb00000016004c006500660074002000430061006d0065007200610000000000000005560000008400fffffffb0000000a00560069006500770073030000004e00000080000002e100000197fb0000000a0049006d0061006700650100000000000004fe000000000000000000000003000004fe0000003efc0100000002fb0000000800540069006d00650100000000000004fe000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000003a90000031000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -326,5 +330,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1278
-  X: 179
+  X: 74
   Y: 17
