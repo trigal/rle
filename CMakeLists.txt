@@ -5,12 +5,24 @@ SET (CMAKE_BUILD_TYPE Debug)
 SET (ROS_BUILD_TYPE Debug)
 #SET (CMAKE_BUILD_TYPE Release)
 #SET (ROS_BUILD_TYPE Release)
+SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
 
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp tf nav_msgs geometry_msgs dynamic_reconfigure cmake_modules message_generation std_msgs)
+find_package(catkin REQUIRED COMPONENTS     roscpp
+                                            tf
+                                            nav_msgs
+                                            geometry_msgs
+                                            dynamic_reconfigure
+                                            cmake_modules
+                                            message_generation
+                                            std_msgs
+                                            road_lane_detection
+                                            ira_open_street_map
+                                            nodelet
+)
 
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
@@ -22,6 +34,17 @@ generate_dynamic_reconfigure_options(
     cfg/visual_odometry_nvm.cfg
     cfg/visual_odometry_test.cfg
 )
+
+#Add all files in subdirectories of the project in
+# a dummy_target so qtcreator have access to all files
+FILE(GLOB children ${CMAKE_SOURCE_DIR}/*)
+FOREACH(child ${children})
+  IF(IS_DIRECTORY ${child})
+    file(GLOB_RECURSE dir_files "${child}/*")
+    LIST(APPEND extra_files ${dir_files})
+  ENDIF()
+ENDFOREACH()
+add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 
 #find_package( PCL REQUIRED )
 #include_directories(  ${catkin_INCLUDE_DIRS}  ${PCL_INCLUDE_DIRS} )
@@ -104,6 +127,7 @@ add_executable(road_layout_estimation
         src/particle/State6DOF.cpp
         src/eigenmultivariatenormal.hpp
         src/particle/LayoutComponent_RoadState.cpp
+        src/particle/LayoutComponent_OSMDistance.cpp
 )
 
 add_executable(visual_odometry_nvm
@@ -112,9 +136,22 @@ add_executable(visual_odometry_nvm
         src/Utils.cpp
 )
 
+add_executable(fake_callback
+        src/fake_callback.cpp
+)
+
+add_executable(shared_test
+        src/shared_test.cpp
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
+
+#add_dependencies(road_layout_estimation ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(fake_callback ${PROJECT_NAME}_gencfg)
+add_dependencies(fake_callback ${PROJECT_NAME}_generate_messages_cpp)
 
 add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
 add_dependencies(road_layout_estimation ${PROJECT_NAME}_generate_messages_cpp)
@@ -143,9 +180,11 @@ target_link_libraries(visual_odometry_test
   ${catkin_LIBRARIES}
 )
 
-
-
 target_link_libraries(visual_odometry_nvm
 #   ${PCL_LIBRARIES}
     ${catkin_LIBRARIES}
+)
+
+target_link_libraries(fake_callback
+  ${catkin_LIBRARIES}
 )

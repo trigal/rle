@@ -5,9 +5,12 @@
         <param name="/road_layout_estimation/particles_number"                  value="50"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="20"/>  <!-- RLE loop frequency HZ -->
 
-        <param name="/road_layout_estimation/street_distribution_weight"        value="1"/>
-        <param name="/road_layout_estimation/angle_distribution_weight"         value="1"/>
-        <param name="/road_layout_estimation/roadState_distribution_weight"     value="1.5"/>
+        <!--MAX VALUES HERE ARE 10-->
+        <param name="/road_layout_estimation/street_distribution_alpha"        value="1"/>     <!--these values should be greater than zero-->
+        <param name="/road_layout_estimation/angle_distribution_alpha"         value="1"/>
+        <param name="/road_layout_estimation/roadState_distribution_alpha"     value="1"/>
+        <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>
+
 
         <!--State6DOF ***ABSOLUTE***-->
         <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />
@@ -114,7 +117,7 @@
         <!-- Launch RQT reconfigure
         <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" respawn="true"/> -->
 
-        <!-- Launch ROAD LANE DETECTOR
+        <!-- Launch ROAD LANE DETECTOR ** IRALAB**
             <node
                     pkg="road_lane_detection" type="bev_lane_detection_node" name="bev_lane_detection_node"
                     required="true"

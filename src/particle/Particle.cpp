@@ -17,16 +17,17 @@
 #include "State6DOF.h"
 #include "../LayoutManager.h"
 #include <vector>
-#include <Eigen/Dense>	//used for pose matrix
+#include <Eigen/Dense>  //used for pose matrix
 #include <Eigen/Core>
 using namespace Eigen;
 using std::vector;
 
 
 /**
- * Update every particle's components pose using motion model equations
+ * @brief propagateLayoutComponents Update every particle's components pose using motion model equations
  */
-void Particle::propagateLayoutComponents(){
+void Particle::propagateLayoutComponents()
+{
     ROS_DEBUG_STREAM("> Entering propagateLayoutComponents");
 
     vector<LayoutComponent*>::iterator itr;
@@ -35,15 +36,26 @@ void Particle::propagateLayoutComponents(){
     {
         ROS_DEBUG_STREAM("Cycling through component id: " << (int)(component_counter++) << " of " << (*itr)->getComponentId());
 
-        if(dynamic_cast<LayoutComponent_RoadState* >(*itr))
+        if (dynamic_cast<LayoutComponent_OSMDistance* >(*itr))
+        {
+            ROS_DEBUG_STREAM("OSMDistanceComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+            continue;
+        }
+        if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
             ROS_DEBUG_STREAM("roadStateComponent detected");
             (*itr)->componentPoseEstimation(); //virtual
+            continue;
         }
-        else
+        if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
         {
-            ROS_WARN_STREAM("Unkown component");
+            ROS_DEBUG_STREAM("roadLaneComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+            continue;
         }
+
+        ROS_WARN_STREAM("Unkown component");
 
         // propagate component pose with motion model equations
         // VectorXd pc_state = (*itr)->getComponentState();
@@ -66,7 +78,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 {
     // odometry is the measurementModel of the LAYOUTMANAGER (default motion model)
     // check if _first_run is still set.
-    if(odometry->getFirstRun())
+    if (odometry->getFirstRun())
     {
         ROS_WARN_STREAM("First run in particlePoseEstimation");
         particle_state.setRotationalVelocity(odometry->getMeasureDeltaState().getRotationalVelocity());
@@ -91,14 +103,14 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     MatrixXd E_t = particle_sigma;                                              /// initial sigma (state error covariance)
 
     State6DOF stato_ut_predetto;
-    MatrixXd E_t_pred = MatrixXd::Zero(12,12);                                  /// predicted sigma (state error covariance)
+    MatrixXd E_t_pred = MatrixXd::Zero(12, 12);                                 /// predicted sigma (state error covariance)
 
     MatrixXd R_t = particle_mtn_model.getErrorCovariance();                     /// motion error covariance     (mtn_model_position_uncertainty ecc)
     MatrixXd Q_t = odometry->getMeasureCov();                                   /// measure error covariance
 
-    MatrixXd G_t = MatrixXd::Zero(12,12);	                                    /// motion equations jacobian
-    MatrixXd H_t = MatrixXd::Zero(12,12);	                                    /// measure equations jacobian
-    MatrixXd K_t = MatrixXd::Zero(12,12);	                                    /// Kalman gain
+    MatrixXd G_t = MatrixXd::Zero(12, 12);                                      /// motion equations jacobian
+    MatrixXd H_t = MatrixXd::Zero(12, 12);                                      /// measure equations jacobian
+    MatrixXd K_t = MatrixXd::Zero(12, 12);                                      /// Kalman gain
 
     // ------- PREDICTION STEP -------
     /// 1. Absolute
@@ -136,8 +148,8 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
 
     // Check if the measure is valid
-    if(true) // set to TRUE if using "With Odometry"
-    //if(!odometry->isMeasureValid())
+    if (true) // set to TRUE if using "With Odometry" TODO: it is ok, but an IF(TRUE) is something bad to have in the code in this case
+        //if(!odometry->isMeasureValid())
     {
         ROS_DEBUG_STREAM("Particle.cpp, particlePoseEstimation: Invalid Measure or EKF disabled");
 
@@ -152,15 +164,15 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
         //cout << "--------------------------------------------------------------------------------" << endl;
 
         /// set roadStateComponent state
-        ///
         vector<LayoutComponent*>::iterator itr;
         unsigned char component_counter = 0; // preferred over (it - vec.begin())
         for (itr = particle_components.begin(); itr != particle_components.end(); itr++)
         {
 
             {
-                VectorXd state; state=stato_ut_predetto.getPose();
-                ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0)<<"\t"<< state(1)<<"\t"<< state(2));
+                VectorXd state;
+                state = stato_ut_predetto.getPosition();
+                ROS_DEBUG_STREAM("Updating the *state (pose)* of roadStateComponent, from particlePoseEstimation:" << state(0) << "\t" << state(1) << "\t" << state(2));
 
                 (*itr)->setComponentState(state); //virtual call
             }
@@ -174,20 +186,20 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     // ------- UPDATE STEP -------
 
     //State6DOF delta_measure = odometry->getMeasureDeltaState();                                            // differenza tra odometria arrivata, usata per calcolare misura zt
-    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime,deltaOdomTime);    // here the measurement is scaled with the timestamps. Needed in decoupling.
+    State6DOF delta_measure = odometry->getMeasureDeltaStateScaledWithTime(deltaTimerTime, deltaOdomTime);   // here the measurement is scaled with the timestamps. Needed in decoupling.
     //ROS_ASSERT (delta_measure.getRotation().isUnitary());
 
 //    delta_measure.setRotation(AngleAxisd::Identity());
 //    delta_measure.setRotationalVelocity(AngleAxisd::Identity());
 
     //State6DOF predicted_measure;
-    //predicted_measure.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    //predicted_measure.setPose(stato_t.getPosition() + stato_t.getRotation() * delta_measure.getPosition());
     //predicted_measure.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
     //predicted_measure.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
     //predicted_measure.setRotationalVelocity(delta_measure.getRotationalVelocity());
 
     State6DOF predicted_measure_zt;
-    predicted_measure_zt.setPose(stato_t.getPose() + stato_t.getRotation() * delta_measure.getPose());
+    predicted_measure_zt.setPose(stato_t.getPosition() + stato_t.getRotation() * delta_measure.getPosition());
     predicted_measure_zt.setRotation(Eigen::AngleAxisd(delta_measure.getRotation() * stato_t.getRotation()));
     //ROS_ASSERT (predicted_measure_zt.getRotation().isUnitary());
     predicted_measure_zt.setTranslationalVelocity(delta_measure.getTranslationalVelocity());
@@ -241,7 +253,7 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
 
     // calculate belief
     State6DOF stato_filtrato = stato_ut_predetto.add_vectXd(kalman_per_msr_diff);
-    E_t = (MatrixXd::Identity(12,12) - (K_t * H_t)) * E_t_pred;
+    E_t = (MatrixXd::Identity(12, 12) - (K_t * H_t)) * E_t_pred;
 
     // update particle values
     particle_state = stato_filtrato;
@@ -250,5 +262,109 @@ void Particle::particlePoseEstimation(MeasurementModel* odometry, double deltaTi
     //DEBUG:stampa stato_t_predetto
     stato_filtrato.printState("[stato_t_filtrato]");
 
-//    cout << "--------------------------------------------------------------------------------" << endl;
+    //    cout << "--------------------------------------------------------------------------------" << endl;
 }
+
+/**
+ * @brief Particle::getWayIDHelper
+ * @return the wayId inside the LayoutComponent Roadstate. -1 if not found
+ *
+ * Performs a check inside the components in order to return the WAYID
+ * refs #502
+ */
+int64_t Particle::getWayIDHelper()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            int64_t a=dynamic_cast<LayoutComponent_RoadState *>(*it)->getWay_id();
+            return a;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return -1;
+
+    //(dynamic_cast<LayoutComponent_RoadState *>((*particle_itr).getLayoutComponents().at(0)))->getWay_id();
+}
+
+/**
+ * @brief Particle::getOneWayHelper
+ * @return oneway tag value
+ *
+ * Performs a check inside the components in or
+ * der to return if the current way
+ * has the TAG:ONEWAY and if it is true/false. This tag is updated in the RoadState
+ * every time a new msg_lines is received (the component is deleted/created every time)
+ *
+ */
+bool Particle::getOneWayFlag()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            bool oneway=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
+            return oneway;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return false;
+}
+
+/**
+ * @brief Particle::getDistance_to_closest_segment This Particle function calls
+ * the getDistance_to_closest_segment of the LayoutComponent_OSMDistance component.
+ * Previously this distance was stored inside the particle but with #522 I
+ * created a *real* GeometricComponent called OSMDistance.
+ *
+ * @return distance from the closest segment or "infinity" if the Geometric
+ * component does not exist. If the particle is on the left from the roadsegment,
+ * then the distance is negative. This refs #538.
+ */
+double Particle::getDistance_to_closest_segment()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
+        {
+            double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
+
+            if (dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getIsLeft()) // #538
+                distance_to_closest_segment = -distance_to_closest_segment;    //if it is on the left, then the value is negative
+
+            return distance_to_closest_segment;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return std::numeric_limits<double>::infinity();
+}
+
+/**
+ * @brief Particle::getRoadWidth This routine ask to the RoadState component for
+ * the current nearest Road Width, from OSM.
+ *
+ * @return the road width calculated with the getHighwayInfo service in the last
+ * iteration.
+ *
+ * Created during #536
+ */
+double Particle::getRoadWidth()
+{
+    for (vector<LayoutComponent*>::iterator it = this->particle_components.begin(); it != this->particle_components.end(); ++it)
+    {
+        if (dynamic_cast<LayoutComponent_RoadState *>(*it))
+        {
+            double roadWidth=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOSMRoad_width();
+            return roadWidth;
+        }
+    }
+
+    ROS_ERROR_STREAM("I CAN'T FIND LayoutComponent_RoadState");
+    return std::numeric_limits<double>::infinity();
+}
+
+

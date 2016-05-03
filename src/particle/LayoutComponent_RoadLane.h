@@ -1,102 +1,135 @@
 #ifndef LAYOUTCOMPONENT_ROADLANE_H
 #define LAYOUTCOMPONENT_ROADLANE_H
 
-#include "LayoutComponent.h"
+#include <algorithm>    // std::sort
+#include <eigen3/Eigen/Core>
 #include <iostream>
+#include <limits>
 #include <ros/ros.h>
+#include <vector>       // std::vector
+
+#include "LayoutComponent.h"
+#include "../Utils.h"
+#include "road_layout_estimation/msg_lines.h"
+#include "road_layout_estimation/msg_lineInfo.h"
 
 using namespace std;
 
+/**
+ * @brief The LayoutComponent_RoadLane class
+ *
+ * This component should answer to the following question: IN WHICH LANE I AM?
+ *
+ * second component, Alcala de Henares 2015
+ * http://projects.ira.disco.unimib.it/issues/527
+ *
+ */
 class LayoutComponent_RoadLane : public LayoutComponent
 {
+
 private:
 
-    /**
-     * PARABOLA EQUATION:
-     * x = K1 * (-y + homography_y_resolution)^2 + K2 * (-y + homography_y_resolution) + K3
-     */
-    double k1; /// First parameter of parabola equation
-    double k3; /// Third parameter of parabola equation
-    double homography_y_resolution;
-    ros::Time timestamp;    /// When parabola was sent by detector
+    Eigen::VectorXd sensor;
+    Eigen::ArrayXd  megavariabile;
+    Eigen::MatrixXd stateTransitionMatrix;
+
+    int howManyLanes;                   ///< The number of lanes in the current hypothesis
+    double standardLaneWidth = 3.0f;    // maybe minLaneWidth
+    int MAX_COUNT = 10;                 ///< Counter upper limit -- this value need to be the same of RoadMarks.h
+    double roadLane_distribution_alpha; ///< the alphas were used inside the LayoutManager, after #534 inside each component
+
+    bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b); ///< Function used to sort the list of lines in the array, using std::sort
+
 public:
+
     /**
+     * @brief getAlphas
+     * @return street_distribution_alpha + angle_distribution_alpha
+     */
+    double getAlphas();
+
+    /**
+     * @brief calculateComponentScore
      * Implementation of pure virtual method 'calculateWeight'
      */
-    void calculateComponentScore(){
-        cout << "Calculating weight of ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+    void calculateComponentScore();
+
+    /**
+     * @brief componentPerturbation
+     * Implementation of pure virtual method 'componentPerturbation'
+     */
+    void componentPerturbation();
+
+    /**
+     * @brief componentPoseEstimation
+     * Implementation of pure virtual method 'componentPoseEstimation'
+     *
+     * called from this tree:
+     *      2. Particle::propagateLayoutComponents()
+     *      1. LayoutManager::sampling()
+     */
+    void componentPoseEstimation();
+
+    /**
+     * @brief LayoutComponent_RoadLane
+     * Default Constructor
+     */
+    LayoutComponent_RoadLane()
+    {
+        ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+        setLanes(0);
+    }
+
+    LayoutComponent_RoadLane(const unsigned int particle_id,
+                             const unsigned int component_id,
+                             unsigned int lanes,
+                             double roadLane_distribution_alpha)
+    {
+        ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+
+        // Set component variables
+        //resetMegavariabile(lanes);
+        //resetSensor(lanes);
+        //setLanes(lanes);
+        //setStateTransitionMatrix();
+
+        setLanes(2); // have a look here #520
+        resetMegavariabile();
+        resetSensor();
+        setStateTransitionMatrix();
+
+        // Set inherited variables (LayoutComponent)
+        this->particle_id                   = particle_id;
+        this->component_id                  = component_id;
+        this->roadLane_distribution_alpha   = roadLane_distribution_alpha; // #534
     }
 
     /**
-     * Implementation of pure virtual method 'componentPerturbation'
+     * @brief filter
+     * @param msg_lines
+     *
+     * This is the porting of the test-function: fake_callback.cpp
      */
-    void componentPerturbation(){
-        cout << "Perturbating ROAD LANE component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
-    }
+    void filter(const road_layout_estimation::msg_lines & msg_lines);
 
     /**
-     * Implementation of pure virtual method 'componentPerturbation'
+     * @brief resetSensor
+     * @param lanes, if zero, getLanes will be used
+     * This function resets the Sensor matrix
      */
-    void componentPoseEstimation(){
-        cout << "Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
-    }
+    void resetSensor(int howManyLanes = 0);
 
+    /**
+     * @brief resetMegavariabile
+     * @param lanes, if zero, getLanes will be used
+     * This function resets the Megavariabile
+     */
+    void resetMegavariabile(int howManyLanes = 0);
 
-    // Getters and setters ----------------------------------------------------------------------
-    void setK1(double val){ k1 = val; }
-    double getK1() { return k1; }
-    void setK3(double val){ k3 = val; }
-    double getK3() { return k3; }
-    void setTimestamp(ros::Time time) { timestamp = time; }
-    ros::Time getTimestamp() { return timestamp; }
-    double getHomographyYResolution() { return homography_y_resolution; }
-    void setHomographyYResolution(double y_res) { homography_y_resolution = y_res; }
+    void setStateTransitionMatrix();
 
-    // Constructors and destructors -------------------------------------------------------------
-    LayoutComponent_RoadLane(){
-        particle_id = 0;
-        component_id = 0;
-        component_weight = 0;
-        component_state = VectorXd::Zero(12);
-        component_cov = MatrixXd::Zero(12,12);
-        k1 = 0;
-        k3 = 0;
-        timestamp = ros::Time(0);
-        homography_y_resolution = 0;
-    }
-    LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, double k1, double k3, double y_res, ros::Time timestamp){
-        particle_id = p_id;
-        component_id = c_id;
-        component_weight = 0;
-        component_state = VectorXd::Zero(12);
-        component_cov = MatrixXd::Zero(12,12);
-        this->k1= k1;
-        this->k3 = k3;
-        this->homography_y_resolution = y_res;
-        this->timestamp = timestamp;
-    }
-    LayoutComponent_RoadLane(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov){
-        particle_id = p_id;
-        component_id = c_id;
-        component_weight = 0;
-        component_state = c_state;
-        component_cov = c_cov;
-        k1 = 0;
-        k3 = 0;
-        homography_y_resolution = 0;
-        timestamp = ros::Time(0);
-    }
-    ~LayoutComponent_RoadLane(){
-        particle_id = 0;
-        component_id = 0;
-        component_weight = 0;
-        component_state.resize(0);
-        component_cov.resize(0,0);
-        k1 = 0;
-        k3 = 0;
-        homography_y_resolution = 0;
-        timestamp = ros::Time(0);
-    }
+    int getLanes() const;
+    void setLanes(int value);
 };
 
 #endif // LAYOUTCOMPONENT_ROADLANE_H

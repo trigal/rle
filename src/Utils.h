@@ -26,7 +26,8 @@
 
 using namespace Eigen;
 
-class Utils{
+class Utils
+{
 
 public:
 
@@ -61,91 +62,100 @@ public:
 
     static int lanesFromLines(int goodLines);
 
-
-    /**
-     * @param pose
-     * @param position_offset
-     * @param orientation_offset
-     * @param speed_offset
-     * @return Adds a random noise to a VectorXd 12x1 representing particle's pose
-     */
+    ///
+    /// \brief addOffsetToVectorXd
+    /// \param pose
+    /// \param position_err
+    /// \param orientation_err
+    /// \param speed_err
+    /// \return Adds a random noise to a VectorXd 12x1 representing particle's pose
+    ///
     static VectorXd addOffsetToVectorXd(const VectorXd& pose, double position_err, double orientation_err, double speed_err);
 
-    /**
-     * Returns a message of type nav_msgs::Odometry given
-     * a VectorXd as parameter
-     * @param pose
-     * @return
-     */
+    ///
+    /// \brief getOdomFromPoseAndSigma
+    /// \param pose
+    /// \param sigma
+    /// \return
+    ///
+    /// Returns a message of type nav_msgs::Odometry given
+    /// a VectorXd as parameter
+    ///
     static nav_msgs::Odometry getOdomFromPoseAndSigma(const VectorXd& pose, const MatrixXd& sigma);
 
-    /**
-     * Return a 12x1 VectorXd representing the pose given
-     * a message of type nav_msgs::Odometryfrom
-     * @param msg
-     * @return
-     */
+    ///
+    /// \brief getPoseVectorFromOdom
+    /// \param msg
+    /// \return
+    /// Return a 12x1 VectorXd representing the pose given
+    /// a message of type nav_msgs::Odometryfrom
+    ///
     static VectorXd getPoseVectorFromOdom(const nav_msgs::Odometry& msg);
 
-    /**
-     * @brief getCovFromOdom
-     * @param msg
-     * @return
-     */
+    ///
+    /// \brief getCovFromOdom
+    /// \param msg
+    /// \return
+    ///
     static MatrixXd getCovFromOdom(const nav_msgs::Odometry& msg);
 
-    /**
-     * @brief getPoseFromVector
-     * @param msg
-     * @return
-     */
+    ///
+    /// \brief getPoseFromVector
+    /// \param msg
+    /// \return
+    ///
     static geometry_msgs::Pose getPoseFromVector(const VectorXd& msg);
 
-    /**
-     * @param err
-     * @return a random number between -err and err
-     */
+    ///
+    /// \brief getNoise
+    /// \param err
+    /// \return a random number between -err and err
+    ///
     static double getNoise(double err);
 
-    /**
-     * @param m
-     * @param s
-     * @return a random number sampled from normal distribution with mean m and std s
-     */
+    ///
+    /// \brief box_muller
+    /// \param m
+    /// \param s
+    /// \return a random number sampled from normal distribution with mean m and std s
+    ///
     static double box_muller(double m, double s);
 
-    /**
-     * @brief getRotationMatrix
-     * @param q
-     * @return
-     */
+    ///
+    /// \brief getRotationMatrix
+    /// \param q
+    /// \return
+    ///
     static Eigen::Matrix3d getRotationMatrix(Eigen::Vector4d q);
 
-    /**
-     * @brief getCameraCenterAfterRotation
-     * @param c
-     * @param r
-     * @return
-     */
+    ///
+    /// \brief getCameraCenterAfterRotation
+    /// \param c
+    /// \param r
+    /// \return
+    ///
     static Eigen::Vector3d getCameraCenterAfterRotation(const double c[3], Eigen::Matrix3d r);
 
     static double rad2deg (double alpha);
     static double deg2rad (double alpha);
 
-    /**
-     * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
-     * @param z	the angle to normalize
-     * @return an equivalent angle in the range (-Pi, Pi]
-     */
+    ///
+    /// \brief normalize_angle
+    /// \param z the angle to normalize
+    /// \return an equivalent angle in the range (-Pi, Pi]
+    ///
+    /// Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
+    ///
     static double normalize_angle(double z);
 
-    /**
-     * Computes the unoriented smallest difference between two angles.
-     *
-     * @param a the angle of one vector
-     * @param b the angle of the other vector
-     * @return the angle (in radians) between the two vectors (in range [0, Pi] )
-     */
+    ///
+    /// \brief angle_diff
+    /// \param a the angle of one vector
+    /// \param b the angle of the other vector
+    /// \return the angle (in radians) between the two vectors (in range [0, Pi] )
+    ///
+    /// Computes the unoriented smallest difference between two angles.
+    ///
     static double angle_diff(double a, double b);
 };
 

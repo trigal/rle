@@ -16,44 +16,56 @@
 
 
 #include "Utils.h"
+
 #include "geometry_msgs/PoseArray.h"
 #include "MeasurementModel.h"
 #include "nav_msgs/Odometry.h"
-#include "visualization_msgs/Marker.h"
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <ros/package.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf/transform_listener.h>
+#include "visualization_msgs/Marker.h"
 #include <visualization_msgs/MarkerArray.h>
+
+// ROS CORE STUFF
 #include <ros/console.h>
+#include <nodelet/loader.h>
+#include <nodelet/nodelet.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "eigenmultivariatenormal.hpp"
 
+// BOOST
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/uniform_real.hpp>
 
 #include <road_layout_estimation/road_layout_estimationConfig.h>
 #include <road_layout_estimation/getAllParticlesLatLon.h>
 
+// OPENSTREETMAPS MODULE
 #include "ira_open_street_map/get_closest_way_distance_utm.h"
 #include "ira_open_street_map/latlon_2_xy.h"
 #include "ira_open_street_map/snap_particle_xy.h"
 #include "ira_open_street_map/xy_2_latlon.h"
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
+#include "ira_open_street_map/oneway.h"
+
+// COMPONENTS
+#include "particle/LayoutComponent.h"
 #include "particle/LayoutComponent_Building.h"
 #include "particle/LayoutComponent_RoadLane.h"
-#include "particle/LayoutComponent.h"
+#include "particle/LayoutComponent_RoadState.h"
+#include "particle/LayoutComponent_OSMDistance.h"
+
 #include "particle/Particle.h"
 #include "road_lane_detection/road_lane_array.h"
 #include "road_lane_detection/road_lane.h"
 
 
-#include "particle/LayoutComponent_RoadState.h"
 //#include "road_layout_estimation/msg_roadState.h"  //ROADSTATECOMPONENT FAKE
 #include "road_layout_estimation/msg_lines.h"
 #include "road_layout_estimation/msg_debugInformation.h"
@@ -79,7 +91,7 @@ using std::vector;
  *----------------------------------------------------------------------------------------------
  * SPECIFICHE:
  * - pose particle -> filtro EKF
- * 	 pose componenti -> filtro particelle
+ *   pose componenti -> filtro particelle
  *
                  // - score -> confronto tra predict ed eq. di misura
                  // - weight -> quanto pesa nella somma di tutte le componenti
@@ -89,20 +101,20 @@ using std::vector;
  *
  *  SCORE = SCORE_MOTION_MODEL(kalman gain) + sum(SCORE_COMPONENTS)
  *
- *	EQUAZIONE DI MISURA:
- *		mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
- *		L'equazione di misura sarà una matrice (vedi foglio). La derivata è paro paro
+ *  EQUAZIONE DI MISURA:
+ *      mi arriva la misura dal tracker (visual odometry), vettore 6 elementi (6DoF pose).
+ *      L'equazione di misura sarà una matrice (vedi foglio). La derivata è paro paro
  *
  *--------------------------------------------------------------------------------------------------------
- *	CALCOLO V_t+1
+ *  CALCOLO V_t+1
  *
- *	PREDICTION:
- *		considero sempre l'equazione v t+1 = v t + R
+ *  PREDICTION:
+ *      considero sempre l'equazione v t+1 = v t + R
  *
- *	UPDATE:
- *	caso 1: non mi arrivano dati da visual odometry
- *			l'accelerazione è data dalla costante di smorzamento (vedi formula su foglio)
- *	caso 2: nel caso mi arrivino dati, faccio l'update
+ *  UPDATE:
+ *  caso 1: non mi arrivano dati da visual odometry
+ *          l'accelerazione è data dalla costante di smorzamento (vedi formula su foglio)
+ *  caso 2: nel caso mi arrivino dati, faccio l'update
  *
  *
  *----------------------------------------------------------------------------------------------
@@ -114,16 +126,16 @@ using std::vector;
  */
 
 
-
 /**
+ * @brief The LayoutManager class
  * Implementation of the current layout estimator
  */
 class LayoutManager
 {
 public:
-    MeasurementModel* measurement_model;    /// our Measurment Model [created in the CLASS CONSTRUCTOR]
-    MotionModel default_mtn_model;          /// default motion model applied to new particles TODO: allineare a measurement_model
-    static double deltaOdomTime;                  /// time between current message and last arrived message (static should be unnecessary here)
+    MeasurementModel* measurement_model; ///< our Measurment Model created in the CLASS CONSTRUCTOR
+    MotionModel default_mtn_model;       ///< default motion model applied to new particles TODO: allineare a measurement_model
+    static double deltaOdomTime;         ///< time between current message and last arrived message (static should be unnecessary here)
     static double deltaTimerTime;
 
     // Publishers
@@ -155,47 +167,53 @@ public:
     ros::ServiceClient xy_2_latlon_client;
     ros::ServiceClient snap_particle_xy_client;
     ros::ServiceClient get_closest_way_distance_utm_client;
-    ros::ServiceClient getHighwayInfo_client;
+    ros::ServiceClient getHighwayInfo_client;   ///< this service is used during the initialization phase inside reconfigureCallBack and RoadStateCallback (just because I delete/create this component all the times)
     ros::ServiceClient getDistanceFromLaneCenter_client;
+    ros::ServiceClient oneWay_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;
 
     int num_particles;
 
-    static int odometryMessageCounter;           /// stores the current layout_manager step
+    static int odometryMessageCounter;          ///< stores the current layout_manager step
+
+    //WARNING: this is a copy!?
+    ros::NodeHandle node_handle;                ///< Default ROS - LayoutManager handler
 
     // Dynamic reconfigure
-    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> server;
-    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType f;
-    ros::NodeHandle node_handle;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig> dynamicReconfigureServer;
+    dynamic_reconfigure::Server<road_layout_estimation::road_layout_estimationConfig>::CallbackType dynamicReconfigureCallback;
 
-    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<Particle>& particles);
+    geometry_msgs::PoseArray buildPoseArrayMsg(std::vector<shared_ptr<Particle> > &particles);
 
-    /**
-     * Genera una stima del layout al tempo t a partire dal currentLayout
-     * @return particle set al tempo t
-     */
+    ///
+    /// \brief layoutEstimation
+    /// \param timerEvent
+    /// \return particle set al tempo t
+    /// Genera una stima del layout al tempo t a partire dal currentLayout
+    ///
     void layoutEstimation(const ros::TimerEvent &timerEvent);
 
-    /**
-     * @brief odometryCallback (was the temp odometryCallback2);
-     * @param msg
-     */
+    ///
+    /// \brief odometryCallback
+    /// \param visualOdometryMsg
+    /// (was the temp odometryCallback2);
+    ///
     void odometryCallback(const nav_msgs::Odometry& visualOdometryMsg);
 
-    /**
-     * @brief reconfigureCallback
-     * @param config
-     * @param level
-     */
-    void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &config, uint32_t level);
+    ///
+    /// \brief reconfigureCallback
+    /// \param config
+    /// \param level
+    ///
+    void reconfigureCallback(road_layout_estimation::road_layout_estimationConfig &currentConfiguration, uint32_t level);
 
-    /**
-     * @brief roadLaneCallback
-     * @param msg
-     */
-    void roadLaneCallback(const road_lane_detection::road_lane_array& msg);
+    ///
+    /// \brief roadLaneCallback
+    /// \param msg
+    ///
+    void roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines);
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
@@ -203,8 +221,6 @@ public:
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }
 
-    vector<Particle> getCurrentLayout(){ return current_layout; }
-    void setCurrentLayout(vector<Particle>& p_set){ current_layout = p_set; }
 
     // costructor & destructor ----------------------------------------------------------------------
     LayoutManager(ros::NodeHandle& n, std::string& topic, string &bagfile, double timerInterval, ros::console::Level loggingLevel);
@@ -215,7 +231,8 @@ public:
     ~LayoutManager()
     {
         ROS_INFO_STREAM("RLE is stopping ...");
-        current_layout.clear();
+        //current_layout.clear();
+        current_layout_shared.clear();
 //        stat_out_file.close();
         LIBVISO_out_file.close();
         RLE_out_file.close();
@@ -226,51 +243,73 @@ public:
 
 
     void normalizeParticleSet();
-    void publishMarkerArray();
-    void publishMarkerArrayDistances(int id, double x1, double y1,double x2, double y2, double z);
+    void publishMarkerArray(double normalizationFactor);
+    void publishMarkerArrayDistances(int id, double x1, double y1, double x2, double y2, double z);
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
     void publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point);
 
 
     // Timers
-    ros::Timer RLE_timer_loop;                  //main loop timer
+    ros::Timer RLE_timer_loop;                  ///< main loop timer
     void rleStart();
     void rleStop();
 
+    ///
+    /// \brief getAllParticlesLatLonService
+    /// \param req
+    /// \param resp
+    /// \return
+    ///
     /// Service Callback
+    ///
     bool getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp);
 
     tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 
+    double getCurrent_layoutScore() const;
+    void setCurrent_layoutScore(double value);
+
+    // shared version of current layout
+    vector<shared_ptr<Particle> > getCurrent_layout_shared() const;
+    void setCurrent_layout_shared(const vector<shared_ptr<Particle> > &value);
+
+    // old version of curren layout
+    //ROS_DEPRECATED vector<Particle> getCurrentLayout();
+    //ROS_DEPRECATED void setCurrentLayout(vector<Particle>& p_set);
+
 private:
 
+    /// Store here the configuration read with reconfigureCallBack, last configuration read.
+    road_layout_estimation::road_layout_estimationConfig currentLayoutManagerConfiguration;
+
     tf::TransformListener tf_listener;
-    boost::mt19937 rng;                         // The uniform pseudo-random algorithm
-    double street_distribution_sigma;           // Street gaussian distribution sigma
-    double angle_distribution_sigma;            // Angle difference gaussian distribution sigma
-    double street_distribution_weight;          // Tells how does street pdf weight on score calculation
-    double angle_distribution_weight;           // Tells how does angle pdf weight on score calculation
-    double roadState_distribution_weight;       // Tells how does roadStateComponents weight on the score calculation
-    int    resampling_interval;                 // The resampling interval of the main Particle Filter
+    boost::mt19937 rng;                                     ///< The uniform pseudo-random algorithm
+    ROS_DEPRECATED double street_distribution_sigma;                       ///< Street gaussian distribution sigma
+    ROS_DEPRECATED double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
+    ROS_DEPRECATED double street_distribution_alpha;                      ///< Tells how does street pdf weight on score calculation
+    ROS_DEPRECATED double angle_distribution_alpha;                       ///< Tells how does angle pdf weight on score calculation
+    double roadState_distribution_alpha;                    ///< Tells how does roadStateComponents weight on the score calculation
+    int    resampling_interval;                             ///< The resampling interval of the main Particle Filter
 
+    static bool openstreetmap_enabled;                      ///< check this flag if we want to initialize particle-set with GPS and associate OSM score
+    static bool layoutManagerFirstRun;                      ///< flag used for initiliazing particle-set with gps
+    static bool first_msg;                                  ///< flag used for init particle-set
+    nav_msgs::Odometry visualOdometryOldMsg;                ///< used for delta_t calculation
 
-    static bool openstreetmap_enabled;          // check this flag if we want to initialize particle-set with GPS and associate OSM score
-    static bool layoutManagerFirstRun;          // flag used for initiliazing particle-set with gps
-    static bool first_msg;                      // flag used for init particle-set
-    nav_msgs::Odometry visualOdometryOldMsg;    // used for delta_t calculation
-
-    bool new_detections;				        // indicates detectors found new detections (not used)
-    vector<Particle> current_layout;	        // stores the current layout
+    bool new_detections;                                    ///< indicates detectors found new detections (not used)
+    //ROS_DEPRECATED vector<Particle> current_layout;         ///< stores the current layout, changing Particle to Particle* to fix #529
+    vector< shared_ptr<Particle> > current_layout_shared;   ///< stores the current layout, changing Particle to Particle* to fix #529
+    double current_layoutScore;
     long resampling_count;
 
-    MatrixXd particle_poses_statistics;         // To calculate the statistics of the particle set for evaluation purposes (localization confidence)
+    MatrixXd particle_poses_statistics;                     ///< To calculate the statistics of the particle set for evaluation purposes (localization confidence)
 
-    // output files
-    ofstream stat_out_file;
-    ofstream LIBVISO_out_file;
-    ofstream RLE_out_file;
-    ofstream RTK_GPS_out_file;
+    // Output files
+    ofstream stat_out_file;                                 ///< output file, for framework evaluation
+    ofstream LIBVISO_out_file;                              ///< output file, for framework evaluation
+    ofstream RLE_out_file;                                  ///< output file, for framework evaluation
+    ofstream RTK_GPS_out_file;                              ///< output file, for framework evaluation
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
@@ -279,46 +318,53 @@ private:
     visualization_msgs::MarkerArray marker_z_particle;
     visualization_msgs::MarkerArray marker_array_GT_RTK;
 
-    string bagfile;
+    string bagfile;                             ///< This is used to cache the KITTI_XX.bags initialization parameters rather than GPS
 
+    // Loader for nodelets.
+    //nodelet::Loader     *manager;               ///< Loader for the nodelets.
 
-    bool start_with_gps_message;                // select RLE mode, hard-coded KITTI initializations, or GPS message
+    bool start_with_gps_message; ///< select RLE mode, hard-coded KITTI initializations, or GPS message
 
-
-    /*
+    /**
      * @brief checkHasMoved
      * @return
      */
     bool checkHasMoved();
 
-    /*
+    /**
+     * @brief componentsEstimation
      * STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
      * STEP 2: PERTURBATE COMPONENT POSES
      * STEP 3: WEIGHT LAYOUT-COMPONENTS
      */
     void componentsEstimation();
 
-    /*
+    /**
+     * @brief sampling
      * Sampling from the state transition p(x_t | u_t , x_t-1):
      * we propagate the particle and its components with the motion model
      * and generate a predicted particle-set
      */
     void sampling();
+
     void componentsPerturbation();
+
     void calculateLayoutComponentsWeight();
 
-
-    /*
-     * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
-     * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
+    /**
+     * @brief resampling
      * @param particle-set predetto
      * @return particle-set con resampling
+     *
+     * Resampling sul particle-set predetto, utilizzando lo score delle particelle:
+     * chi ha peso più alto è più probabile che venga preso [roulette-wheel]
      */
     void resampling();
 
 
-    /*
-     * FORMULA CALCOLO SCORE
+    /**
+     * @brief calculateScore
+     * @param particle_itr
      *
      * Cardinalità unaria (Particella presa INDIVIDUALMENTE)
      *  1- Kalman gain sulla pose della particella
@@ -332,10 +378,15 @@ private:
      * essa sarà mantenuta in vita nonostante lo score sia basso.
      * In questo modo si evita la possibilità di eliminare dal particle-set ipotesi plausibili che abbiano ricevuto
      * uno score di valore basso per motivi di natura diversa.
-     *
      */
-    void calculateScore(Particle *particle_itr);
-    void calculateGeometricScores(Particle *particle_itr); //helper function, while the distance (metric+angular) aren't components.
+    ROS_DEPRECATED void calculateScore(const shared_ptr<Particle>& particle_itr_shared);//(Particle *particle_itr);
+
+    /**
+     * @brief calculateGeometricScores
+     * @param particle_itr
+     * helper function, while the distance (metric+angular) aren't components.
+     */
+    void calculateGeometricScores(const shared_ptr<Particle>& particle_itr);//(Particle *particle_itr);
 
 };
 

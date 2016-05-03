@@ -16,14 +16,15 @@
 #include "Utils.h"
 #include "particle/State6DOF.h"
 
-#include <Eigen/Dense>	//used for motion threshold matrix
+#include <Eigen/Dense>  //used for motion threshold matrix
 #include <Eigen/Core>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_listener.h>
 
 using namespace Eigen;
 
-class MeasurementModel {
+class MeasurementModel
+{
 
 private:
 //    VectorXd msr_state; /// measurement (12x1: 6DoF pose + 6 Speed Derivates)
@@ -38,11 +39,13 @@ private:
     geometry_msgs::Twist oldFrameSpeed;
     ros::Duration delta_time;
 
-    class Tracker{
+    class Tracker
+    {
 
     };
 
-    class Mapper{
+    class Mapper
+    {
 
     };
 
@@ -70,7 +73,7 @@ public:
         //        _measure_Delta._rotation = mrs._rotation;
         //        _measure_Delta._translational_velocity= mrs._translational_velocity;
         //        _measure_Delta._rotational_velocity= mrs._rotational_velocity;
-        _measure_Delta.setPose(mrs.getPose());
+        _measure_Delta.setPose(mrs.getPosition());
         _measure_Delta.setRotation(mrs.getRotation());
         _measure_Delta.setTranslationalVelocity(mrs.getTranslationalVelocity());
         _measure_Delta.setRotationalVelocity(mrs.getRotationalVelocity());
@@ -92,11 +95,11 @@ public:
         return _measure_Delta;
     }
 
-    State6DOF getMeasureDeltaStateScaledWithTime(double deltaTimerTime=0.0f, double deltaOdomTime=0.0f)
+    State6DOF getMeasureDeltaStateScaledWithTime(double deltaTimerTime = 0.0f, double deltaOdomTime = 0.0f)
     {
         /// Here the _measure_delta is scaled by the fraction of time between the last libviso2 delta and the elapsed time from the last iteration of RLE
 
-        double scaling_factor=deltaOdomTime/deltaTimerTime;
+        double scaling_factor = deltaOdomTime / deltaTimerTime;
         //ROS_ASSERT(scaling_factor>0);
         //ROS_ASSERT(std::isnormal(scaling_factor));  //a normal value: i.e., whether it is neither infinity, NaN, zero or subnormal.
 
@@ -104,13 +107,13 @@ public:
         Vector3d tmpVector3d;
         AngleAxisd tmpAngleAxisd;
 
-        tmpVector3d =_measure_Delta.getPose();
-        tmpAngleAxisd =_measure_Delta.getRotation();
+        tmpVector3d = _measure_Delta.getPosition();
+        tmpAngleAxisd = _measure_Delta.getRotation();
 
-        tmpVector3d(0)/=scaling_factor;
-        tmpVector3d(1)/=scaling_factor;
-        tmpVector3d(2)/=scaling_factor;
-        tmpAngleAxisd.angle()=tmpAngleAxisd.angle()/scaling_factor;
+        tmpVector3d(0) /= scaling_factor;
+        tmpVector3d(1) /= scaling_factor;
+        tmpVector3d(2) /= scaling_factor;
+        tmpAngleAxisd.angle() = tmpAngleAxisd.angle() / scaling_factor;
 
         scaled.setPose(tmpVector3d);
         scaled.setRotation(tmpAngleAxisd);
@@ -133,41 +136,54 @@ public:
     {
         ROS_ERROR_STREAM("setMeasureCov" << "\t" << position_uncertainty << "\t" << orientation_uncertainty << "\t" << speed_linear_uncertainty << "\t" << speed_angular_uncertainty);
 
-        _msr_cov = MatrixXd::Zero(12,12);
-        _msr_cov(0,0)   = position_uncertainty      * position_uncertainty;
-        _msr_cov(1,1)   = position_uncertainty      * position_uncertainty;
-        _msr_cov(2,2)   = position_uncertainty      * position_uncertainty;
-        _msr_cov(3,3)   = orientation_uncertainty   * orientation_uncertainty;
-        _msr_cov(4,4)   = orientation_uncertainty   * orientation_uncertainty;
-        _msr_cov(5,5)   = orientation_uncertainty   * orientation_uncertainty;
-        _msr_cov(6,6)   = speed_linear_uncertainty  * speed_linear_uncertainty;
-        _msr_cov(7,7)   = speed_linear_uncertainty  * speed_linear_uncertainty;
-        _msr_cov(8,8)   = speed_linear_uncertainty  * speed_linear_uncertainty;
-        _msr_cov(9,9)   = speed_angular_uncertainty * speed_angular_uncertainty;
-        _msr_cov(10,10) = speed_angular_uncertainty * speed_angular_uncertainty;
-        _msr_cov(11,11) = speed_angular_uncertainty * speed_angular_uncertainty;
+        _msr_cov = MatrixXd::Zero(12, 12);
+        _msr_cov(0, 0)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(1, 1)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(2, 2)   = position_uncertainty      * position_uncertainty;
+        _msr_cov(3, 3)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(4, 4)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(5, 5)   = orientation_uncertainty   * orientation_uncertainty;
+        _msr_cov(6, 6)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(7, 7)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(8, 8)   = speed_linear_uncertainty  * speed_linear_uncertainty;
+        _msr_cov(9, 9)   = speed_angular_uncertainty * speed_angular_uncertainty;
+        _msr_cov(10, 10) = speed_angular_uncertainty * speed_angular_uncertainty;
+        _msr_cov(11, 11) = speed_angular_uncertainty * speed_angular_uncertainty;
     }
-    MatrixXd getMeasureCov(){ return _msr_cov; }
+    MatrixXd getMeasureCov()
+    {
+        return _msr_cov;
+    }
 
 
-    bool getFirstRun() {return measurementModelFirstRunNotExecuted;}
+    bool getFirstRun()
+    {
+        return measurementModelFirstRunNotExecuted;
+    }
     void setMsg(const nav_msgs::Odometry& odometryMessage);
 
-    nav_msgs::Odometry getMsg() { return _msg; }
-    nav_msgs::Odometry getOldMsg() { return _old_msg; }
+    nav_msgs::Odometry getMsg()
+    {
+        return _msg;
+    }
+    nav_msgs::Odometry getOldMsg()
+    {
+        return _old_msg;
+    }
 
     // constructor & destructor -------------------------------------------------------------------
     MeasurementModel()
     {
         // Sets all values to zero
-        _msr_cov = MatrixXd::Zero(12,12);
+        _msr_cov = MatrixXd::Zero(12, 12);
         _listener = new tf::TransformListener();
         measurementModelFirstRunNotExecuted = true;
     }
 
-    ~MeasurementModel(){
+    ~MeasurementModel()
+    {
         // Resize all values to zero
-        _msr_cov.resize(0,0);
+        _msr_cov.resize(0, 0);
         delete _listener;
     }
     tf::StampedTransform getFixed_transform() const;
