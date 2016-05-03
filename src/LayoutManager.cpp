@@ -124,8 +124,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 
     /// Init publisher & subscribers
     LayoutManager::odometry_sub  = node_handle.subscribe(visualOdometryTopic, 1, &LayoutManager::odometryCallback, this);
-    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
-    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
+//#573 - safe state    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
+//#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
 
 
@@ -874,52 +874,52 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     getHighwayService.request.way_id = snapParticleXYService.response.way_id;
                     if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
                     {
-                        road_layout_estimation::msg_lines lines;
-                        road_layout_estimation::msg_lineInfo lineInfo;
-
-                        lineInfo.isValid = false;
-                        lineInfo.offset  = 0.0f;
-                        lineInfo.counter = 0;
-
-                        lines.way_id          = snapParticleXYService.response.way_id;
-                        lines.width           = getHighwayService.response.width;
-                        lines.goodLines       = 0;
-                        lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
-                        for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
-                            lines.lines.push_back(lineInfo);
-
-                        VectorXd state = new_particle->getParticleState().getPosition();
-
-
-                        /*
-                         * Creating the FIRST component, ROAD STATE COMPONENT
-                         */
-
-                        ROS_INFO_STREAM("Adding roadState component!");
-                        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                                                                             component_id++,
-                                                                                             ros::Time::now(),
-                                                                                             &this->getHighwayInfo_client,
-                                                                                             lines,
-                                                                                             getHighwayService.response.oneway,
-                                                                                             currentConfiguration.roadState_distribution_alpha);
-                        roadState->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
-                        roadState->setComponentState(state);
-                        new_particle->addComponent(roadState);
-                        ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
-
-
-                        /*
-                         * Creating this second component here; this ensure that
-                         * we have same number of both components in each particle
-                         */
-                        ROS_INFO_STREAM("Adding roadLane component!");
-                        LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
-                                                                                          component_id++,
-                                                                                          getHighwayService.response.number_of_lanes,
-                                                                                          currentConfiguration.roadLane_distribution_alpha);
-                        roadLane->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug  -- FIXED with #531
-                        new_particle->addComponent(roadLane);
+// #573 - safe state                        road_layout_estimation::msg_lines lines;
+// #573 - safe state                        road_layout_estimation::msg_lineInfo lineInfo;
+// #573 - safe state
+// #573 - safe state                        lineInfo.isValid = false;
+// #573 - safe state                        lineInfo.offset  = 0.0f;
+// #573 - safe state                        lineInfo.counter = 0;
+// #573 - safe state
+// #573 - safe state                        lines.way_id          = snapParticleXYService.response.way_id;
+// #573 - safe state                        lines.width           = getHighwayService.response.width;
+// #573 - safe state                        lines.goodLines       = 0;
+// #573 - safe state                        lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
+// #573 - safe state                        for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
+// #573 - safe state                            lines.lines.push_back(lineInfo);
+// #573 - safe state
+// #573 - safe state                        VectorXd state = new_particle->getParticleState().getPosition();
+// #573 - safe state
+// #573 - safe state
+// #573 - safe state                        /*
+// #573 - safe state                         * Creating the FIRST component, ROAD STATE COMPONENT
+// #573 - safe state                         */
+// #573 - safe state
+// #573 - safe state                        ROS_INFO_STREAM("Adding roadState component!");
+// #573 - safe state                        LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
+// #573 - safe state                                                                                             component_id++,
+// #573 - safe state                                                                                             ros::Time::now(),
+// #573 - safe state                                                                                             &this->getHighwayInfo_client,
+// #573 - safe state                                                                                             lines,
+// #573 - safe state                                                                                             getHighwayService.response.oneway,
+// #573 - safe state                                                                                             currentConfiguration.roadState_distribution_alpha);
+// #573 - safe state                        roadState->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
+// #573 - safe state                        roadState->setComponentState(state);
+// #573 - safe state                        new_particle->addComponent(roadState);
+// #573 - safe state                        ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
+// #573 - safe state
+// #573 - safe state
+// #573 - safe state                        /*
+// #573 - safe state                         * Creating this second component here; this ensure that
+// #573 - safe state                         * we have same number of both components in each particle
+// #573 - safe state                         */
+// #573 - safe state                        ROS_INFO_STREAM("Adding roadLane component!");
+// #573 - safe state                        LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
+// #573 - safe state                                                                                          component_id++,
+// #573 - safe state                                                                                          getHighwayService.response.number_of_lanes,
+// #573 - safe state                                                                                          currentConfiguration.roadLane_distribution_alpha);
+// #573 - safe state                        roadLane->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug  -- FIXED with #531
+// #573 - safe state                        new_particle->addComponent(roadLane);
 
 
                         /*
@@ -994,48 +994,48 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         if (LayoutManager::getHighwayInfo_client.call(getHighwayService))
                         {
 
-                            road_layout_estimation::msg_lines lines;
-                            road_layout_estimation::msg_lineInfo lineInfo;
-
-                            lineInfo.isValid = false;
-                            lineInfo.offset  = 0.0f;
-                            lineInfo.counter = 0;
-
-                            lines.way_id          = snapParticleXYService.response.way_id;
-                            lines.width           = getHighwayService.response.width;
-                            lines.goodLines       = 0;
-                            lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
-                            for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
-                                lines.lines.push_back(lineInfo);
-
-
-                            VectorXd state = new_particle_opposite->getParticleState().getPosition();
-
-                            ROS_INFO_STREAM("Adding roadState component!");
-                            LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                                                                                 component_id++,
-                                                                                                 ros::Time::now(),
-                                                                                                 &this->getHighwayInfo_client,
-                                                                                                 lines,
-                                                                                                 getHighwayService.response.width,
-                                                                                                 currentConfiguration.roadState_distribution_alpha);
-                            roadState->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
-                            (*roadState).setComponentState(state);
-                            new_particle_opposite->addComponent(roadState);
-                            ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
-
-
-                            /*
-                             * Creating this second component here; this ensure that
-                             * we have same number of both components in each particle
-                             */
-                            ROS_INFO_STREAM("Adding roadLane component!");
-                            LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
-                                                                                              component_id++,
-                                                                                              getHighwayService.response.number_of_lanes,
-                                                                                              currentConfiguration.roadLane_distribution_alpha);
-                            roadLane->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
-                            new_particle_opposite->addComponent(roadLane);
+// #573 - safe state                           road_layout_estimation::msg_lines lines;
+// #573 - safe state                           road_layout_estimation::msg_lineInfo lineInfo;
+// #573 - safe state
+// #573 - safe state                           lineInfo.isValid = false;
+// #573 - safe state                           lineInfo.offset  = 0.0f;
+// #573 - safe state                           lineInfo.counter = 0;
+// #573 - safe state
+// #573 - safe state                           lines.way_id          = snapParticleXYService.response.way_id;
+// #573 - safe state                           lines.width           = getHighwayService.response.width;
+// #573 - safe state                           lines.goodLines       = 0;
+// #573 - safe state                           lines.number_of_lines = Utils::linesFromLanes(getHighwayService.response.number_of_lanes);
+// #573 - safe state                           for (int i = 0; i < getHighwayService.response.number_of_lanes; i++)
+// #573 - safe state                               lines.lines.push_back(lineInfo);
+// #573 - safe state
+// #573 - safe state
+// #573 - safe state                           VectorXd state = new_particle_opposite->getParticleState().getPosition();
+// #573 - safe state
+// #573 - safe state                           ROS_INFO_STREAM("Adding roadState component!");
+// #573 - safe state                           LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
+// #573 - safe state                                                                                                component_id++,
+// #573 - safe state                                                                                                ros::Time::now(),
+// #573 - safe state                                                                                                &this->getHighwayInfo_client,
+// #573 - safe state                                                                                                lines,
+// #573 - safe state                                                                                                getHighwayService.response.width,
+// #573 - safe state                                                                                                currentConfiguration.roadState_distribution_alpha);
+// #573 - safe state                           roadState->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
+// #573 - safe state                           (*roadState).setComponentState(state);
+// #573 - safe state                           new_particle_opposite->addComponent(roadState);
+// #573 - safe state                           ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
+// #573 - safe state
+// #573 - safe state
+// #573 - safe state                           /*
+// #573 - safe state                            * Creating this second component here; this ensure that
+// #573 - safe state                            * we have same number of both components in each particle
+// #573 - safe state                            */
+// #573 - safe state                           ROS_INFO_STREAM("Adding roadLane component!");
+// #573 - safe state                           LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
+// #573 - safe state                                                                                             component_id++,
+// #573 - safe state                                                                                             getHighwayService.response.number_of_lanes,
+// #573 - safe state                                                                                             currentConfiguration.roadLane_distribution_alpha);
+// #573 - safe state                           roadLane->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
+// #573 - safe state                            new_particle_opposite->addComponent(roadLane);
 
 
 
