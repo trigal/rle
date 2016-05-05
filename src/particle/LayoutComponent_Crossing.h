@@ -10,7 +10,8 @@ class LayoutComponent_Crossing : public LayoutComponent
 {
 private:
 
-    struct road {
+    struct road
+    {
         float width;
         double rotation; // rotation from the incoming road (where the observer is)
     };
@@ -28,8 +29,9 @@ public:
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
-    void calculateComponentScore(){
-        cout << "Calculating weight of CROSSING component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+    void calculateComponentScore()
+    {
+        cout << "Calculating weight of CROSSING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
     /**
@@ -38,16 +40,17 @@ public:
     void componentPerturbation(){
         //  we can slightly change the parameters, like moving the center, change width / orientation of one or more roads,
         //  or even add / remove a road
-        cout << "Perturbating CROSSING component ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+        cout << "Perturbating CROSSING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
     /**
      * Implementation of pure virtual method 'componentPoseEstimation'
      */
-    void componentPoseEstimation(){
+    void componentPoseEstimation()
+    {
         //Qua si potrebbe spostare il centro dell'incrocio vicino all'osservatore in base all'odometria / velocità
 
-        cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " <<particle_id << endl;
+        cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
 
@@ -68,7 +71,8 @@ public:
      * @param c_state
      * @param c_cov
      */
-    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y, const VectorXd& c_state, const MatrixXd& c_cov){
+    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y, const VectorXd& c_state, const MatrixXd& c_cov)
+    {
         particle_id = p_id;
         component_id = c_id;
         component_weight = 0;
@@ -88,20 +92,22 @@ public:
 
     }
 
-    LayoutComponent_Crossing() {
+    LayoutComponent_Crossing()
+    {
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
         component_state = VectorXd::Zero(12);
-        component_cov = MatrixXd::Zero(12,12);
+        component_cov = MatrixXd::Zero(12, 12);
     }
 
-    ~LayoutComponent_Crossing() {
+    ~LayoutComponent_Crossing()
+    {
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
         component_state.resize(0);
-        component_cov.resize(0,0);
+        component_cov.resize(0, 0);
 
         this->center_x = 0;
         this->center_y = 0;
