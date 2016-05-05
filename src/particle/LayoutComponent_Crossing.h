@@ -102,7 +102,7 @@ public:
         component_cov = MatrixXd::Zero(12, 12);
     }
 
-    ~LayoutComponent_Crossing(){
+    ~LayoutComponent_Crossing() {
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
