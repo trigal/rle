@@ -3,8 +3,11 @@
 
 #include "LayoutComponent.h"
 #include <iostream>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 using namespace std;
+using namespace cv;
 
 class LayoutComponent_Crossing : public LayoutComponent
 {
@@ -16,15 +19,30 @@ private:
         double rotation; // rotation from the incoming road (where the observer is)
     };
 
-    float center_x;
-    float center_y;
     int num_ways;  //number of roads approaching the intersection
     vector<road> intersection_roads; //list of all roads approaching the intersection, including the incoming one
 
+    double gridCellSize = 0.1f;
+    double min_y = -15.0f;
+    double max_y = 15.0f;
+    double max_x = 50.0f;
 
+    Point rotatePoint(Point p, double angle);
 
 
 public:
+
+    Mat occupancyMap;
+    Mat occupancyMap2;
+    float center_x;
+    float center_y;
+    double global_x;
+    double global_y;
+
+    void addRoad(float width, double rotation);
+    void computeOccupancyGrid();
+    void calculateDistanceCenter(double x, double y);
+
 
     /**
      * Implementation of pure virtual method 'calculateWeight'
@@ -63,8 +81,6 @@ public:
     void         setCenter_y                 (float value);
     //void          setNum_ways                 (int value);
 
-    void addRoad(float width, double rotation);
-
     /**
      * @brief LayoutComponent_Crossing constructor
      * @param p_id
@@ -72,7 +88,32 @@ public:
      * @param c_state
      * @param c_cov
      */
-    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y, const VectorXd& c_state, const MatrixXd& c_cov)
+
+    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y,
+                             double global_x, double global_y, double width, const VectorXd& c_state, const MatrixXd& c_cov)
+    {
+
+        this->center_x = center_x;
+        this->center_y = center_y;
+        this->num_ways = 0;
+        this -> global_x = global_x;
+        this -> global_y = global_y;
+
+        road incoming_road;
+        incoming_road.width = width;
+        incoming_road.rotation = M_PI;
+
+        //intersection_roads.push_back(incoming_road);
+        //this -> num_ways ++;
+
+        int n_col = max_x / gridCellSize;
+        int n_row = (max_y - min_y) / gridCellSize;
+        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
+
+    }
+
+    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float global_x, float global_y, const VectorXd& c_state, const MatrixXd& c_cov)
     {
         particle_id = p_id;
         component_id = c_id;
@@ -80,16 +121,13 @@ public:
         component_state = c_state;
         component_cov = c_cov;
 
-        this->center_x = center_x;
-        this->center_y = center_y;
+        this->global_x = global_x;
+        this->global_y = global_y;
         //this->num_ways = num_ways;
-        this->num_ways = 1;
-
-        road incoming_road;
-        incoming_road.width = 6;
-        incoming_road.rotation = 0;
-
-        intersection_roads.push_back(incoming_road);
+        int n_col = max_x / gridCellSize;
+        int n_row = (max_y - min_y) / gridCellSize;
+        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
 
     }
 
@@ -100,9 +138,14 @@ public:
         component_weight = 0;
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12, 12);
+        int n_col = max_x / gridCellSize;
+        int n_row = (max_y - min_y) / gridCellSize;
+        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
     }
 
-    ~LayoutComponent_Crossing() {
+    ~LayoutComponent_Crossing()
+    {
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -112,7 +155,11 @@ public:
         this->center_x = 0;
         this->center_y = 0;
         this->num_ways = 0;
+        this -> global_x = 0;
+        this -> global_y = 0;
         intersection_roads.clear();
+        occupancyMap.release();
+        occupancyMap2.release();
 
     }
 };

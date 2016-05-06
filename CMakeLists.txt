@@ -19,13 +19,14 @@ find_package(catkin REQUIRED COMPONENTS     roscpp
                                             cmake_modules
                                             message_generation
                                             std_msgs
+                                            cv_bridge
                                             road_lane_detection
                                             ira_open_street_map
                                             nodelet
 )
 
 find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
+include_directories(${EIGEN_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} include )
 add_definitions(${EIGEN_DEFINITIONS})
 
 generate_dynamic_reconfigure_options(
