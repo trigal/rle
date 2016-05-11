@@ -5,6 +5,7 @@
 #include <iostream>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+#include <mutex>
 
 using namespace std;
 using namespace cv;
@@ -32,25 +33,29 @@ private:
 
 public:
 
-    Mat occupancyMap;
+    //Mat occupancyMap;
     Mat occupancyMap2;
     float center_x;
     float center_y;
     double global_x;
     double global_y;
 
+    Mat sensorOG;
+    static bool flag;
+
     void addRoad(float width, double rotation);
     void computeOccupancyGrid();
     void calculateDistanceCenter(double x, double y);
+    void updateSensorOG()
+    {
+        sensorOG.at<Vec3f>(0, 0)[0] = sensorOG.at<Vec3f>(0, 0)[0] + 1;
+    }
 
 
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
-    void calculateComponentScore()
-    {
-        cout << "Calculating weight of CROSSING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-    }
+    void calculateComponentScore();
 
     /**
      * Implementation of pure virtual method 'componentPerturbation'
@@ -72,6 +77,11 @@ public:
         cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
+    double getAlphas()
+    {
+        return 0.0;
+    }
+
 
     // Getters and setters ----------------------------------------------------------------------
     float        getCenter_x()               const;
@@ -90,7 +100,7 @@ public:
      */
 
     LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y,
-                             double global_x, double global_y, double width, const VectorXd& c_state, const MatrixXd& c_cov)
+                             double global_x, double global_y, double width/*, const VectorXd& c_state, const MatrixXd& c_cov*/)
     {
 
         this->center_x = center_x;
@@ -99,40 +109,55 @@ public:
         this -> global_x = global_x;
         this -> global_y = global_y;
 
-        road incoming_road;
+
+
+        ROS_INFO_STREAM("p_id: " << p_id << ", Global X: " << global_x << ", Global Y: " << global_y);
+
+        component_state = VectorXd::Zero(12);
+        component_cov = MatrixXd::Zero(12, 12);
+
+        /*road incoming_road;
         incoming_road.width = width;
-        incoming_road.rotation = M_PI;
+        incoming_road.rotation = M_PI;*/
 
         //intersection_roads.push_back(incoming_road);
         //this -> num_ways ++;
 
         int n_col = max_x / gridCellSize;
         int n_row = (max_y - min_y) / gridCellSize;
-        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+
         occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
+        sensorOG = Mat::zeros(n_col, n_row, CV_32FC3);
+
 
     }
 
-    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float global_x, float global_y, const VectorXd& c_state, const MatrixXd& c_cov)
+    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float global_x, float global_y/*, const VectorXd& c_state, const MatrixXd& c_cov*/)
     {
+
         particle_id = p_id;
         component_id = c_id;
         component_weight = 0;
-        component_state = c_state;
-        component_cov = c_cov;
+        component_state = VectorXd::Zero(12);
+        component_cov = MatrixXd::Zero(12, 12);
+        //component_state = c_state;
+        //component_cov = c_cov;
 
         this->global_x = global_x;
         this->global_y = global_y;
         //this->num_ways = num_ways;
         int n_col = max_x / gridCellSize;
         int n_row = (max_y - min_y) / gridCellSize;
-        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
         occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
+        sensorOG = Mat::zeros(n_col, n_row, CV_32FC3);
 
     }
 
     LayoutComponent_Crossing()
     {
+
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -140,8 +165,9 @@ public:
         component_cov = MatrixXd::Zero(12, 12);
         int n_col = max_x / gridCellSize;
         int n_row = (max_y - min_y) / gridCellSize;
-        occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+        //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
         occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
+        sensorOG = Mat::zeros(n_col, n_row, CV_32FC3);
     }
 
     ~LayoutComponent_Crossing()
@@ -158,10 +184,12 @@ public:
         this -> global_x = 0;
         this -> global_y = 0;
         intersection_roads.clear();
-        occupancyMap.release();
+        //occupancyMap.release();
         occupancyMap2.release();
+        sensorOG.release();
 
     }
 };
 
 #endif // LAYOUTCOMPONENT_CROSSING_H
+

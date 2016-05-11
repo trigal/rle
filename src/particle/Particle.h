@@ -22,6 +22,7 @@ class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wik
 #include "LayoutComponent_RoadState.h"
 #include "LayoutComponent_RoadLane.h"
 #include "LayoutComponent_OSMDistance.h"
+#include "LayoutComponent_Crossing.h"
 #include "MotionModel.h"
 #include "../MeasurementModel.h"
 #include "../Utils.h"
@@ -96,6 +97,11 @@ public:
             ROS_DEBUG_STREAM("Adding Component LayoutComponent_OSMDistance with componentID: " << component->getComponentId());
             this->particle_components.push_back(component);
         }
+        if (dynamic_cast<LayoutComponent_Crossing* >(component))
+        {
+            ROS_DEBUG_STREAM("Adding Component LayoutComponent_Crossing with componentID: " << component->getComponentId());
+            this->particle_components.push_back(component);
+        }
     }
 
 //    /**
@@ -128,7 +134,7 @@ public:
      */
     template <typename LayoutComponentType> unsigned int clearLayoutComponentType()
     {
-        int deleted=0;
+        int deleted = 0;
         //for like a while...
         for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); )
         {

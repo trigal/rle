@@ -127,6 +127,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 //#573 - safe state    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
 //#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
+    //TODO: Parametrizzare?
+    LayoutManager::crossingOG_sub = node_handle.subscribe("/intersection_detector", 1, &LayoutManager::crossingOGCallback, this);
 
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
@@ -157,6 +159,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     getHighwayInfo_client               = node_handler_parameter.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
     getDistanceFromLaneCenter_client    = node_handler_parameter.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
     oneWay_client                       = node_handler_parameter.serviceClient<ira_open_street_map::oneway>                       ("/ira_open_street_map/oneWay");
+    get_closest_crossing_client         = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_crossing>         ("/ira_open_street_map/get_closest_crossing");
 
     // Init ROS service server
     server_getAllParticlesLatLon        = node_handler_parameter.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
@@ -169,7 +172,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     deltaTimerTime = timerInterval;             ///< deltaTimer of the LayoutManager Class is initialy set as the requested interval
     RLE_timer_loop = node_handler_parameter.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
-    /// For debug purposes, print default paramenters (from .launch or .cfg file)    
+    /// For debug purposes, print default paramenters (from .launch or .cfg file)
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_x  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_y  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_z  );
@@ -781,6 +784,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             int particle_id = 1;
             int component_id = 1;
             int while_ctr = 1; // while loop infinite cycle prevenction
+
+            Mat sharedOG = Mat::zeros(100, 100, CV_32FC3);
+            LayoutComponent_Crossing::flag = true;
+
             while ((while_ctr < 1000) && (current_layout_shared.size() < currentConfiguration.particles_number))
             {
                 if (while_ctr == 999)
@@ -922,6 +929,22 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 // #573 - safe state                        new_particle->addComponent(roadLane);
 
 
+                        LayoutComponent_Crossing *crossing_component = new LayoutComponent_Crossing(particle_id,
+                                                                                                    component_id,
+                                                                                                    14,
+                                                                                                    16,
+                                                                                                    tf_pose_local_map_frame.getOrigin().getX(),
+                                                                                                    tf_pose_local_map_frame.getOrigin().getY(),
+                                                                                                    6);
+
+                        crossing_component->sensorOG = sharedOG;
+                        crossing_component->addRoad(6, 0.0);
+
+                        crossing_component->setParticlePtr(new_particle);
+                        new_particle->addComponent(crossing_component);
+
+
+
                         /*
                          * Creating the third component here: ROAD OSM DISTANCE for the two eucliedean distances we used in the RLE-ITSC2015. This refs #522
                          * The distances are ZERO since the particle was just created and snapped to the nearest road segment. Also the angular is zero, because
@@ -1039,11 +1062,27 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
 
 
+                            LayoutComponent_Crossing *crossing_component = new LayoutComponent_Crossing(particle_id,
+                                                                                                        component_id,
+                                                                                                        14,
+                                                                                                        16,
+                                                                                                        tf_pose_local_map_frame.getOrigin().getX(),
+                                                                                                        tf_pose_local_map_frame.getOrigin().getY(),
+                                                                                                        6);
+
+
+                            crossing_component->sensorOG = sharedOG;
+                            crossing_component->addRoad(6, 0.0);
+
+                            crossing_component->setParticlePtr(new_particle_opposite);
+                            new_particle_opposite->addComponent(crossing_component);
+
                             /*
                              * Creating the third component here: ROAD OSM DISTANCE for the two eucliedean distances we used in the RLE-ITSC2015. This refs #522
                              * The distances are ZERO since the particle was just created and snapped to the nearest road segment. Also the angular is zero, because
                              * we're saving the misalignment, that is zero in this case.
                              */
+
                             LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(particle_id,
                                                                                                            component_id,
                                                                                                            0.0f,    //distance_to_closest_segment
@@ -1848,6 +1887,27 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
     }
 
     ROS_INFO_STREAM("< Exiting roadStateCallback");
+}
+
+void LayoutManager::crossingOGCallback(const sensor_msgs::ImageConstPtr& msg_og)
+{
+    ROS_INFO_STREAM("< Entering Intersection Detector Callback");
+    cv_bridge::CvImagePtr cv_ptr;
+    cv_ptr = cv_bridge::toCvCopy(msg_og, sensor_msgs::image_encodings::TYPE_32FC3);
+    Mat sensorOG = cv_ptr->image.clone();
+    vector<shared_ptr<Particle>>::iterator particle_itr;
+    for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+    {
+        // Retrieve the Crossing component from the particle-iterator
+        LayoutComponent_Crossing* CrossingComponentPtr = (*particle_itr)->giveMeThatComponent<LayoutComponent_Crossing>();
+
+        // check if we have the pointer (null otherwise)
+        if (CrossingComponentPtr)
+            CrossingComponentPtr -> sensorOG = sensorOG;
+        else
+            ROS_WARN("No LayoutComponent_Crossing found");
+    }
+    ROS_INFO_STREAM("< Exiting Intersection Detector Callback");
 }
 
 

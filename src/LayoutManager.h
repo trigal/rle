@@ -1,15 +1,15 @@
-    /***************************************************************************
- *                                                                         *
- *   IRALab - Informatics & Robotics for Automation Laboratory             *
- *      Universita' degli Studi Milano - Bicocca, DISCO                    *
- *      Building U14, viale Sarca 336, 20126, Milano, Italy                *
- *                                                                         *
- *   Authors:                                                              *
- *              Augusto Luis Ballardini - ballardini@disco.unimib.it       *
- *              Axel         Furlan     - furlan@disco.unimib.it           *
- *              Dario        Limongi    - dario.limongi@gmail.com          *
- *                                                                         *
- ***************************************************************************/
+/***************************************************************************
+*                                                                         *
+*   IRALab - Informatics & Robotics for Automation Laboratory             *
+*      Universita' degli Studi Milano - Bicocca, DISCO                    *
+*      Building U14, viale Sarca 336, 20126, Milano, Italy                *
+*                                                                         *
+*   Authors:                                                              *
+*              Augusto Luis Ballardini - ballardini@disco.unimib.it       *
+*              Axel         Furlan     - furlan@disco.unimib.it           *
+*              Dario        Limongi    - dario.limongi@gmail.com          *
+*                                                                         *
+***************************************************************************/
 
 #ifndef LAYOUTMANAGER_H_
 #define LAYOUTMANAGER_H_
@@ -38,9 +38,14 @@
 #include <Eigen/Dense>
 #include "eigenmultivariatenormal.hpp"
 
+#include <image_transport/image_transport.h>
+
 // BOOST
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/uniform_real.hpp>
+
+// OpenCV
+#include <cv_bridge/cv_bridge.h>
 
 #include <road_layout_estimation/road_layout_estimationConfig.h>
 #include <road_layout_estimation/getAllParticlesLatLon.h>
@@ -53,10 +58,12 @@
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
 #include "ira_open_street_map/oneway.h"
+#include "ira_open_street_map/get_closest_crossing.h"
 
 // COMPONENTS
 #include "particle/LayoutComponent.h"
 #include "particle/LayoutComponent_Building.h"
+#include "particle/LayoutComponent_Crossing.h"
 #include "particle/LayoutComponent_RoadLane.h"
 #include "particle/LayoutComponent_RoadState.h"
 #include "particle/LayoutComponent_OSMDistance.h"
@@ -79,6 +86,7 @@
 #include <math.h>
 #include <fstream>
 #include <limits>
+#include <mutex>
 
 
 
@@ -160,6 +168,7 @@ public:
     ros::Subscriber odometry_sub;
     ros::Subscriber road_lane_sub;
     ros::Subscriber roadState_sub;
+    ros::Subscriber crossingOG_sub;
 
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
@@ -170,6 +179,7 @@ public:
     ros::ServiceClient getHighwayInfo_client;   ///< this service is used during the initialization phase inside reconfigureCallBack and RoadStateCallback (just because I delete/create this component all the times)
     ros::ServiceClient getDistanceFromLaneCenter_client;
     ros::ServiceClient oneWay_client;
+    ros::ServiceClient get_closest_crossing_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;
@@ -216,6 +226,8 @@ public:
     void roadLaneCallback(const road_layout_estimation::msg_lines &msg_lines);
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
+
+    void crossingOGCallback(const sensor_msgs::ImageConstPtr& msg_og);
 
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }

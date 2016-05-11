@@ -54,8 +54,14 @@ void Particle::propagateLayoutComponents()
             (*itr)->componentPoseEstimation(); //virtual
             continue;
         }
+        if (dynamic_cast<LayoutComponent_Crossing* >(*itr))
+        {
+            ROS_DEBUG_STREAM("crossingComponent detected");
+            (*itr)->componentPoseEstimation(); //virtual
+            continue;
+        }
 
-        ROS_WARN_STREAM("Unkown component");
+        ROS_WARN_STREAM("Unknow component");
 
         // propagate component pose with motion model equations
         // VectorXd pc_state = (*itr)->getComponentState();
@@ -278,7 +284,7 @@ int64_t Particle::getWayIDHelper()
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))
         {
-            int64_t a=dynamic_cast<LayoutComponent_RoadState *>(*it)->getWay_id();
+            int64_t a = dynamic_cast<LayoutComponent_RoadState *>(*it)->getWay_id();
             return a;
         }
     }
@@ -305,7 +311,7 @@ bool Particle::getOneWayFlag()
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))
         {
-            bool oneway=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
+            bool oneway = dynamic_cast<LayoutComponent_RoadState *>(*it)->getOneway();
             return oneway;
         }
     }
@@ -330,7 +336,7 @@ double Particle::getDistance_to_closest_segment()
     {
         if (dynamic_cast<LayoutComponent_OSMDistance *>(*it))
         {
-            double distance_to_closest_segment=dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
+            double distance_to_closest_segment = dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getDistance_to_closest_segment();
 
             if (dynamic_cast<LayoutComponent_OSMDistance *>(*it)->getIsLeft()) // #538
                 distance_to_closest_segment = -distance_to_closest_segment;    //if it is on the left, then the value is negative
@@ -358,7 +364,7 @@ double Particle::getRoadWidth()
     {
         if (dynamic_cast<LayoutComponent_RoadState *>(*it))
         {
-            double roadWidth=dynamic_cast<LayoutComponent_RoadState *>(*it)->getOSMRoad_width();
+            double roadWidth = dynamic_cast<LayoutComponent_RoadState *>(*it)->getOSMRoad_width();
             return roadWidth;
         }
     }

@@ -1,5 +1,20 @@
 #include "LayoutComponent_Crossing.h"
 
+bool LayoutComponent_Crossing::flag = true;
+
+void LayoutComponent_Crossing::calculateComponentScore()
+{
+    Mat res;
+    //res.create(1,1,CV_32FC1);
+    //Mat prova1(10,10,CV_32FC1,Scalar(0.0));
+    //Mat prova2(10,10,CV_32FC1,Scalar(0.8));
+    computeOccupancyGrid();
+    matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
+    setComponentWeight(res.at<float>(0, 0));
+
+    ROS_DEBUG_STREAM("CROSSING SCORE: " << component_weight);
+}
+
 float LayoutComponent_Crossing::getCenter_x() const
 {
     return center_x;
@@ -50,7 +65,7 @@ void LayoutComponent_Crossing::computeOccupancyGrid()
 
     int n_col = max_x / gridCellSize;
     int n_row = (max_y - min_y) / gridCellSize;
-    occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+    //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
     occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
 
     Point polygonCV[num_ways][4];
@@ -98,7 +113,7 @@ void LayoutComponent_Crossing::computeOccupancyGrid()
     {
         const Point* ppt[1] = {polygonCV[i]};
 
-        fillPoly(occupancyMap, ppt, npt, 1, Scalar(255), 8);
+        //fillPoly(occupancyMap, ppt, npt, 1, Scalar(255), 8);
         fillPoly(occupancyMap2, ppt, npt, 1, Scalar(1., 1., 1.), 8);
     }
 
