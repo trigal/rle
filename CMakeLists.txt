@@ -24,9 +24,11 @@ find_package(catkin REQUIRED COMPONENTS     roscpp
                                             nodelet
 )
 
+find_package( PCL 1.8 REQUIRED )
 find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
-add_definitions(${EIGEN_DEFINITIONS})
+include_directories(${EIGEN_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
 generate_dynamic_reconfigure_options(
     cfg/road_layout_estimation.cfg

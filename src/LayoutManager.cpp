@@ -169,7 +169,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     deltaTimerTime = timerInterval;             ///< deltaTimer of the LayoutManager Class is initialy set as the requested interval
     RLE_timer_loop = node_handler_parameter.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
-    /// For debug purposes, print default paramenters (from .launch or .cfg file)    
+    /// For debug purposes, print default paramenters (from .launch or .cfg file)
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_x  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_y  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_z  );
@@ -939,10 +939,20 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         roadOSMDistance->setParticlePtr(new_particle);
                         new_particle->addComponent(roadOSMDistance);
 
+
+
                     }
                     else
                         ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
                     //////////// CREATE ROAD RELATED COMPONENTS ////////////
+
+                    LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
+                                                                                               component_id,
+                                                                                               VectorXd::Zero(12),
+                                                                                               MatrixXd::Zero(12, 12)
+                                                                                              );
+                    buildingComponent->setParticlePtr(new_particle);
+                    new_particle->addComponent(buildingComponent);
 
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout_shared.push_back(new_particle);
@@ -1055,7 +1065,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                           );
                             roadOSMDistance->setParticlePtr(new_particle_opposite);
                             new_particle_opposite->addComponent(roadOSMDistance);
+
                         }
+                        LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
+                                                                                                   component_id,
+                                                                                                   VectorXd::Zero(12),
+                                                                                                   MatrixXd::Zero(12, 12)
+                                                                                                  );
+                        buildingComponent->setParticlePtr(new_particle_opposite);
+                        new_particle_opposite->addComponent(buildingComponent);
                         //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
                         /// Setep 05-bis - Push particle into particle-set and update the particles id counter
