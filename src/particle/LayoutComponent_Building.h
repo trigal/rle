@@ -41,6 +41,15 @@ public:
     }
 
     /**
+     * @brief STUB
+     * @return
+     */
+    double getAlphas()
+    {
+        return 0;
+    }
+
+    /**
      * @brief LayoutComponent_Building constructor
      * @param p_id
      * @param c_id
@@ -76,20 +85,25 @@ public:
         component_cov.resize(0, 0);
         init();
     }
-private:
-    ros::Subscriber planes_sub_;
-    ros::NodeHandle node_handle_;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr planes_cloud_;
 
-    void planes_callback(const sensor_msgs::PointCloud2ConstPtr& planes)
+    void setBuildings(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
     {
-        pcl::fromROSMsg(*planes, *planes_cloud_);
+        buildings__cloud_ = cloud;
     }
+
+private:
+    ros::NodeHandle node_handle_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr buildings__cloud_;
+
+    struct
+    {
+        double x;
+        double y;
+    } prev_position, actual_position;
 
     void init()
     {
-        planes_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-        planes_sub_ = node_handle_.subscribe("planes_cloud", 1, &LayoutComponent_Building::planes_callback, this);
+        buildings__cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     }
 
 };

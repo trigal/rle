@@ -786,3 +786,36 @@ double Utils::box_muller(double m, double s)
     return ( m + y1 * s );
 }
 
+tf::Stamped<tf::Pose> Utils::toGlobalFrame(Vector3d p_state)
+{
+    tf::TransformListener tf_listener;
+
+    // Get particle state
+    geometry_msgs::PoseStamped pose_local_map_frame;
+    pose_local_map_frame.header.frame_id = "local_map";
+    pose_local_map_frame.header.stamp = ros::Time::now();
+    pose_local_map_frame.pose.position.x = p_state(0);
+    pose_local_map_frame.pose.position.y =  p_state(1);
+    pose_local_map_frame.pose.position.z =  p_state(2);
+
+    tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+    tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+
+    tf_pose_map_frame.setOrigin(tf::Vector3(0, 0, 0));
+    tf_pose_map_frame.setRotation(tf::createIdentityQuaternion());
+
+    // Transform pose from "local_map" to "map"
+    try
+    {
+        tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+    }
+    catch (tf::TransformException &ex)
+    {
+        ROS_ERROR("%s", ex.what());
+        ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
+        ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+        return tf_pose_map_frame;
+    }
+
+    return tf_pose_map_frame;
+}

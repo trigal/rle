@@ -127,8 +127,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 //#573 - safe state    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
 //#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
-
-
+    LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/verticalPlanesPCL", 1, &LayoutManager::buildingsCallback, this);
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
     // Publisher Section
@@ -1303,6 +1302,24 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
     // Push back line_list
     marker_z_particle.markers.push_back(line_list);
 }
+
+void LayoutManager::buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& planes)
+{
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr planes_cloud;
+    planes_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::fromROSMsg(*planes, *planes_cloud);
+    vector<shared_ptr<Particle>>::iterator particle_itr;
+
+    // Iterate through all particles
+    for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+    {
+        // Retrieve the RoadLane component from the particle-iterator
+        LayoutComponent_Building* BuildingComponentPtr = (*particle_itr)->giveMeThatComponent<LayoutComponent_Building>();
+        BuildingComponentPtr->setBuildings(planes_cloud);
+    }
+    ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
+}
+
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg)
 {

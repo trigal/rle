@@ -167,7 +167,7 @@ add_dependencies(roadStateComponent_fake ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(road_layout_estimation
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${PCL_LIBRARIES}
 )
 
 target_link_libraries(visual_odometry_fake

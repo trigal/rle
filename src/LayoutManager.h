@@ -160,6 +160,7 @@ public:
     ros::Subscriber odometry_sub;
     ros::Subscriber road_lane_sub;
     ros::Subscriber roadState_sub;
+    ros::Subscriber buildings_sub;
 
     // Services from OpenStreetMap package
     ros::ServiceClient service_client;
@@ -217,6 +218,7 @@ public:
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
+    void buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& planes);
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }
@@ -265,7 +267,7 @@ public:
     ///
     bool getAllParticlesLatLonService(road_layout_estimation::getAllParticlesLatLon::Request &req, road_layout_estimation::getAllParticlesLatLon::Response &resp);
 
-    tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
+    ROS_DEPRECATED tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 
     double getCurrent_layoutScore() const;
     void setCurrent_layoutScore(double value);
