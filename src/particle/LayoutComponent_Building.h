@@ -21,7 +21,10 @@ public:
     void calculateComponentScore()
     {
         cout << "Calculating weight of BUILDING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-
+        tf::Stamped<tf::Pose> current_global_pose = Utils::toGlobalFrame(this->getComponentState());
+        Utils::Coordinates latlon = Utils::ecef2lla(x, y, z);
+        get_near_buildings_server.request.latitude = lat;
+        get_near_buildings_server.request.longitude = lon;
     }
 
     /**
@@ -88,12 +91,13 @@ public:
 
     void setBuildings(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
     {
-        buildings__cloud_ = cloud;
+        buildings_cloud_ = cloud;
     }
 
 private:
     ros::NodeHandle node_handle_;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr buildings__cloud_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr buildings_cloud_;
+    ira_open_street_map::getNearBuildings get_near_buildings_server;
 
     struct
     {
@@ -103,7 +107,7 @@ private:
 
     void init()
     {
-        buildings__cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+        buildings_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     }
 
 };

@@ -23,6 +23,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseArray.h>
 #include "particle/State6DOF.h"
+#include <tf/transform_listener.h>
 
 using namespace Eigen;
 
@@ -157,6 +158,8 @@ public:
     /// Computes the unoriented smallest difference between two angles.
     ///
     static double angle_diff(double a, double b);
+
+    static tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 };
 
 

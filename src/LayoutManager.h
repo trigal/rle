@@ -273,7 +273,7 @@ public:
     void setCurrent_layoutScore(double value);
 
     // shared version of current layout
-    vector<shared_ptr<Particle> > getCurrent_layout_shared() const;
+    ROS_DEPRECATED vector<shared_ptr<Particle> > getCurrent_layout_shared() const;
     void setCurrent_layout_shared(const vector<shared_ptr<Particle> > &value);
 
     // old version of curren layout
