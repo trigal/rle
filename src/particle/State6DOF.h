@@ -34,6 +34,10 @@ public:
     Eigen::VectorXd toVectorXd();
     geometry_msgs::Pose toGeometryMsgPose();
 
+    double getRoll();
+    double getPitch();
+    double getYaw();
+
     void addNoise(double position_offset, double orientation_offset, double linear_offset, double angular_offset);
     void printState(std::string head_string);
     void setOrthogonalPoseRotation();   // _rotation
