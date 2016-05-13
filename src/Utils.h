@@ -40,6 +40,8 @@ public:
 
     static geometry_msgs::Point latlon_converter(double lat, double lngd);
 
+    static Coordinates xy2latlon(double x, double y);
+
     static Coordinates ecef2lla(double x, double y, double z);
 
     static geometry_msgs::Point lla2ecef(double lat, double lon, double alt);

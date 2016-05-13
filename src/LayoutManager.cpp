@@ -928,13 +928,25 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 // #573 - safe state                        roadLane->setParticlePtr(new_particle); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug  -- FIXED with #531
 // #573 - safe state                        new_particle->addComponent(roadLane);
 
+                        //tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle->getParticleState().getPosition());
+
+                        Utils::Coordinates latlon;
+                        latlon = Utils::xy2latlon(pose_map_frame.pose.position.x, pose_map_frame.pose.position.y);
+
+                        ira_open_street_map::get_closest_crossing c;
+                        c.request.latitude = latlon.latitude;
+                        c.request.longitude = latlon.longitude;
+                        c.request.rotation = new_particle ->getParticleState().getYaw();
+                        get_closest_crossing_client.call(c);
+                        ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
+
 
                         LayoutComponent_Crossing *crossing_component = new LayoutComponent_Crossing(particle_id,
                                                                                                     component_id,
                                                                                                     14,
                                                                                                     16,
-                                                                                                    tf_pose_local_map_frame.getOrigin().getX(),
-                                                                                                    tf_pose_local_map_frame.getOrigin().getY(),
+                                                                                                    pose_map_frame.pose.position.x,
+                                                                                                    pose_map_frame.pose.position.y,
                                                                                                     6);
 
                         crossing_component->sensorOG = sharedOG;
@@ -942,6 +954,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         crossing_component->setParticlePtr(new_particle);
                         new_particle->addComponent(crossing_component);
+
+                        ROS_INFO_STREAM("ROTATION: " << new_particle ->getParticleState().getYaw());
 
 
 
@@ -1061,18 +1075,30 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 // #573 - safe state                            new_particle_opposite->addComponent(roadLane);
 
 
+                            //tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle_opposite->getParticleState().getPosition());
+
+                            Utils::Coordinates latlon;
+                            latlon = Utils::xy2latlon(pose_map_frame.pose.position.x, pose_map_frame.pose.position.y);
+
+                            ira_open_street_map::get_closest_crossing c;
+                            c.request.latitude = latlon.latitude;
+                            c.request.longitude = latlon.longitude;
+                            c.request.rotation = new_particle_opposite ->getParticleState().getYaw();
+                            get_closest_crossing_client.call(c);
+                            ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
 
                             LayoutComponent_Crossing *crossing_component = new LayoutComponent_Crossing(particle_id,
                                                                                                         component_id,
                                                                                                         14,
                                                                                                         16,
-                                                                                                        tf_pose_local_map_frame.getOrigin().getX(),
-                                                                                                        tf_pose_local_map_frame.getOrigin().getY(),
+                                                                                                        pose_map_frame.pose.position.x,
+                                                                                                        pose_map_frame.pose.position.y,
                                                                                                         6);
-
 
                             crossing_component->sensorOG = sharedOG;
                             crossing_component->addRoad(6, 0.0);
+
+                            ROS_INFO_STREAM("ROTATION: " << new_particle_opposite->getParticleState().getYaw());
 
                             crossing_component->setParticlePtr(new_particle_opposite);
                             new_particle_opposite->addComponent(crossing_component);

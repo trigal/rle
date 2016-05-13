@@ -7,6 +7,8 @@
 #include <opencv/highgui.h>
 #include <mutex>
 
+#include "ira_open_street_map/get_closest_crossing.h"
+
 using namespace std;
 using namespace cv;
 
@@ -46,10 +48,8 @@ public:
     void addRoad(float width, double rotation);
     void computeOccupancyGrid();
     void calculateDistanceCenter(double x, double y);
-    void updateSensorOG()
-    {
-        sensorOG.at<Vec3f>(0, 0)[0] = sensorOG.at<Vec3f>(0, 0)[0] + 1;
-    }
+    void updateSensorOG();
+    void setCrossingState(ira_open_street_map::get_closest_crossing crossing);
 
 
     /**
@@ -133,7 +133,7 @@ public:
 
     }
 
-    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float global_x, float global_y/*, const VectorXd& c_state, const MatrixXd& c_cov*/)
+    LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, double global_x, double global_y/*, const VectorXd& c_state, const MatrixXd& c_cov*/)
     {
 
         particle_id = p_id;
@@ -151,7 +151,6 @@ public:
         int n_row = (max_y - min_y) / gridCellSize;
         //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
         occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
-        sensorOG = Mat::zeros(n_col, n_row, CV_32FC3);
 
     }
 
@@ -167,7 +166,6 @@ public:
         int n_row = (max_y - min_y) / gridCellSize;
         //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
         occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
-        sensorOG = Mat::zeros(n_col, n_row, CV_32FC3);
     }
 
     ~LayoutComponent_Crossing()
@@ -186,7 +184,6 @@ public:
         intersection_roads.clear();
         //occupancyMap.release();
         occupancyMap2.release();
-        sensorOG.release();
 
     }
 };

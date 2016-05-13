@@ -54,6 +54,15 @@ void LayoutComponent_Crossing::addRoad(float width, double rotation)
     num_ways++;
 }
 
+void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest_crossing crossing)
+{
+    for (int i = 0; i < crossing.response.n_ways; i++)
+    {
+        addRoad(crossing.response.road_list.at(i).width, crossing.response.road_list.at(i).rotation);
+    }
+
+}
+
 
 void LayoutComponent_Crossing::calculateDistanceCenter(double x, double y)
 {
