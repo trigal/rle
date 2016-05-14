@@ -937,6 +937,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         c.request.latitude = latlon.latitude;
                         c.request.longitude = latlon.longitude;
                         c.request.rotation = new_particle ->getParticleState().getYaw();
+                        if (c.request.rotation < 0)
+                            c.request.rotation = 2 * M_PI + c.request.rotation;
                         get_closest_crossing_client.call(c);
                         ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
 
