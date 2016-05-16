@@ -169,7 +169,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     deltaTimerTime = timerInterval;             ///< deltaTimer of the LayoutManager Class is initialy set as the requested interval
     RLE_timer_loop = node_handler_parameter.createTimer(ros::Duration(deltaTimerTime), &LayoutManager::layoutEstimation, this, false, false);
 
-    /// For debug purposes, print default paramenters (from .launch or .cfg file)    
+    /// For debug purposes, print default paramenters (from .launch or .cfg file)
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_x    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_x  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_y    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_y  );
     ROS_DEBUG_STREAM("propagate_translational_absolute_vel_error_z    ------------  " << currentLayoutManagerConfiguration.propagate_translational_absolute_vel_error_z  );
@@ -2677,7 +2677,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                         {
                             if ( *score_itr >= num)
                             {
-                                shared_ptr<Particle> temp_part = current_layout_shared.at(particle_counter);
+                                shared_ptr<Particle> temp_part = new Particle(*current_layout_shared.at(particle_counter)); //#586
                                 temp_part->setId(k);
                                 temp_part->setParticleScore(1.0f);
                                 //                            stat_out_file << temp_part.getId() << "\t";
