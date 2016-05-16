@@ -17,6 +17,7 @@
 #include <math.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -157,6 +158,8 @@ public:
     /// Computes the unoriented smallest difference between two angles.
     ///
     static double angle_diff(double a, double b);
+
+    static tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 };
 
 
