@@ -29,6 +29,8 @@ using namespace Eigen;
 
 class Utils
 {
+private:
+    static tf::TransformListener tf_listener;
 
 public:
 

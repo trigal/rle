@@ -24,6 +24,8 @@
 
 using namespace std;
 
+tf::TransformListener Utils::tf_listener;
+
 // Conversion between geographic and UTM coordinates
 // Adapted from:
 // http://www.uwgb.edu/dutchs/UsefulData/ConvertUTMNoOZ.HTM
@@ -788,7 +790,6 @@ double Utils::box_muller(double m, double s)
 
 tf::Stamped<tf::Pose> Utils::toGlobalFrame(Vector3d p_state)
 {
-    tf::TransformListener tf_listener;
     // Get particle state
     geometry_msgs::PoseStamped pose_local_map_frame;
     pose_local_map_frame.header.frame_id = "local_map";
@@ -806,7 +807,8 @@ tf::Stamped<tf::Pose> Utils::toGlobalFrame(Vector3d p_state)
     // Transform pose from "local_map" to "map"
     try
     {
-        tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+        tf_listener.waitForTransform("map", "tf_pose_local_map_frame", ros::Time::now(), ros::Duration(1));
+        Utils::tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
     }
     catch (tf::TransformException &ex)
     {
