@@ -74,6 +74,13 @@ public:
      * @brief LayoutComponent_RoadLane
      * Default Constructor
      */
+
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_RoadLane(*this);
+        return cloned;
+    }
+
     LayoutComponent_RoadLane()
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
