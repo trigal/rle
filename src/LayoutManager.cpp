@@ -946,14 +946,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
                     //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
-                    LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
-                                                                                               component_id,
-                                                                                               VectorXd::Zero(12),
-                                                                                               MatrixXd::Zero(12, 12)
-                                                                                              );
-                    buildingComponent->setParticlePtr(new_particle);
-                    new_particle->addComponent(buildingComponent);
-
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout_shared.push_back(new_particle);
 
@@ -1067,13 +1059,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             new_particle_opposite->addComponent(roadOSMDistance);
 
                         }
-                        LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
-                                                                                                   component_id,
-                                                                                                   VectorXd::Zero(12),
-                                                                                                   MatrixXd::Zero(12, 12)
-                                                                                                  );
-                        buildingComponent->setParticlePtr(new_particle_opposite);
-                        new_particle_opposite->addComponent(buildingComponent);
+
                         //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
                         /// Setep 05-bis - Push particle into particle-set and update the particles id counter

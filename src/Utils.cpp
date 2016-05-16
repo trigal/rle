@@ -21,6 +21,7 @@
 #include <boost/assign.hpp>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 
 using namespace std;
 
