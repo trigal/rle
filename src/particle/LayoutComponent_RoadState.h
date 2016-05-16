@@ -113,14 +113,20 @@ public:
         oneway = 0;
     }
 
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_RoadState(*this);
+        return cloned;
+    }
+
     /// This constructor should be used only in the initialization phase
     ROS_DEPRECATED LayoutComponent_RoadState(const unsigned int particle_id,
-            const unsigned int component_id,
-            int way_id,
-            int lanes_number,            
-            double road_width,
-            ros::Time timestamp,
-            ros::ServiceClient *serviceClientFromLayoutManager)
+                                             const unsigned int component_id,
+                                             int way_id,
+                                             int lanes_number,
+                                             double road_width,
+                                             ros::Time timestamp,
+                                             ros::ServiceClient *serviceClientFromLayoutManager)
     {
         this->particle_id = particle_id;
         this->component_id = component_id;
@@ -160,12 +166,12 @@ public:
 
         this->oneway = oneway;
 
-        ROS_ASSERT(this->roadState_distribution_alpha> 0.0f);
+        ROS_ASSERT(this->roadState_distribution_alpha > 0.0f);
 
         getHighwayInfo_client = serviceClientFromLayoutManager;
 
         // this flag was introduced with #536, splittin the behavior calculateScore/componentPoseEstimation
-        serviceOk=false; ///< default false, if the getHighwayInfo_client call is OK, then true, false again otherwise.
+        serviceOk = false; ///< default false, if the getHighwayInfo_client call is OK, then true, false again otherwise.
     }
 
     ~LayoutComponent_RoadState()

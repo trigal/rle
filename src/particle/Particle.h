@@ -304,6 +304,37 @@ public:
 //#522        distance_to_closest_segment = 0.0f;
     }
 
+    /**
+     * @brief Particle, copy constructor. Related to #586
+     * @param toCopy
+     *
+     * This copy constructor copies the parameters of the class Particle as well
+     * its LayoutComponents. This function is related to issue #586.
+     */
+    Particle (Particle &toCopy)
+        : particle_id(toCopy.getId()), particle_state(toCopy.getParticleState()),
+          particle_sigma(toCopy.getParticleSigma()), kalman_gain(toCopy.getKalmanGain()),
+          particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel())
+    {
+        for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
+        {
+            LayoutComponent* copyComponent = layoutComponent->clone();
+            shared_ptr<Particle> particle_ptr(this);
+            copyComponent->setParticlePtr(particle_ptr);
+            this->addComponent(copyComponent);
+        }
+
+        // unsigned int particle_id;                       ///< particle id
+        // State6DOF particle_state;                       ///< particle state (12x1: 6DoF pose + 6 Speed Derivates)
+        // MatrixXd particle_sigma;                        ///< particle state error covariance (12x12)
+        // vector<LayoutComponent*> particle_components;   ///< array of particle-components
+        // MatrixXd kalman_gain;                           ///< kalman gain got while estimating the pose
+        // double particle_score;                          ///< score got with particle-score formula
+        // MotionModel particle_mtn_model;                 ///< particle motion model
+
+    }
+
+
     //destructor -------------------------------------------------------------
     ~Particle()
     {

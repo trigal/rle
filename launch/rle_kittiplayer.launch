@@ -49,7 +49,7 @@
                 <node pkg="tf" type="static_transform_publisher" name="dummy_transform"
                         args="0 0 0 0 0 0 base_link visual_odometry_camera_frame 50" />
 			
-        <!-- OSM QUERY NODE
+        <!-- OSM QUERY NODE-->
             <node
                     pkg="ira_open_street_map"
                     type="osm_query_node"
@@ -57,7 +57,7 @@
                     output="screen"
                     args="$(arg map)"
                     required="true"
-            />-->
+            />
 
 
         <!-- to debug in QtCreator, run the road_layout_estimation node with

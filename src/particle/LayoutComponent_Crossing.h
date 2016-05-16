@@ -79,6 +79,11 @@ public:
         return 0.0;
     }
 
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_Crossing(*this);
+        return cloned;
+    }
 
     // Getters and setters ----------------------------------------------------------------------
     float        getCenter_x()               const;
