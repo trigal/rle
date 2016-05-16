@@ -159,7 +159,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     getHighwayInfo_client               = node_handler_parameter.serviceClient<ira_open_street_map::getHighwayInfo>               ("/ira_open_street_map/getHighwayInfo");
     getDistanceFromLaneCenter_client    = node_handler_parameter.serviceClient<ira_open_street_map::getDistanceFromLaneCenter>    ("/ira_open_street_map/getDistanceFromLaneCenter");
     oneWay_client                       = node_handler_parameter.serviceClient<ira_open_street_map::oneway>                       ("/ira_open_street_map/oneWay");
-    get_closest_crossing_client         = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_crossing>         ("/ira_open_street_map/get_closest_crossing");
+    //get_closest_crossing_client         = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_crossing>         ("/ira_open_street_map/get_closest_crossing");
+    get_closest_crossingXY_client       = node_handler_parameter.serviceClient<ira_open_street_map::get_closest_crossingXY>       ("/ira_open_street_map/get_closest_crossingXY");
 
     // Init ROS service server
     server_getAllParticlesLatLon        = node_handler_parameter.advertiseService("/road_layout_estimation/layout_manager/getAllParticlesLatLon" , &LayoutManager::getAllParticlesLatLonService, this);
@@ -932,14 +933,15 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         Utils::Coordinates latlon;
                         latlon = Utils::xy2latlon(pose_map_frame.pose.position.x, pose_map_frame.pose.position.y);
+                        ROS_INFO_STREAM("LAT: " << latlon.latitude << " , " << latlon.longitude);
 
-                        ira_open_street_map::get_closest_crossing c;
-                        c.request.latitude = latlon.latitude;
-                        c.request.longitude = latlon.longitude;
+                        ira_open_street_map::get_closest_crossingXY c;
+                        c.request.x = pose_map_frame.pose.position.x;
+                        c.request.y = pose_map_frame.pose.position.y;
                         c.request.rotation = new_particle ->getParticleState().getYaw();
                         if (c.request.rotation < 0)
                             c.request.rotation = 2 * M_PI + c.request.rotation;
-                        get_closest_crossing_client.call(c);
+                        get_closest_crossingXY_client.call(c);
                         ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
 
 
@@ -949,10 +951,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                     16,
                                                                                                     pose_map_frame.pose.position.x,
                                                                                                     pose_map_frame.pose.position.y,
-                                                                                                    6);
+                                                                                                    6, get_closest_crossingXY_client);
 
                         crossing_component->sensorOG = sharedOG;
-                        crossing_component->addRoad(6, 0.0);
+                        crossing_component->setCrossingState(c);
 
                         crossing_component->setParticlePtr(new_particle);
                         new_particle->addComponent(crossing_component);
@@ -1079,14 +1081,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                             //tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame(new_particle_opposite->getParticleState().getPosition());
 
-                            Utils::Coordinates latlon;
-                            latlon = Utils::xy2latlon(pose_map_frame.pose.position.x, pose_map_frame.pose.position.y);
-
-                            ira_open_street_map::get_closest_crossing c;
-                            c.request.latitude = latlon.latitude;
-                            c.request.longitude = latlon.longitude;
+                            ira_open_street_map::get_closest_crossingXY c;
+                            c.request.x = pose_map_frame.pose.position.x;
+                            c.request.y = pose_map_frame.pose.position.y;
                             c.request.rotation = new_particle_opposite ->getParticleState().getYaw();
-                            get_closest_crossing_client.call(c);
+                            get_closest_crossingXY_client.call(c);
                             ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
 
                             LayoutComponent_Crossing *crossing_component = new LayoutComponent_Crossing(particle_id,
@@ -1095,10 +1094,11 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                         16,
                                                                                                         pose_map_frame.pose.position.x,
                                                                                                         pose_map_frame.pose.position.y,
-                                                                                                        6);
+                                                                                                        6, get_closest_crossingXY_client);
 
                             crossing_component->sensorOG = sharedOG;
-                            crossing_component->addRoad(6, 0.0);
+                            crossing_component->setCrossingState(c);
+
 
                             ROS_INFO_STREAM("ROTATION: " << new_particle_opposite->getParticleState().getYaw());
 

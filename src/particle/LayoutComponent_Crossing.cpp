@@ -1,18 +1,33 @@
 #include "LayoutComponent_Crossing.h"
+#include "Particle.h"
 
 bool LayoutComponent_Crossing::flag = true;
 
 void LayoutComponent_Crossing::calculateComponentScore()
 {
     Mat res;
-    //res.create(1,1,CV_32FC1);
-    //Mat prova1(10,10,CV_32FC1,Scalar(0.0));
-    //Mat prova2(10,10,CV_32FC1,Scalar(0.8));
     computeOccupancyGrid();
     matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
     setComponentWeight(res.at<float>(0, 0));
 
     ROS_DEBUG_STREAM("CROSSING SCORE: " << component_weight);
+}
+
+void LayoutComponent_Crossing::componentPoseEstimation()
+{
+    cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
+
+    ira_open_street_map::get_closest_crossingXY c;
+    c.request.x = this->particlePtr->getParticleState().getPosition()[0];
+    c.request.y = this->particlePtr->getParticleState().getPosition()[1];
+    c.request.rotation = this->particlePtr->getParticleState().getYaw();
+    get_closest_crossingXY_client.call(c);
+
+    ROS_ERROR_STREAM("CROSSING ID: " << c.response.id);
+
+    setCrossingState(c);
+
+
 }
 
 float LayoutComponent_Crossing::getCenter_x() const
@@ -54,8 +69,15 @@ void LayoutComponent_Crossing::addRoad(float width, double rotation)
     num_ways++;
 }
 
-void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest_crossing crossing)
+void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest_crossingXY crossing)
 {
+
+    this->global_x = crossing.response.x;
+    this->global_y = crossing.response.y;
+    intersection_roads.clear();
+
+    this->num_ways = crossing.response.n_ways;
+
     for (int i = 0; i < crossing.response.n_ways; i++)
     {
         addRoad(crossing.response.road_list.at(i).width, crossing.response.road_list.at(i).rotation);

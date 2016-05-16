@@ -7,7 +7,7 @@
 #include <opencv/highgui.h>
 #include <mutex>
 
-#include "ira_open_street_map/get_closest_crossing.h"
+#include "ira_open_street_map/get_closest_crossingXY.h"
 
 using namespace std;
 using namespace cv;
@@ -30,6 +30,8 @@ private:
     double max_y = 15.0f;
     double max_x = 50.0f;
 
+    ros::ServiceClient get_closest_crossingXY_client;
+
     Point rotatePoint(Point p, double angle);
 
 
@@ -49,7 +51,7 @@ public:
     void computeOccupancyGrid();
     void calculateDistanceCenter(double x, double y);
     void updateSensorOG();
-    void setCrossingState(ira_open_street_map::get_closest_crossing crossing);
+    void setCrossingState(ira_open_street_map::get_closest_crossingXY crossing);
 
 
     /**
@@ -70,12 +72,7 @@ public:
     /**
      * Implementation of pure virtual method 'componentPoseEstimation'
      */
-    void componentPoseEstimation()
-    {
-        //Qua si potrebbe spostare il centro dell'incrocio vicino all'osservatore in base all'odometria / velocità
-
-        cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-    }
+    void componentPoseEstimation();
 
     double getAlphas()
     {
@@ -100,7 +97,8 @@ public:
      */
 
     LayoutComponent_Crossing(const unsigned int p_id, const unsigned int c_id, float center_x, float center_y,
-                             double global_x, double global_y, double width/*, const VectorXd& c_state, const MatrixXd& c_cov*/)
+                             double global_x, double global_y, double width, ros::ServiceClient get_closest_crossingXY_client
+                             /*, const VectorXd& c_state, const MatrixXd& c_cov*/)
     {
 
         this->center_x = center_x;
@@ -109,12 +107,10 @@ public:
         this -> global_x = global_x;
         this -> global_y = global_y;
 
-
-
-        ROS_INFO_STREAM("p_id: " << p_id << ", Global X: " << global_x << ", Global Y: " << global_y);
-
         component_state = VectorXd::Zero(12);
         component_cov = MatrixXd::Zero(12, 12);
+
+        this -> get_closest_crossingXY_client = get_closest_crossingXY_client;
 
         /*road incoming_road;
         incoming_road.width = width;

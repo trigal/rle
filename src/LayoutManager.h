@@ -58,7 +58,8 @@
 #include "ira_open_street_map/getHighwayInfo.h"
 #include "ira_open_street_map/getDistanceFromLaneCenter.h"
 #include "ira_open_street_map/oneway.h"
-#include "ira_open_street_map/get_closest_crossing.h"
+//#include "ira_open_street_map/get_closest_crossing.h"
+#include "ira_open_street_map/get_closest_crossingXY.h"
 
 // COMPONENTS
 #include "particle/LayoutComponent.h"
@@ -179,7 +180,8 @@ public:
     ros::ServiceClient getHighwayInfo_client;   ///< this service is used during the initialization phase inside reconfigureCallBack and RoadStateCallback (just because I delete/create this component all the times)
     ros::ServiceClient getDistanceFromLaneCenter_client;
     ros::ServiceClient oneWay_client;
-    ros::ServiceClient get_closest_crossing_client;
+    //ros::ServiceClient get_closest_crossing_client;
+    ros::ServiceClient get_closest_crossingXY_client;
 
     // Services from this node
     ros::ServiceServer server_getAllParticlesLatLon;
