@@ -18,8 +18,9 @@ void LayoutComponent_Crossing::componentPoseEstimation()
     cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
 
     ira_open_street_map::get_closest_crossingXY c;
-    c.request.x = this->particlePtr->getParticleState().getPosition()[0];
-    c.request.y = this->particlePtr->getParticleState().getPosition()[1];
+    tf::Stamped<tf::Pose>  tf_global =Utils::toGlobalFrame(particlePtr->getParticleState().getPosition());
+    c.request.x = tf_global.getOrigin().getX();
+    c.request.y = tf_global.getOrigin().getY();
     c.request.rotation = this->particlePtr->getParticleState().getYaw();
     get_closest_crossingXY_client.call(c);
 
@@ -75,8 +76,7 @@ void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest
     this->global_x = crossing.response.x;
     this->global_y = crossing.response.y;
     intersection_roads.clear();
-
-    this->num_ways = crossing.response.n_ways;
+    num_ways = 0;
 
     for (int i = 0; i < crossing.response.n_ways; i++)
     {

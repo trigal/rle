@@ -193,6 +193,10 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     // Finally, setup the reconfigureCallback. This will initialize the components.
     dynamicReconfigureCallback = boost::bind(&LayoutManager::reconfigureCallback, this, _1, _2);
     dynamicReconfigureServer.setCallback(dynamicReconfigureCallback);
+
+
+    //Utils::tf_listener = tf_listener;
+
 }
 
 void LayoutManager::publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point)
@@ -939,8 +943,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         c.request.x = pose_map_frame.pose.position.x;
                         c.request.y = pose_map_frame.pose.position.y;
                         c.request.rotation = new_particle ->getParticleState().getYaw();
-                        if (c.request.rotation < 0)
-                            c.request.rotation = 2 * M_PI + c.request.rotation;
+
                         get_closest_crossingXY_client.call(c);
                         ROS_INFO_STREAM("CROSSING ID: " << c.response.id);
 

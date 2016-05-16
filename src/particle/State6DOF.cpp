@@ -188,6 +188,9 @@ double State6DOF::getPitch()
  */
 double State6DOF::getYaw()
 {
-    return _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[2];
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[2];
+    if(rotation < 0)
+        rotation = 2 * M_PI + rotation;
+    return rotation;
 }
 
