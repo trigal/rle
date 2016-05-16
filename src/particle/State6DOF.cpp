@@ -170,7 +170,10 @@ void State6DOF::setOrthogonalSpeedRotation()
  */
 double State6DOF::getRoll()
 {
-    return _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[0];
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[0];
+    if (rotation < 0)
+        rotation += 2 * M_PI;
+    return rotation;
 }
 
 /**
@@ -179,7 +182,10 @@ double State6DOF::getRoll()
  */
 double State6DOF::getPitch()
 {
-    return _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[1];
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[1];
+    if (rotation < 0)
+        rotation += 2 * M_PI;
+    return rotation;
 }
 
 /**
@@ -189,8 +195,8 @@ double State6DOF::getPitch()
 double State6DOF::getYaw()
 {
     double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[2];
-    if(rotation < 0)
-        rotation = 2 * M_PI + rotation;
+    if (rotation < 0)
+        rotation += 2 * M_PI;
     return rotation;
 }
 
