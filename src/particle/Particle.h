@@ -305,14 +305,16 @@ public:
      * This copy constructor copies the parameters of the class Particle as well
      * its LayoutComponents. This function is related to issue #586.
      */
-    Particle (Particle toCopy)
+    Particle (Particle &toCopy)
         : particle_id(toCopy.getId()), particle_state(toCopy.getParticleState()),
           particle_sigma(toCopy.getParticleSigma()), kalman_gain(toCopy.getKalmanGain()),
           particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel())
     {
-        for (LayoutComponent* layoutComponent : toCopy.getLayoutComponents())
+        for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
         {
-            LayoutComponent copyComponent = new LayoutComponent(*layoutComponent);
+            LayoutComponent* copyComponent = layoutComponent->clone();
+            shared_ptr<Particle> particle_ptr(this);
+            copyComponent->setParticlePtr(particle_ptr);
             this->addComponent(copyComponent);
         }
 

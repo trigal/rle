@@ -57,6 +57,7 @@ public:
      */
     virtual double getAlphas() = 0;
 
+    virtual LayoutComponent* clone() = 0;
 
     // GETTERS & SETTERS ---------------------------------------------------------------------------------
     unsigned int getComponentId()
