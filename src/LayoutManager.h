@@ -157,6 +157,7 @@ public:
     ros::Publisher marker_pub2;
     ros::Publisher publisher_marker_array;
     ros::Publisher publisher_marker_array_distances;
+    ros::Publisher publisher_marker_crossing_distances;
     ros::Publisher publisher_marker_array_angles;
     ros::Publisher publisher_z_snapped;
     ros::Publisher publisher_z_particle;
@@ -259,6 +260,7 @@ public:
     void normalizeParticleSet();
     void publishMarkerArray(double normalizationFactor);
     void publishMarkerArrayDistances(int id, double x1, double y1, double x2, double y2, double z);
+    void publishMarkerCrossingDistances(int id, double x1, double y1, double x2, double y2);
     void publishZParticle(int id, double x1, double y1, double x2, double y2, double z);
     void publishZSnapped(int id, double x1, double y1, double x2, double y2, double z);
     void publish_initial_markers(double cov1, double cov2, geometry_msgs::Point point);
@@ -327,6 +329,7 @@ private:
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
+    visualization_msgs::MarkerArray marker_crossing_distances;
     visualization_msgs::MarkerArray marker_array_angles;
     visualization_msgs::MarkerArray marker_z_snapped;
     visualization_msgs::MarkerArray marker_z_particle;

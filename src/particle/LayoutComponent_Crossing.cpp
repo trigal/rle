@@ -8,14 +8,14 @@ void LayoutComponent_Crossing::calculateComponentScore()
     Mat res;
     computeOccupancyGrid();
     matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
-    setComponentWeight(res.at<float>(0, 0));
+    //setComponentWeight(res.at<float>(0, 0));
 
-    ROS_DEBUG_STREAM("CROSSING SCORE: " << component_weight);
+    ROS_DEBUG_STREAM("CROSSING SCORE: " << res.at<float>(0, 0));
 }
 
 void LayoutComponent_Crossing::componentPoseEstimation()
 {
-    cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
+    cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << this->getParticlePtr()->getId() << endl;
 
     ira_open_street_map::get_closest_crossingXY c;
     tf::Stamped<tf::Pose>  tf_global = Utils::toGlobalFrame(particlePtr->getParticleState().getPosition());
@@ -24,9 +24,11 @@ void LayoutComponent_Crossing::componentPoseEstimation()
     c.request.rotation = this->particlePtr->getParticleState().getYaw();
     get_closest_crossingXY_client.call(c);
 
-    ROS_ERROR_STREAM("CROSSING ID: " << c.response.id);
+    ROS_DEBUG_STREAM("CROSSING ID: " << c.response.id << "     ROTATION: " << this->particlePtr->getParticleState().getYaw());
 
-    //setCrossingState(c);
+    setCrossingState(c);
+
+    //calculateDistanceCenter(c.request.x, c.request.y);
 
 
 }
@@ -77,6 +79,8 @@ void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest
     this->global_y = crossing.response.y;
     intersection_roads.clear();
     num_ways = 0;
+
+    calculateDistanceCenter(crossing.request.x, crossing.request.y);
 
     for (int i = 0; i < crossing.response.n_ways; i++)
     {

@@ -143,6 +143,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LayoutManager::marker_pub2                          = node_handler_parameter.advertise<visualization_msgs::Marker>            ("/road_layout_estimation/layout_manager/circle2", 1);
     LayoutManager::publisher_marker_array               = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/particle_set", 1);
     LayoutManager::publisher_marker_array_distances     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/marker_array_distances", 1);
+    LayoutManager::publisher_marker_crossing_distances  = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/marker_crossing_distances", 1);
     LayoutManager::publisher_marker_array_angles        = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/publisher_marker_array_angles", 1);
     LayoutManager::publisher_z_particle                 = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped                  = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
@@ -1292,6 +1293,40 @@ void LayoutManager::publishMarkerArrayDistances(int id, double x1, double y1, do
     marker_array_distances.markers.push_back(line_list);
 }
 
+void LayoutManager::publishMarkerCrossingDistances(int id, double x1, double y1, double x2, double y2)
+{
+    /// Distances between the poses and the closest road segment. For debuggin purposes.
+    ///
+    visualization_msgs::Marker line_list;
+    line_list.header.frame_id = "map";
+    line_list.header.stamp = ros::Time();
+    line_list.ns = "lines";
+    line_list.id = id;
+    line_list.type = visualization_msgs::Marker::LINE_LIST;
+    line_list.action = visualization_msgs::Marker::ADD;
+    line_list.pose.orientation.w = 1;
+    line_list.scale.x = 0.2; //width
+    line_list.color.a = 1.0;
+    line_list.color.r = 0;
+    line_list.color.g = 0;
+    line_list.color.b = 1.0;
+
+    // Create the points
+    geometry_msgs::Point point;
+    point.x = x1;
+    point.y = y1;
+    point.z = 0;
+    line_list.points.push_back(point);
+
+    point.x = x2;
+    point.y = y2;
+    point.z = 0;
+    line_list.points.push_back(point);
+
+    // Push back line_list
+    marker_crossing_distances.markers.push_back(line_list);
+}
+
 void LayoutManager::publishZSnapped(int id, double x1, double y1, double x2, double y2, double z)
 {
     visualization_msgs::Marker line_list;
@@ -1971,6 +2006,9 @@ void LayoutManager::componentsEstimation()
 ///
 void LayoutManager::sampling()
 {
+    namedWindow( "OG", WINDOW_AUTOSIZE );
+    bool flag = true;
+
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<shared_ptr<Particle>>::iterator itr;
     for ( itr = current_layout_shared.begin(); itr != current_layout_shared.end(); itr++ )
@@ -1981,8 +2019,26 @@ void LayoutManager::sampling()
         shared_ptr<Particle> particle = *itr;
         particle->propagateLayoutComponents();
 
+        ///DEBUG: Publish Crossing Distance Marker
+        tf::Stamped<tf::Pose>  tf_global = toGlobalFrame(particle->getParticleState().getPosition());
+        LayoutComponent_Crossing* CrossingComponentPtr = particle->giveMeThatComponent<LayoutComponent_Crossing>();
+        publishMarkerCrossingDistances(
+            particle->getId(),
+            tf_global.getOrigin().getX(),
+            tf_global.getOrigin().getY(),
+            CrossingComponentPtr->global_x,
+            CrossingComponentPtr->global_y
+        );
+        if (flag)
+        {
+            imshow("OG", CrossingComponentPtr->occupancyMap2);
+            waitKey(1);
+            flag = false;
+        }
+
         //itr->propagateLayoutComponents();
     }
+    publisher_marker_crossing_distances.publish(marker_crossing_distances);
     ROS_DEBUG_STREAM("< Exiting Sampling of all components");
 }
 

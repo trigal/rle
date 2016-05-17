@@ -66,7 +66,7 @@ public:
     {
         //  we can slightly change the parameters, like moving the center, change width / orientation of one or more roads,
         //  or even add / remove a road
-        cout << "Perturbating CROSSING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
+        //cout << "Perturbating CROSSING component ID: " << component_id << " that belongs to particle ID: " << this->getParticlePtr() << endl;
     }
 
     /**
