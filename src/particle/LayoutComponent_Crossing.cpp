@@ -25,6 +25,7 @@ void LayoutComponent_Crossing::componentPoseEstimation()
     get_closest_crossingXY_client.call(c);
 
     ROS_DEBUG_STREAM("CROSSING ID: " << c.response.id << "     ROTATION: " << this->particlePtr->getParticleState().getYaw());
+    ROS_DEBUG_STREAM("rotation_diff: " << c.response.rotation_diff);
 
     setCrossingState(c);
 
@@ -67,7 +68,9 @@ void LayoutComponent_Crossing::addRoad(float width, double rotation)
 {
     road new_road;
     new_road.width = width;
-    new_road.rotation = M_PI - rotation;
+    new_road.rotation = M_PI - rotation; //NEVER CHANGE THIS LINE!!!! YOU WILL REGRET IT!!!!!
+    if (new_road.rotation < 0)
+        new_road.rotation += 2 * M_PI;
     intersection_roads.push_back(new_road);
     num_ways++;
 }

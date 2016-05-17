@@ -2007,7 +2007,7 @@ void LayoutManager::componentsEstimation()
 void LayoutManager::sampling()
 {
     namedWindow( "OG", WINDOW_AUTOSIZE );
-    bool flag = true;
+    //bool flag = true;
 
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<shared_ptr<Particle>>::iterator itr;
@@ -2029,12 +2029,12 @@ void LayoutManager::sampling()
             CrossingComponentPtr->global_x,
             CrossingComponentPtr->global_y
         );
-        if (flag)
+        /*if (flag)
         {
             imshow("OG", CrossingComponentPtr->occupancyMap2);
             waitKey(1);
             flag = false;
-        }
+        }*/
 
         //itr->propagateLayoutComponents();
     }
