@@ -2006,8 +2006,8 @@ void LayoutManager::componentsEstimation()
 ///
 void LayoutManager::sampling()
 {
-    namedWindow( "OG", WINDOW_AUTOSIZE );
-    //bool flag = true;
+    /*namedWindow( "OG", WINDOW_AUTOSIZE );
+    bool flag = true;*/
 
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<shared_ptr<Particle>>::iterator itr;

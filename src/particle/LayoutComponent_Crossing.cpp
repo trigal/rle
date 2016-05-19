@@ -83,7 +83,7 @@ void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest
     intersection_roads.clear();
     num_ways = 0;
 
-    calculateDistanceCenter(crossing.request.x, crossing.request.y);
+    calculateDistanceCenter(crossing.request.x, crossing.request.y, crossing.response.rotation_diff);
 
     for (int i = 0; i < crossing.response.n_ways; i++)
     {
@@ -93,9 +93,13 @@ void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest
 }
 
 
-void LayoutComponent_Crossing::calculateDistanceCenter(double x, double y)
+void LayoutComponent_Crossing::calculateDistanceCenter(double x, double y, double rotation_diff)
 {
-    this->center_y = sqrt((x - global_x) * (x - global_x) + (y - global_y) * (y - global_y));
+
+    double distance = sqrt((x - global_x) * (x - global_x) + (y - global_y) * (y - global_y));
+    this->center_y = cos(rotation_diff) * distance;
+    this->center_x = 15. - sin(rotation_diff) * distance;
+    ROS_DEBUG_STREAM("Rotation Diff: " << rotation_diff << ", Distance: " << distance << ", Y: " << this->center_y << " , X: " << this->center_x);
 }
 
 void LayoutComponent_Crossing::computeOccupancyGrid()

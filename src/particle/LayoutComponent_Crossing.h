@@ -49,7 +49,7 @@ public:
 
     void addRoad(float width, double rotation);
     void computeOccupancyGrid();
-    void calculateDistanceCenter(double x, double y);
+    void calculateDistanceCenter(double x, double y, double rotation_diff);
     void updateSensorOG();
     void setCrossingState(ira_open_street_map::get_closest_crossingXY crossing);
 
