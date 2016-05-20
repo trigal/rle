@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include "ira_open_street_map/get_closest_crossingXY.h"
+#include "ira_open_street_map/snap_particle_xy.h"
 
 using namespace std;
 using namespace cv;
@@ -30,9 +31,13 @@ private:
     double max_y = 15.0f;
     double max_x = 50.0f;
 
+    /// The ROS-Service declaration. Initialization in the constructor.
+    ros::NodeHandle node_handler;
     ros::ServiceClient get_closest_crossingXY_client;
+    ros::ServiceClient snap_particle_xy_client;
 
-    Point rotatePoint(Point p, double angle);
+    Point2f rotatePoint(Point2f p, double angle);
+    Point2f rotatePointCenter(Point2f p, double angle, Point2f center);
 
 
 public:
@@ -49,6 +54,7 @@ public:
 
     void addRoad(float width, double rotation);
     void computeOccupancyGrid();
+    void removeUknownCells();
     void calculateDistanceCenter(double x, double y, double rotation_diff);
     void updateSensorOG();
     void setCrossingState(ira_open_street_map::get_closest_crossingXY crossing);
@@ -116,6 +122,8 @@ public:
         component_cov = MatrixXd::Zero(12, 12);
 
         this -> get_closest_crossingXY_client = get_closest_crossingXY_client;
+        snap_particle_xy_client                 = node_handler.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
+
 
         /*road incoming_road;
         incoming_road.width = width;

@@ -2006,8 +2006,6 @@ void LayoutManager::componentsEstimation()
 ///
 void LayoutManager::sampling()
 {
-    /*namedWindow( "OG", WINDOW_AUTOSIZE );
-    bool flag = true;*/
 
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<shared_ptr<Particle>>::iterator itr;
@@ -2029,12 +2027,6 @@ void LayoutManager::sampling()
             CrossingComponentPtr->global_x,
             CrossingComponentPtr->global_y
         );
-        /*if (flag)
-        {
-            imshow("OG", CrossingComponentPtr->occupancyMap2);
-            waitKey(1);
-            flag = false;
-        }*/
 
         //itr->propagateLayoutComponents();
     }
@@ -2255,12 +2247,12 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
 //#522            (*particle_itr).distance_to_closest_segment = distance;
 
             /// For debuggin purposes: add line to marker array distances
-            //publishMarkerArrayDistances((*particle_itr).getId(),
-            //                            tf_pose_local_map_frame.getOrigin().getX(),
-            //                            tf_pose_local_map_frame.getOrigin().getY(),
-            //                            tf_snapped_local_map_frame.getOrigin().getX(),
-            //                            tf_snapped_local_map_frame.getOrigin().getY(),
-            //                            tf_pose_local_map_frame.getOrigin().getZ());
+            publishMarkerArrayDistances((*particle_itr).getId(),
+                                        tf_pose_local_map_frame.getOrigin().getX(),
+                                        tf_pose_local_map_frame.getOrigin().getY(),
+                                        tf_snapped_local_map_frame.getOrigin().getX(),
+                                        tf_snapped_local_map_frame.getOrigin().getY(),
+                                        tf_pose_local_map_frame.getOrigin().getZ());
 
             //      get PDF score FOR DISTANCE
 //#522            boost::math::normal normal_dist(0, street_distribution_sigma);

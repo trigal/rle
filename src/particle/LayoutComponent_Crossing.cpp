@@ -3,37 +3,6 @@
 
 bool LayoutComponent_Crossing::flag = true;
 
-void LayoutComponent_Crossing::calculateComponentScore()
-{
-    Mat res;
-    computeOccupancyGrid();
-    matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
-    //setComponentWeight(res.at<float>(0, 0));
-
-    ROS_DEBUG_STREAM("CROSSING SCORE: " << res.at<float>(0, 0));
-}
-
-void LayoutComponent_Crossing::componentPoseEstimation()
-{
-    cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << this->getParticlePtr()->getId() << endl;
-
-    ira_open_street_map::get_closest_crossingXY c;
-    tf::Stamped<tf::Pose>  tf_global = Utils::toGlobalFrame(particlePtr->getParticleState().getPosition());
-    c.request.x = tf_global.getOrigin().getX();
-    c.request.y = tf_global.getOrigin().getY();
-    c.request.rotation = this->particlePtr->getParticleState().getYaw();
-    get_closest_crossingXY_client.call(c);
-
-    ROS_DEBUG_STREAM("CROSSING ID: " << c.response.id << "     ROTATION: " << this->particlePtr->getParticleState().getYaw());
-    ROS_DEBUG_STREAM("rotation_diff: " << c.response.rotation_diff);
-
-    setCrossingState(c);
-
-    //calculateDistanceCenter(c.request.x, c.request.y);
-
-
-}
-
 float LayoutComponent_Crossing::getCenter_x() const
 {
     return center_x;
@@ -57,6 +26,38 @@ void LayoutComponent_Crossing::setCenter_x(float value)
 void LayoutComponent_Crossing::setCenter_y(float value)
 {
     center_y = value;
+}
+
+void LayoutComponent_Crossing::calculateComponentScore()
+{
+    Mat res;
+    computeOccupancyGrid();
+    matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
+    if (res.at<float>(0, 0) < 1)
+        setComponentWeight(res.at<float>(0, 0));
+    else
+        setComponentWeight(0.);
+    //setComponentWeight(1.);
+
+    ROS_DEBUG_STREAM("CROSSING SCORE: " << this->getComponentWeight());
+}
+
+void LayoutComponent_Crossing::componentPoseEstimation()
+{
+    cout << "Propagating and estimating CROSSING component pose. ID: " << component_id << " that belongs to particle ID: " << this->getParticlePtr()->getId() << endl;
+
+    ira_open_street_map::get_closest_crossingXY c;
+    tf::Stamped<tf::Pose>  tf_global = Utils::toGlobalFrame(particlePtr->getParticleState().getPosition());
+    c.request.x = tf_global.getOrigin().getX();
+    c.request.y = tf_global.getOrigin().getY();
+    c.request.rotation = this->particlePtr->getParticleState().getYaw();
+    get_closest_crossingXY_client.call(c);
+
+    ROS_DEBUG_STREAM("CROSSING ID: " << c.response.id << "     ROTATION: " << this->particlePtr->getParticleState().getYaw());
+    ROS_DEBUG_STREAM("rotation_diff: " << c.response.rotation_diff);
+
+    setCrossingState(c);
+
 }
 
 /*void LayoutComponent_Crossing::setNum_ways(int value)
@@ -83,11 +84,20 @@ void LayoutComponent_Crossing::setCrossingState(ira_open_street_map::get_closest
     intersection_roads.clear();
     num_ways = 0;
 
-    calculateDistanceCenter(crossing.request.x, crossing.request.y, crossing.response.rotation_diff);
-
-    for (int i = 0; i < crossing.response.n_ways; i++)
+    if (crossing.response.found)
     {
-        addRoad(crossing.response.road_list.at(i).width, crossing.response.road_list.at(i).rotation);
+
+        calculateDistanceCenter(crossing.request.x, crossing.request.y, crossing.response.rotation_diff);
+
+        for (int i = 0; i < crossing.response.n_ways; i++)
+        {
+            addRoad(crossing.response.road_list.at(i).width, crossing.response.road_list.at(i).rotation);
+        }
+    }
+    else
+    {
+        this->center_x = 15.;
+        this->center_y = max_x;
     }
 
 }
@@ -107,32 +117,119 @@ void LayoutComponent_Crossing::computeOccupancyGrid()
 
     int n_col = max_x / gridCellSize;
     int n_row = (max_y - min_y) / gridCellSize;
-    //occupancyMap = Mat::zeros(n_col, n_row, CV_8UC1);
+
     occupancyMap2 = Mat::zeros(n_col, n_row, CV_32FC3);
 
-    Point polygonCV[num_ways][4];
-
-    for (int i = 0; i < num_ways; i++)
+    ///Se l'incrocio è vicino (minore di 40m)
+    if (this->center_y < 40.)
     {
 
-        float width = intersection_roads.at(i).width;
-        Point p1(center_x - (width / 2), - max_x);
-        Point p2(center_x - (width / 2), max_x - center_y + width / 2);
-        Point p3(center_x + (width / 2), max_x - center_y + width / 2);
-        Point p4(center_x + (width / 2), - max_x);
+        Point polygonCV[num_ways][4];
 
-
-        if (intersection_roads.at(i).rotation != 0)
+        ///Creo un rettangolo per ogni strada dell'incrocio
+        for (int i = 0; i < num_ways; i++)
         {
-            p1.x = center_x - (width / 2);
-            p4.x = center_x + (width / 2);
-            p1 = rotatePoint(p1, intersection_roads.at(i).rotation);
-            p2 = rotatePoint(p2, intersection_roads.at(i).rotation);
-            p3 = rotatePoint(p3, intersection_roads.at(i).rotation);
-            p4 = rotatePoint(p4, intersection_roads.at(i).rotation);
+
+            //Inizialmente lo creo come se fosse una strada dritta (Qua i punti sono espressi in metri!)
+            float width = intersection_roads.at(i).width;
+            Point2f p1(center_x - (width / 2), - max_x);
+            Point2f p2(center_x - (width / 2), max_x - center_y + width / 2);
+            Point2f p3(center_x + (width / 2), max_x - center_y + width / 2);
+            Point2f p4(center_x + (width / 2), - max_x);
+
+            //Poi lo ruoto utilizzando come perno il centro dell'incrocio
+            if (intersection_roads.at(i).rotation != 0)
+            {
+                p1.x = center_x - (width / 2);
+                p4.x = center_x + (width / 2);
+                p1 = rotatePoint(p1, intersection_roads.at(i).rotation);
+                p2 = rotatePoint(p2, intersection_roads.at(i).rotation);
+                p3 = rotatePoint(p3, intersection_roads.at(i).rotation);
+                p4 = rotatePoint(p4, intersection_roads.at(i).rotation);
+            }
+
+            //Trasformo i metri in celle!
+            p1.x = p1.x / gridCellSize;
+            p1.y = p1.y / gridCellSize;
+            p2.x = p2.x / gridCellSize;
+            p2.y = p2.y / gridCellSize;
+            p3.x = p3.x / gridCellSize;
+            p3.y = p3.y / gridCellSize;
+            p4.x = p4.x / gridCellSize;
+            p4.y = p4.y / gridCellSize;
+
+
+            polygonCV[i][0] = Point(p1.x, p1.y);
+            polygonCV[i][1] = Point(p2.x, p2.y);
+            polygonCV[i][2] = Point(p3.x, p3.y);
+            polygonCV[i][3] = Point(p4.x, p4.y);
+
         }
 
+        int npt[] = {4};
+        for (int i = 0; i < num_ways; i++)
+        {
+            const Point* ppt[1] = {polygonCV[i]};
 
+            //Qua viene creata la griglia di occupazione! "riempiendo" i rettangoli creati prima.
+            fillPoly(occupancyMap2, ppt, npt, 1, Scalar(1., 1., 1.), 8);
+        }
+    }
+    ///Se l'incrocio è lontano (oppure se non è stato trovato nessun incrocio)
+    else
+    {
+
+        //Prima recupero la particella "snapped"
+        ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
+        tf::Stamped<tf::Pose>  tf_global = Utils::toGlobalFrame(particlePtr->getParticleState().getPosition());
+        snapParticle_serviceMessage.request.x = tf_global.getOrigin().getX();
+        snapParticle_serviceMessage.request.y = tf_global.getOrigin().getY();
+        snapParticle_serviceMessage.request.max_distance_radius = 100;
+        snap_particle_xy_client.call(snapParticle_serviceMessage);
+
+        //Calcolo la differenza nelle componenti x e y (nel sistema di riferimento "map" - globale)
+        //tra la particella "vera" e la particella "snapped"
+        double snap_x = snapParticle_serviceMessage.response.snapped_x;
+        double snap_y = snapParticle_serviceMessage.response.snapped_y;
+        snap_x = snap_x - tf_global.getOrigin().getX();
+        snap_y = snap_y - tf_global.getOrigin().getY();
+
+        //Calcolo la distanza nelle componenti x e y NEL SISTEMA DI RIFERIMENTO PARTICELLA!
+        double snap_x_rotated, snap_y_rotated;
+        double angle = particlePtr->getParticleState().getYaw();
+        snap_x_rotated = snap_x * cos(angle) + snap_y * sin(angle);
+        snap_y_rotated = -snap_x * sin(angle) + snap_y * cos(angle);
+
+        Point polygonCV[1][4];
+
+        //Larghezza della strada più vicina
+        float width = snapParticle_serviceMessage.response.snap_road_width;
+
+        //Creo una strada dritta (parallela alla particella), traslata in base alla distanza
+        //della strada più vicina
+        this->center_x = 15. - snap_y_rotated;
+        Point2f p1(center_x - (width / 2), -50.);
+        Point2f p2(center_x - (width / 2), 100.);
+        Point2f p3(center_x + (width / 2), 100.);
+        Point2f p4(center_x + (width / 2), -50.);
+
+        //Punto attorno a cui deve ruotare la strada, ovvero nella posizione della
+        //particella "snappata" riportata nel SISTEMA DI RIFERIMENTO "griglia di occupazione"
+        //(che è traslato di 15m a sinistra rispetto al sistema particella)
+        Point2f center(15. - snap_y_rotated, snap_x_rotated);
+
+        //Calcolo la rotazione della strada rispetto alla rotazione della particella
+        double rotation = angle - snapParticle_serviceMessage.response.way_dir_rad;
+        if (rotation > M_PI / 2 || rotation < -M_PI / 2)
+            rotation -= M_PI;
+
+        //Ruoto il rettangolo (strada)
+        p1 = rotatePointCenter(p1, rotation, center);
+        p2 = rotatePointCenter(p2, rotation, center);
+        p3 = rotatePointCenter(p3, rotation, center);
+        p4 = rotatePointCenter(p4, rotation, center);
+
+        //Trasformo i metri in celle!
         p1.x = p1.x / gridCellSize;
         p1.y = p1.y / gridCellSize;
         p2.x = p2.x / gridCellSize;
@@ -142,26 +239,23 @@ void LayoutComponent_Crossing::computeOccupancyGrid()
         p4.x = p4.x / gridCellSize;
         p4.y = p4.y / gridCellSize;
 
+        polygonCV[0][0] = Point(p1.x, p1.y);
+        polygonCV[0][1] = Point(p2.x, p2.y);
+        polygonCV[0][2] = Point(p3.x, p3.y);
+        polygonCV[0][3] = Point(p4.x, p4.y);
 
-        polygonCV[i][0] = p1;
-        polygonCV[i][1] = p2;
-        polygonCV[i][2] = p3;
-        polygonCV[i][3] = p4;
+        int npt[] = {4};
 
-    }
+        const Point* ppt[1] = {polygonCV[0]};
 
-    int npt[] = {4};
-    for (int i = 0; i < num_ways; i++)
-    {
-        const Point* ppt[1] = {polygonCV[i]};
-
-        //fillPoly(occupancyMap, ppt, npt, 1, Scalar(255), 8);
+        //Creo la griglia riempiendo il rettangolo di 1
         fillPoly(occupancyMap2, ppt, npt, 1, Scalar(1., 1., 1.), 8);
+
     }
 
 }
 
-Point LayoutComponent_Crossing::rotatePoint(Point p, double angle)
+Point2f LayoutComponent_Crossing::rotatePoint(Point2f p, double angle)
 {
     float s = sin(angle);
     float c = cos(angle);
@@ -169,7 +263,7 @@ Point LayoutComponent_Crossing::rotatePoint(Point p, double angle)
     p.x = p.x - center_x;
     p.y = p.y - (max_x - center_y);
 
-    Point newPoint(p.x * c - p.y * s, p.x * s + p.y * c);
+    Point2f newPoint(p.x * c - p.y * s, p.x * s + p.y * c);
 
     newPoint.x = newPoint.x + center_x;
     newPoint.y = newPoint.y + (max_x - center_y);
@@ -177,3 +271,33 @@ Point LayoutComponent_Crossing::rotatePoint(Point p, double angle)
     return newPoint;
 
 }
+
+Point2f LayoutComponent_Crossing::rotatePointCenter(Point2f p, double angle, Point2f center)
+{
+    float s = sin(angle);
+    float c = cos(angle);
+
+    p.x = p.x - center.x;
+    p.y = p.y - (max_x - center.y);
+
+    Point2f newPoint(p.x * c - p.y * s, p.x * s + p.y * c);
+
+    newPoint.x = newPoint.x + center.x;
+    newPoint.y = newPoint.y + (max_x - center.y);
+
+    return newPoint;
+
+}
+
+void LayoutComponent_Crossing::removeUknownCells()
+{
+    /*int n_forward_cells = max_x / gridCellSize;
+    int n_lateral_cells = (max_y - min_y) / gridCellSize;
+    for (int i = 0; i < n_forward_cells; i++)
+    {
+        for(int j=0;j<n_lateral_cells;j++) {
+
+        }
+    }*/
+}
+

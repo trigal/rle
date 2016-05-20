@@ -858,7 +858,7 @@ tf::Stamped<tf::Pose> Utils::toGlobalFrame(Vector3d p_state)
     // Transform pose from "local_map" to "map"
     try
     {
-        tf_listener.waitForTransform("map", "local_map",ros::Time(0), ros::Duration(0.1));
+        tf_listener.waitForTransform("map", "local_map", ros::Time(0), ros::Duration(0.2));
         tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
     }
     catch (tf::TransformException &ex)
