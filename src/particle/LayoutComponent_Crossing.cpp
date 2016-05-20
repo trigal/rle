@@ -32,6 +32,7 @@ void LayoutComponent_Crossing::calculateComponentScore()
 {
     Mat res;
     computeOccupancyGrid();
+    removeUknownCells();
     matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
     if (res.at<float>(0, 0) < 1)
         setComponentWeight(res.at<float>(0, 0));
@@ -291,13 +292,17 @@ Point2f LayoutComponent_Crossing::rotatePointCenter(Point2f p, double angle, Poi
 
 void LayoutComponent_Crossing::removeUknownCells()
 {
-    /*int n_forward_cells = max_x / gridCellSize;
+    int n_forward_cells = max_x / gridCellSize;
     int n_lateral_cells = (max_y - min_y) / gridCellSize;
     for (int i = 0; i < n_forward_cells; i++)
     {
-        for(int j=0;j<n_lateral_cells;j++) {
-
+        for (int j = 0; j < n_lateral_cells; j++)
+        {
+            if (sensorOG.at<Vec3f>(n_forward_cells - i - 1, n_lateral_cells - j - 1) == Vec3f(1., 0., 0.))
+            {
+                occupancyMap2.at<Vec3f>(n_forward_cells - i - 1, n_lateral_cells - j - 1) = Vec3f(1., 0., 0.);
+            }
         }
-    }*/
+    }
 }
 
