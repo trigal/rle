@@ -70,6 +70,7 @@
 #include "road_layout_estimation/msg_lines.h"
 #include "road_layout_estimation/msg_debugInformation.h"
 
+#include <building_detection/FacadesList.h>
 
 #include <iomanip>
 #include <iostream>
@@ -218,7 +219,7 @@ public:
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
-    void buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& planes);
+    void buildingsCallback(const building_detection::FacadesList& facades);
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }

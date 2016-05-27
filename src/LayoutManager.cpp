@@ -127,7 +127,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 //#573 - safe state    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
 //#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
-    LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/verticalPlanesPCL", 1, &LayoutManager::buildingsCallback, this);
+    LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
     // Publisher Section
@@ -1303,19 +1303,26 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
     marker_z_particle.markers.push_back(line_list);
 }
 
-void LayoutManager::buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& planes)
+void LayoutManager::buildingsCallback(const building_detection::FacadesList &facades)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr planes_cloud;
-    planes_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl::fromROSMsg(*planes, *planes_cloud);
-    vector<shared_ptr<Particle>>::iterator particle_itr;
+    std::vector<shared_ptr<road_layout_estimation::Facade>> facades_list;
+    for (auto facade_msg : facades.facades)
+    {
+        shared_ptr<road_layout_estimation::Facade> facade;
+        facade.reset(new road_layout_estimation::Facade(facade_msg));
+        facades_list.push_back(facade);
+    }
 
     // Iterate through all particles
-    for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+    for ( auto particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
     {
         // Retrieve the RoadLane component from the particle-iterator
         LayoutComponent_Building* BuildingComponentPtr = (*particle_itr)->giveMeThatComponent<LayoutComponent_Building>();
-        BuildingComponentPtr->setBuildings(planes_cloud);
+        BuildingComponentPtr->getFacades()->clear();
+        for (auto facade : facades_list)
+        {
+            BuildingComponentPtr->getFacades()->push_back(facade);
+        }
     }
     ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
 }

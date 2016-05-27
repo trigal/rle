@@ -11,6 +11,7 @@ SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+find_package(message_generation)
 find_package(catkin REQUIRED COMPONENTS     roscpp
                                             tf
                                             nav_msgs
@@ -130,6 +131,8 @@ add_executable(road_layout_estimation
         src/eigenmultivariatenormal.hpp
         src/particle/LayoutComponent_RoadState.cpp
         src/particle/LayoutComponent_OSMDistance.cpp
+        src/Facade.hpp
+        src/Edge.hpp
 )
 
 add_executable(visual_odometry_nvm
