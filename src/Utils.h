@@ -139,8 +139,29 @@ public:
     ///
     static Eigen::Vector3d getCameraCenterAfterRotation(const double c[3], Eigen::Matrix3d r);
 
-    static double rad2deg (double alpha);
-    static double deg2rad (double alpha);
+    /**
+     * @brief Utils::rad2deg
+     * @param alpha
+     * @return
+     *
+     * from PCL library
+     */
+    static inline double rad2deg (double alpha)
+    {
+        return (alpha * 57.29578);
+    }
+
+    /**
+     * @brief Utils::deg2rad
+     * @param alpha
+     * @return
+     *
+     * from PCL library
+     */
+    static inline double deg2rad (double alpha)
+    {
+        return (alpha * 0.017453293);
+    }
 
     ///
     /// \brief normalize_angle
@@ -149,7 +170,18 @@ public:
     ///
     /// Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
     ///
-    static double normalize_angle(double z);
+
+    /**
+    * @brief Utils::normalize_angle
+    * @param z the angle to normalize
+    * @return an equivalent angle in the range (-Pi, Pi]
+    *
+    * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
+    */
+    static inline double normalize_angle(double z)
+    {
+        return atan2(sin(z), cos(z));
+    }
 
     ///
     /// \brief angle_diff

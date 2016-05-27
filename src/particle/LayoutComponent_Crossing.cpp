@@ -35,10 +35,9 @@ void LayoutComponent_Crossing::calculateComponentScore()
     removeUknownCells();
     matchTemplate(sensorOG, occupancyMap2, res, TM_CCOEFF_NORMED);
     if (res.at<float>(0, 0) < 1)
-        setComponentWeight(res.at<float>(0, 0));
+        setComponentWeight(res.at<float>(0, 0) * alpha);
     else
         setComponentWeight(0.);
-    //setComponentWeight(1.);
 
     ROS_DEBUG_STREAM("CROSSING SCORE: " << this->getComponentWeight());
 }

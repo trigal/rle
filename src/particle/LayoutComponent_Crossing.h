@@ -48,6 +48,7 @@ public:
     float center_y;
     double global_x;
     double global_y;
+    double alpha = 2.0;
 
     Mat sensorOG;
     static bool flag;
@@ -82,7 +83,7 @@ public:
 
     double getAlphas()
     {
-        return 0.0;
+        return alpha;
     }
 
     LayoutComponent* clone()

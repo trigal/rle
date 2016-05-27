@@ -1244,9 +1244,19 @@ void LayoutManager::publishMarkerArray(double normalizationFactor)
         marker.scale.x = 5;
         marker.scale.y = 0.5;
         marker.scale.z = 1;
-        marker.color.a = p->getParticleScore() / normalizationFactor;
+
+        ///TESTING
+        LayoutComponent_Crossing* CrossingComponentPtr = p->giveMeThatComponent<LayoutComponent_Crossing>();
+
+        //marker.color.a = p->getParticleScore() / normalizationFactor;
+        marker.color.a = CrossingComponentPtr->getComponentWeight();
+        if (marker.color.a < 0.3)
+            marker.color.a = 0.3;
         marker.color.r = 0;
-        marker.color.g = p->getParticleScore() / normalizationFactor;
+        //marker.color.g = p->getParticleScore() / normalizationFactor;
+        marker.color.g = CrossingComponentPtr->getComponentWeight();
+        if (marker.color.g < 0.3)
+            marker.color.g = 0.3;
         marker.color.b = 0;
 
         marker_array.markers.push_back(marker);
@@ -1567,7 +1577,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     ///////////////////////////////////////////////////////////////////////////
     // CREATING STATISTICS FOR RLE OUTPUT
 
-    bool enabled_statistics = false;
+    bool enabled_statistics = true;
     if (enabled_statistics)
     {
         double average_distance = 0.0f;
@@ -1623,8 +1633,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
-        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
+        cout << "/media/DiscoEsternoGrosso/Volume/KITTI_RAW_DATASET/RESIDENTIAL/" + bagfile  + "/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/" + bagfile + "/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -1695,20 +1705,20 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // Push back line_list
             publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-            RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-                             0 << " " << 0 << " " << 0 << " " <<
-                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                             tot_score / current_layout_shared.size() << " " <<
-                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+//            RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+//                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+//                             0 << " " << 0 << " " << 0 << " " <<
+//                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+//                             tot_score / current_layout_shared.size() << " " <<
+//                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
 
 
-            //        cout  << msg.header.seq << " " << setprecision(16) <<
-            //                            RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-            //                            0 << " "<< 0 << " "<< 0 << " " <<
-            //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-            //                            tot_score / current_layout_shared.size() << " " <<
-            //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+//                    cout  << msg.header.seq << " " << setprecision(16) <<
+//                                        RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
+//                                        0 << " "<< 0 << " "<< 0 << " " <<
+//                                        0 << " " << 0 << " " << 0 << " " << 0 << " " <<
+//                                        tot_score / current_layout_shared.size() << " " <<
+//                                        query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
         }
         else
         {
@@ -1752,13 +1762,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
-            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                         roll << " " << pitch << " " << yaw << " " <<
-                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                         tot_score / current_layout_shared.size() << " " <<
-                         to_lat << " " << to_lon << " " <<
-                         average_distance << "\n";
+//            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+//                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+//                         roll << " " << pitch << " " << yaw << " " <<
+//                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+//                         tot_score / current_layout_shared.size() << " " <<
+//                         to_lat << " " << to_lon << " " <<
+//                         average_distance << "\n";
 
             cout << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                  average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
@@ -2406,6 +2416,8 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
     for (int j = 0; j < layoutComponentVector.size(); j++)
     {
         LayoutComponent* lc = layoutComponentVector.at(j); //iterator through the Layout Components
+
+        ///ONLY FOR TESTING!!!!!!
 
         // No need to check what kind of component I have in the pointer! :-)
         newScore += lc->getComponentWeight();
