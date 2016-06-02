@@ -81,38 +81,9 @@ public:
      */
     void addComponent(LayoutComponent* component)
     {
-        if (dynamic_cast<LayoutComponent_RoadState* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component roadStateComponent with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
-        if (dynamic_cast<LayoutComponent_RoadLane* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component roadLaneComponent with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
-        if (dynamic_cast<LayoutComponent_OSMDistance* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component LayoutComponent_OSMDistance with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
+        ROS_DEBUG_STREAM("Adding Component of type " << typeid(*component).name() << " with componentID: " << component->getComponentId());
+        this->particle_components.push_back(component);
     }
-
-//    /**
-//     * Remove the selected component from the particle
-//     * @param component
-//     */
-//    void removeComponent(LayoutComponent component){
-//      this->LayoutComponents.erase(component);
-//
-//
-//      #include <algorithm>
-//      std::vector<int>::iterator position = std::find(vector.begin(), vector.end(), 8);
-//      if (position != vector.end()) // == vector.end() means the element was not found
-//          myVector.erase(position);
-//  }
-
-
 
     void particlePoseEstimation(MeasurementModel *odometry, double deltaTimerTime = 0.0f, double deltaOdomTime = 0.0f);
 
