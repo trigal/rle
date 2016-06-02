@@ -81,21 +81,8 @@ public:
      */
     void addComponent(LayoutComponent* component)
     {
-        if (dynamic_cast<LayoutComponent_RoadState* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component roadStateComponent with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
-        if (dynamic_cast<LayoutComponent_RoadLane* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component roadLaneComponent with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
-        if (dynamic_cast<LayoutComponent_OSMDistance* >(component))
-        {
-            ROS_DEBUG_STREAM("Adding Component LayoutComponent_OSMDistance with componentID: " << component->getComponentId());
-            this->particle_components.push_back(component);
-        }
+        ROS_DEBUG_STREAM("Adding Component of type " << typeid(*component).name() << " with componentID: " << component->getComponentId());
+        this->particle_components.push_back(component);
     }
 
 //    /**
@@ -128,7 +115,7 @@ public:
      */
     template <typename LayoutComponentType> unsigned int clearLayoutComponentType()
     {
-        int deleted=0;
+        int deleted = 0;
         //for like a while...
         for (vector<LayoutComponent*>::iterator it = particle_components.begin(); it != particle_components.end(); )
         {
