@@ -31,7 +31,6 @@ class Utils
 {
 
 public:
-
     struct Coordinates
     {
         float latitude;
@@ -159,7 +158,6 @@ public:
     ///
     static double angle_diff(double a, double b);
 
-    static tf::Stamped<tf::Pose> toGlobalFrame(Vector3d p_state);
 };
 
 

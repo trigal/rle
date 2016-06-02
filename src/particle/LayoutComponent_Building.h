@@ -23,13 +23,47 @@ class LayoutComponent_Building : public LayoutComponent
 {
 public:
 
+    tf::Stamped<tf::Pose> stateToGlobalFrame()
+    {
+        // Get particle state
+        Vector3d p_state = this->getComponentState();
+        geometry_msgs::PoseStamped pose_local_map_frame;
+        pose_local_map_frame.header.frame_id = "local_map";
+        pose_local_map_frame.header.stamp = ros::Time::now();
+        pose_local_map_frame.pose.position.x = p_state(0);
+        pose_local_map_frame.pose.position.y =  p_state(1);
+        pose_local_map_frame.pose.position.z =  p_state(2);
+
+        tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
+        tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
+
+        tf_pose_map_frame.setOrigin(tf::Vector3(0, 0, 0));
+        tf_pose_map_frame.setRotation(tf::createIdentityQuaternion());
+
+        // Transform pose from "local_map" to "map"
+        try
+        {
+            tf_listener_.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_ERROR("%s", ex.what());
+            ROS_INFO_STREAM("if(!LayoutManager::first_run){ if(config.particles_number > num_particles)");
+            ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+            return tf_pose_map_frame;
+        }
+
+        return tf_pose_map_frame;
+    }
+
+
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
     void calculateComponentScore()
     {
         cout << "Calculating weight of BUILDING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
-        tf::Stamped<tf::Pose> current_global_pose = Utils::toGlobalFrame(this->getComponentState());
+        tf::Stamped<tf::Pose> current_global_pose = stateToGlobalFrame();
         Utils::Coordinates latlon = Utils::ecef2lla(current_global_pose.getOrigin().x() , current_global_pose.getOrigin().y(), current_global_pose.getOrigin().z());
         get_near_buildings_server_.request.latitude = latlon.latitude;
         get_near_buildings_server_.request.longitude = latlon.longitude;
@@ -146,7 +180,7 @@ private:
     double osm_map_radius_;
     boost::shared_ptr<std::vector<edge>> edges_;
     double scale_factor, mu_dist, mu_angle, sigma_dist, sigma_angle, weight_angle, weight_dist;
-
+    tf::TransformListener tf_listener_;
     struct
     {
         double x;
