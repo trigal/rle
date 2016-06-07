@@ -10,13 +10,13 @@ struct edge
     double_t d;
     double_t length;
 
-    edge(geometry_msgs::Point _A, geometry_msgs::Point _B, Particle& obs)
+    edge(geometry_msgs::Point _A, geometry_msgs::Point _B, tf::Stamped<tf::Pose> obsPose)
     {
         A = Eigen::Vector3d(_A.x, _A.y, _A.z);
         B = Eigen::Vector3d(_B.x, _B.y, _B.z);
 
         Eigen::Affine3d TRASL = Eigen::Affine3d::Identity();
-        TRASL.translation() = obs.getParticleState()._pose;
+        TRASL.translation() << -obsPose.getOrigin().x(), -obsPose.getOrigin().y(), 0;
 
         A = TRASL * A;
         B = TRASL * B;
@@ -26,7 +26,8 @@ struct edge
                                    0.5 * A[2] + 0.5 * B[2]);
 
         Eigen::Affine3d ROT = Eigen::Affine3d::Identity();
-        ROT.rotate (obs.getParticleState()._rotation);
+        double theta = obsPose.getRotation().getAngle();
+        ROT.rotate (Eigen::AngleAxisd (-theta, Eigen::Vector3d::UnitZ()));
 
         A = ROT * A;
         B = ROT * B;

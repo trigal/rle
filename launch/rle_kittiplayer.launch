@@ -63,13 +63,12 @@
              /stereo_odometer/odometry 2011_10_03_drive_0042_sync as arguments and
              disable the following node from the launcher -->
         <!-- Launch ROAD LAYOUT ESTIMATION node-->
-       <!-- <node
+        <node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
 		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
         />
-        -->
         <!-- VISUALIZATION STUFF -->
             <!-- Launch RViz-->
             <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d $(arg rviz)" output="screen">

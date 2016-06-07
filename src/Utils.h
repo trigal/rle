@@ -62,6 +62,8 @@ public:
 
     static int lanesFromLines(int goodLines);
 
+    static Utils::Coordinates xy2latlon_helper(double x, double y, double utmz, bool southern);
+
     ///
     /// \brief addOffsetToVectorXd
     /// \param pose

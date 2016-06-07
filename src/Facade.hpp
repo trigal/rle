@@ -35,14 +35,14 @@ struct Facade
         centroid = pcl::PointXYZ(facade_msg.centroid.x, facade_msg.centroid.y, facade_msg.centroid.z);
     }
 
-    bool isClose(edge e, double scale_factor)
+    bool isClose(edge e, double scale_factor, double current_pose_x, double current_pose_y)
     {
         bool is_close = false;
         double min_dist = DBL_MAX;
         for (size_t n = 0; n < pcl->size(); n++)
         {
-            double dist = sqrt((pcl->at(n).x - e.centroid[0]) * (pcl->at(n).x - e.centroid[0]) +
-                               (pcl->at(n).y - e.centroid[1]) * (pcl->at(n).y - e.centroid[1]));
+            double dist = sqrt(((pcl->at(n).x) - e.centroid[0]) * ((pcl->at(n).x) - e.centroid[0]) +
+                               ((pcl->at(n).y) - e.centroid[1]) * ((pcl->at(n).y) - e.centroid[1]));
             if (dist < min_dist) min_dist = dist;
         }
 
@@ -53,13 +53,13 @@ struct Facade
         return is_close;
     }
 
-    void findCandidates(boost::shared_ptr<std::vector<edge>> _edges, double _scale_factor)
+    void findCandidates(boost::shared_ptr<std::vector<edge>> _edges, double _scale_factor, double current_pose_x, double current_pose_y)
     {
         for (size_t i = 0; i < _edges->size(); i++)
         {
             edge e = _edges->at(i);
 
-            if (this->isClose(e, _scale_factor))
+            if (this->isClose(e, _scale_factor, current_pose_x, current_pose_y))
             {
                 candidates.push_back(edge(e));
                 num_candidates++;

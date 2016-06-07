@@ -26,13 +26,20 @@ public:
     tf::Stamped<tf::Pose> stateToGlobalFrame()
     {
         // Get particle state
-        Vector3d p_state = this->getComponentState();
+        Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;
         geometry_msgs::PoseStamped pose_local_map_frame;
         pose_local_map_frame.header.frame_id = "local_map";
         pose_local_map_frame.header.stamp = ros::Time::now();
         pose_local_map_frame.pose.position.x = p_state(0);
         pose_local_map_frame.pose.position.y =  p_state(1);
         pose_local_map_frame.pose.position.z =  p_state(2);
+
+        //Porcata assurda. Funziona solo nel 2D, come tutto il resto
+        auto rotation = tf::createQuaternionFromYaw(this->getParticlePtr()->getParticleState().getRotation().angle());
+        pose_local_map_frame.pose.orientation.x = rotation.x();
+        pose_local_map_frame.pose.orientation.y = rotation.y();
+        pose_local_map_frame.pose.orientation.z = rotation.z();
+        pose_local_map_frame.pose.orientation.w = rotation.w();
 
         tf::Stamped<tf::Pose> tf_pose_map_frame, tf_pose_local_map_frame;
         tf::poseStampedMsgToTF(pose_local_map_frame, tf_pose_local_map_frame);
@@ -62,9 +69,9 @@ public:
      */
     void calculateComponentScore()
     {
-        cout << "Calculating weight of BUILDING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
+        ROS_DEBUG_STREAM("Calculating weight of [BUILDING] component ID: " << component_id << " that belongs to particle ID: " << particle_id);
         tf::Stamped<tf::Pose> current_global_pose = stateToGlobalFrame();
-        Utils::Coordinates latlon = Utils::ecef2lla(current_global_pose.getOrigin().x() , current_global_pose.getOrigin().y(), current_global_pose.getOrigin().z());
+        Utils::Coordinates latlon = Utils::xy2latlon_helper(current_global_pose.getOrigin().x() , current_global_pose.getOrigin().y(), 32, false);
         get_near_buildings_server_.request.latitude = latlon.latitude;
         get_near_buildings_server_.request.longitude = latlon.longitude;
         get_near_buildings_server_.request.radius = osm_map_radius_;
@@ -75,7 +82,7 @@ public:
         {
             for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
             {
-                edges_->push_back(edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], *(this->getParticlePtr())));
+                edges_->push_back(edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame()));
             }
         }
 
@@ -89,7 +96,7 @@ public:
             {
                 shared_ptr<road_layout_estimation::Facade> f = facades_.at(i);
 
-                f->findCandidates(edges_, scale_factor);
+                f->findCandidates(edges_, scale_factor, current_global_pose.getOrigin().x(), current_global_pose.getOrigin().y() );
                 f->calculateScore(mu_dist, mu_angle, sigma_dist, sigma_angle, weight_dist, weight_angle);
 
                 tot_score += f->score * f->pcl->size();
@@ -99,10 +106,10 @@ public:
         }
         else
         {
-            ROS_INFO_STREAM("NO DETECTION: propagating previous score");
+            ROS_DEBUG_STREAM("[BUILDING] NO DETECTION: propagating previous score");
         }
 
-        ROS_INFO_STREAM("Actual score is " << component_weight);
+        ROS_DEBUG_STREAM("[BUILDING] Actual score is " << component_weight);
     }
 
     /**
@@ -189,17 +196,17 @@ private:
 
     void init()
     {
-        facades_;
         edges_.reset(new std::vector<edge>);
         get_near_buildings_client_ = node_handle_.serviceClient<ira_open_street_map::getNearBuildings>("/ira_open_street_map/getNearBuildings");
         get_near_buildings_client_.waitForExistence();
-        node_handle_.param("score/scale_factor", scale_factor, 10.0);
+        node_handle_.param("score/scale_factor", scale_factor, 50.0);
         node_handle_.param("score/mu_dist", mu_dist, 0.0);
         node_handle_.param("score/mu_angle", mu_angle, 0.0);
         node_handle_.param("score/sigma_dist", sigma_dist, 2.0);
         node_handle_.param("score/sigma_angle", sigma_angle, 10.0);
         node_handle_.param("score/weight_dist", weight_dist, 0.6);
         node_handle_.param("score/weight_angle", weight_angle, 0.4);
+        node_handle_.param("get_map/radius", osm_map_radius_, 35.0);
     }
 
 };
