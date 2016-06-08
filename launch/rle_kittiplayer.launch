@@ -12,16 +12,16 @@
         <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>
 
         <!--State6DOF ***ABSOLUTE***-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.025" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0" />
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0" />
+        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0" />
 
         <!--#State6DOF ***PERCENTAGE***-->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.05" />
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" />
-        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0" />
+        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0" />
 
 
         <!-- ARGUMENTS -->
@@ -48,7 +48,7 @@
                 <node pkg="tf" type="static_transform_publisher" name="dummy_transform"
                         args="0 0 0 0 0 0 base_link visual_odometry_camera_frame 50" />
 			
-        <!-- OSM QUERY NODE
+        <!-- OSM QUERY NODE -->
             <node
                     pkg="ira_open_street_map"
                     type="osm_query_node"
@@ -56,7 +56,7 @@
                     output="screen"
                     args="$(arg map)"
                     required="true"
-            />-->
+            />
 
 
         <!-- to debug in QtCreator, run the road_layout_estimation node with

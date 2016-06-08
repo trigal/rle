@@ -4,6 +4,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/common/transforms.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <building_detection/Facade.h>
@@ -89,7 +90,7 @@ public:
         //Calculate score
         double tot_score = 0.0;
         double norm_term = 0.0;
-
+        facades_cloud_->clear();
         if (facades_.size() > 0)
         {
             for (size_t i = 0; i < facades_.size(); i++)
@@ -101,8 +102,21 @@ public:
 
                 tot_score += f->score * f->pcl->size();
                 norm_term += f->pcl->size();
+
+                *facades_cloud_ += *(f->pcl);
             }
             component_weight = tot_score / norm_term;
+            Eigen::Affine3f particle_transform;
+            particle_transform.translate(Eigen::Vector3f(current_global_pose.getOrigin().x(), current_global_pose.getOrigin().y(), current_global_pose.getOrigin().z()));
+            particle_transform.prerotate(Eigen::Quaternionf(current_global_pose.getRotation()[0], current_global_pose.getRotation()[1], current_global_pose.getRotation()[2], current_global_pose.getRotation()[3]));
+            pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+            sensor_msgs::PointCloud2 tmp_facades_cloud;
+            pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
+            tmp_facades_cloud.height = facades_cloud_->height;
+            tmp_facades_cloud.width = facades_cloud_->width;
+            tmp_facades_cloud.header.frame_id = "local_map";
+            tmp_facades_cloud.header.stamp = ros::Time::now();
+            cloud_pub_.publish(tmp_facades_cloud);
         }
         else
         {
@@ -188,6 +202,8 @@ private:
     boost::shared_ptr<std::vector<edge>> edges_;
     double scale_factor, mu_dist, mu_angle, sigma_dist, sigma_angle, weight_angle, weight_dist;
     tf::TransformListener tf_listener_;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
+    ros::Publisher cloud_pub_;
     struct
     {
         double x;
@@ -197,6 +213,8 @@ private:
     void init()
     {
         edges_.reset(new std::vector<edge>);
+        facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        cloud_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>("facades_cloud", 1);
         get_near_buildings_client_ = node_handle_.serviceClient<ira_open_street_map::getNearBuildings>("/ira_open_street_map/getNearBuildings");
         get_near_buildings_client_.waitForExistence();
         node_handle_.param("score/scale_factor", scale_factor, 50.0);
