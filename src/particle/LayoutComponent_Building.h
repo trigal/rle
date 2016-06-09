@@ -24,6 +24,12 @@ class LayoutComponent_Building : public LayoutComponent
 {
 public:
 
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_RoadLane(*this);
+        return cloned;
+    }
+
     tf::Stamped<tf::Pose> stateToGlobalFrame()
     {
         // Get particle state
@@ -105,7 +111,7 @@ public:
 
                 *facades_cloud_ += *(f->pcl);
             }
-            component_weight = tot_score / norm_term;
+            component_weight = tot_score / norm_term * getAlphas();
 
             Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
             Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;

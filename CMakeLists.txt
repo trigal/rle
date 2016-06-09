@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
-SET (CMAKE_BUILD_TYPE Debug)
-SET (ROS_BUILD_TYPE Debug)
+#SET (CMAKE_BUILD_TYPE Debug)
+#SET (ROS_BUILD_TYPE Debug)
 #SET (CMAKE_BUILD_TYPE Release)
 #SET (ROS_BUILD_TYPE Release)
-SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
+#SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
+SET (CMAKE_CXX_FLAGS "-std=c++11")
 
 
 ## Find catkin macros and libraries

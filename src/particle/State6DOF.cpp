@@ -163,3 +163,40 @@ void State6DOF::setOrthogonalSpeedRotation()
     this->_rotational_velocity.axis()(1) = 0;
     this->_rotational_velocity.axis()(2) = 1;
 }
+
+/**
+ * @brief State6DOF::getRoll
+ * @return La componente Roll dell'orientamento rispetto al sistema di riferimento localmap
+ */
+double State6DOF::getRoll()
+{
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[0];
+    if (rotation < 0)
+        rotation += 2 * M_PI;
+    return rotation;
+}
+
+/**
+ * @brief State6DOF::getPitch
+ * @return La componente Pitch dell'orientamento rispetto al sistema di riferimento localmap
+ */
+double State6DOF::getPitch()
+{
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[1];
+    if (rotation < 0)
+        rotation += 2 * M_PI;
+    return rotation;
+}
+
+/**
+ * @brief State6DOF::getYaw
+ * @return La componente Yaw dell'orientamento rispetto al sistema di riferimento localmap
+ */
+double State6DOF::getYaw()
+{
+    double rotation = _rotation.toRotationMatrix().eulerAngles(0, 1, 2)[2];
+    if (rotation < 0)
+        rotation += 2 * M_PI;
+    return rotation;
+}
+

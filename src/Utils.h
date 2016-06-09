@@ -148,7 +148,10 @@ public:
     ///
     /// Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
     ///
-    static double normalize_angle(double z);
+    static inline double normalize_angle(double z)
+    {
+        return atan2(sin(z), cos(z));
+    }
 
     ///
     /// \brief angle_diff

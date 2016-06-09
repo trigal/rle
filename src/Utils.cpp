@@ -764,18 +764,6 @@ inline double Utils::deg2rad (double alpha)
     return (alpha * 0.017453293);
 }
 
-/**
- * @brief Utils::normalize_angle
- * @param z the angle to normalize
- * @return an equivalent angle in the range (-Pi, Pi]
- *
- * Computes the normalized value of an angle, which is the equivalent angle in the range ( -Pi, Pi ].
- */
-inline double Utils::normalize_angle(double z)
-{
-    return atan2(sin(z), cos(z));
-}
-
 ///
 /// \brief Utils::angle_diff
 /// \param a the angle of one vector

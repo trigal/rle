@@ -2719,7 +2719,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                         {
                             if ( *score_itr >= num)
                             {
-                                shared_ptr<Particle> temp_part = current_layout_shared.at(particle_counter);
+                                shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(particle_counter))); //#586
                                 temp_part->setId(k);
                                 temp_part->setParticleScore(1.0f);
                                 //                            stat_out_file << temp_part.getId() << "\t";
@@ -2735,7 +2735,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                     {
                         // UNIFORM RESAMPLER
                         int temp_rand = floor(uniform_rand3(rng));
-                        shared_ptr<Particle> temp_part = current_layout_shared.at(temp_rand);
+                        shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(temp_rand)));
                         temp_part->setId(k);
                         temp_part->setParticleScore(1.0f);
                         new_current_layout_shared.push_back(temp_part);

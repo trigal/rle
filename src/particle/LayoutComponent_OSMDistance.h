@@ -95,6 +95,20 @@ public:
      * @brief LayoutComponent_RoadLane
      * Default Constructor
      */
+
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_OSMDistance(particle_id, component_id, distance_to_closest_segment,
+                                                                  final_angle_diff_score_component, street_distribution_sigma,
+                                                                  angle_distribution_sigma, street_distribution_alpha, angle_distribution_alpha);
+
+        dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->pose_diff_score_component = this->pose_diff_score_component;
+        dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->first_quaternion_diff = this->first_quaternion_diff;
+        dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->second_quaternion_diff = this->second_quaternion_diff;
+        dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->snapParticle_serviceMessage = this->snapParticle_serviceMessage;
+        return cloned;
+    }
+
     LayoutComponent_OSMDistance(const unsigned int particle_id,
                                 const unsigned int component_id,
                                 const double euclideanDistanceMeters,
@@ -103,7 +117,7 @@ public:
                                 const double angle_distribution_sigma,
                                 const double street_distribution_weight,
                                 const double angle_distribution_weight
-                                )
+                               )
     {
         ROS_INFO_STREAM(__PRETTY_FUNCTION__);
         this->particle_id                       = particle_id;
