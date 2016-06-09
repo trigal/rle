@@ -197,6 +197,7 @@ public:
         component_cov = component.component_cov;
         init();
         facades_cloud_ = component.facades_cloud_;
+        *edges_ = *(component.edges_);
     }
 
     vector<shared_ptr<road_layout_estimation::Facade>>* getFacades()
