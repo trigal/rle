@@ -106,10 +106,13 @@ public:
                 *facades_cloud_ += *(f->pcl);
             }
             component_weight = tot_score / norm_term;
-            Eigen::Affine3f particle_transform;
-            particle_transform.translate(Eigen::Vector3f(current_global_pose.getOrigin().x(), current_global_pose.getOrigin().y(), current_global_pose.getOrigin().z()));
-            particle_transform.prerotate(Eigen::Quaternionf(current_global_pose.getRotation()[0], current_global_pose.getRotation()[1], current_global_pose.getRotation()[2], current_global_pose.getRotation()[3]));
+
+            Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
+            Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;
+            particle_transform.translation() << p_state(0), p_state(1), 0.;
+            particle_transform.rotate(this->getParticlePtr()->getParticleState().getRotation());
             pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+
             sensor_msgs::PointCloud2 tmp_facades_cloud;
             pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
             tmp_facades_cloud.height = facades_cloud_->height;
