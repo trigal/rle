@@ -24,12 +24,6 @@ class LayoutComponent_Building : public LayoutComponent
 {
 public:
 
-    LayoutComponent* clone()
-    {
-        LayoutComponent* cloned = new LayoutComponent_RoadLane(*this);
-        return cloned;
-    }
-
     tf::Stamped<tf::Pose> stateToGlobalFrame()
     {
         // Get particle state
@@ -167,6 +161,13 @@ public:
      * @param c_state
      * @param c_cov
      */
+
+    LayoutComponent* clone()
+    {
+        LayoutComponent* cloned = new LayoutComponent_Building(*this);
+        return cloned;
+    }
+
     LayoutComponent_Building(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov)
     {
         particle_id = p_id;
@@ -187,14 +188,15 @@ public:
         init();
     }
 
-    ~LayoutComponent_Building()
+    LayoutComponent_Building(LayoutComponent_Building& component)
     {
-        particle_id = 0;
-        component_id = 0;
-        component_weight = 0;
-        component_state.resize(0);
-        component_cov.resize(0, 0);
+        particle_id = component.particle_id;
+        component_id = component.component_id;
+        component_weight = component.component_weight;
+        component_state = component.component_state;
+        component_cov = component.component_cov;
         init();
+        facades_cloud_ = component.facades_cloud_;
     }
 
     vector<shared_ptr<road_layout_estimation::Facade>>* getFacades()
