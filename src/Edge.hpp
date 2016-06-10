@@ -27,7 +27,10 @@ struct edge
 
         Eigen::Affine3d ROT = Eigen::Affine3d::Identity();
         double theta = obsPose.getRotation().getAngle();
-        ROT.rotate (Eigen::AngleAxisd (-theta, Eigen::Vector3d::UnitZ()));
+
+        ///Senza il meno sembra avere un senso
+        //ROT.rotate (Eigen::AngleAxisd (-theta, Eigen::Vector3d::UnitZ()));
+        ROT.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
 
         A = ROT * A;
         B = ROT * B;

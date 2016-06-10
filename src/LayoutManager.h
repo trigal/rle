@@ -26,6 +26,7 @@
 #include <ros/package.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf/transform_listener.h>
+//#include <tf_conversions/tf_eigen.h>
 #include "visualization_msgs/Marker.h"
 #include <visualization_msgs/MarkerArray.h>
 
@@ -134,6 +135,12 @@ using std::vector;
 class LayoutManager
 {
 public:
+
+    ///DEBUG!!!
+    tf::Stamped<tf::Pose> GPS_RTK_LOCAL_POSE;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
+    ros::Publisher facades_pub;
+
     MeasurementModel* measurement_model; ///< our Measurment Model created in the CLASS CONSTRUCTOR
     MotionModel default_mtn_model;       ///< default motion model applied to new particles TODO: allineare a measurement_model
     static double deltaOdomTime;         ///< time between current message and last arrived message (static should be unnecessary here)

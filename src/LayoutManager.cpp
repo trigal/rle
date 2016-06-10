@@ -147,6 +147,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LayoutManager::publisher_average_pose               = node_handler_parameter.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
 
     LayoutManager::publisher_debugInformation           = node_handler_parameter.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
+    LayoutManager::facades_pub                          = node_handler_parameter.advertise<sensor_msgs::PointCloud2>              ("/facades_cloud_gps", 1);
 
     // Init ROS service clients
     latlon_2_xy_client                  = node_handler_parameter.serviceClient<ira_open_street_map::latlon_2_xy>                  ("/ira_open_street_map/latlon_2_xy");
@@ -1306,12 +1307,29 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 void LayoutManager::buildingsCallback(const building_detection::FacadesList &facades)
 {
     std::vector<shared_ptr<road_layout_estimation::Facade>> facades_list;
+    facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
     for (auto facade_msg : facades.facades)
     {
         shared_ptr<road_layout_estimation::Facade> facade;
         facade.reset(new road_layout_estimation::Facade(facade_msg));
         facades_list.push_back(facade);
+        *facades_cloud_ += *(facade->pcl);
+
     }
+
+    Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
+    particle_transform.translation() << GPS_RTK_LOCAL_POSE.getOrigin().getX(), GPS_RTK_LOCAL_POSE.getOrigin().getY(), 0.;
+    particle_transform.rotate(Eigen::Quaterniond(GPS_RTK_LOCAL_POSE.getRotation().getW(), GPS_RTK_LOCAL_POSE.getRotation().getX(), GPS_RTK_LOCAL_POSE.getRotation().getY(), GPS_RTK_LOCAL_POSE.getRotation().getZ()));
+    //tf::transformTFToEigen(GPS_RTK_LOCAL_POSE, particle_transform);
+    pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+
+    sensor_msgs::PointCloud2 tmp_facades_cloud;
+    pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
+    tmp_facades_cloud.height = facades_cloud_->height;
+    tmp_facades_cloud.width = facades_cloud_->width;
+    tmp_facades_cloud.header.frame_id = "local_map";
+    tmp_facades_cloud.header.stamp = ros::Time::now();
+    facades_pub.publish(tmp_facades_cloud);
 
     // Iterate through all particles
     for ( auto particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
@@ -1504,7 +1522,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     ///////////////////////////////////////////////////////////////////////////
     // CREATING STATISTICS FOR RLE OUTPUT
 
-    bool enabled_statistics = false;
+    bool enabled_statistics = true;
     if (enabled_statistics)
     {
         double average_distance = 0.0f;
@@ -1560,14 +1578,18 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        cout << "/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
-        RTK.open(((string)("/media/limongi/Volume/KITTI_RAW_DATASET/BAGS/" + bagfile.substr(bagfile.find_last_of("_") + 1, 2) + "/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
+        cout << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
             ros::shutdown();
         }
         RTK >> from_latitude >> from_longitude >> from_altitude;
+
+        double roll_gps, pitch_gps, yaw_gps;
+        RTK >> roll_gps >> pitch_gps >> yaw_gps;
+
         cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
         RTK.close();
 
@@ -1593,13 +1615,15 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             cout << std::setprecision(16) << response_latlon2xy;
             tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
             RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x, response_latlon2xy.y, 0));
-            RTK_map_frame.setRotation(tf::createIdentityQuaternion());
+            //RTK_map_frame.setRotation(tf::createIdentityQuaternion());
+            RTK_map_frame.setRotation(tf::createQuaternionFromRPY(roll_gps, pitch_gps, yaw_gps));
             RTK_map_frame.frame_id_ = "/map";
 
             // Transform pose from "map" to "local_map"
             try
             {
                 tf_listener.transformPose("local_map", ros::Time(0), RTK_map_frame, "map", RTK_local_map_frame);
+                GPS_RTK_LOCAL_POSE = RTK_local_map_frame;
             }
             catch (tf::TransformException &ex)
             {
@@ -1632,12 +1656,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // Push back line_list
             publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-            RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+            /*RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                              RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                              0 << " " << 0 << " " << 0 << " " <<
                              0 << " " << 0 << " " << 0 << " " << 0 << " " <<
                              tot_score / current_layout_shared.size() << " " <<
-                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";*/
 
 
             //        cout  << msg.header.seq << " " << setprecision(16) <<
@@ -1689,13 +1713,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
-            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                         roll << " " << pitch << " " << yaw << " " <<
-                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                         tot_score / current_layout_shared.size() << " " <<
-                         to_lat << " " << to_lon << " " <<
-                         average_distance << "\n";
+            /* RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+                          average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                          roll << " " << pitch << " " << yaw << " " <<
+                          average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                          tot_score / current_layout_shared.size() << " " <<
+                          to_lat << " " << to_lon << " " <<
+                          average_distance << "\n";*/
 
             cout << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                  average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
@@ -1725,11 +1749,11 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
             tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
 
-            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+            /*LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
                              VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
                              roll << " " << pitch << " " << yaw << " " <<
                              VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
-                             tot_score / current_layout_shared.size() << "\n";
+                             tot_score / current_layout_shared.size() << "\n";*/
         }
         catch (tf::TransformException &ex)
         {

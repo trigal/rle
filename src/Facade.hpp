@@ -74,10 +74,15 @@ struct Facade
     {
         double max_score = 0.0;
 
+        ROS_DEBUG_STREAM("[BUILDING] Candidate Size: " << candidates.size());
+
         for (size_t i = 0; i < candidates.size(); i++)
         {
             scores_dist[i] = scoreDist(candidates[i], _mu_dist, _sigma_dist);
             scores_angle[i] = scoreAngle(candidates[i], _mu_angle, _sigma_angle);
+
+            //scores_angle[i] = abs(scores_angle[i]);
+
             scores[i] = _weight_dist * scores_dist[i] + _weight_angle * scores_dist[i];
 
             if (scores[i] > max_score)
@@ -86,6 +91,9 @@ struct Facade
                 best_match = i;
             }
         }
+
+        ROS_DEBUG_STREAM("[BUILDING] Angle Diff: " << scores_angle[best_match]);
+        ROS_DEBUG_STREAM("[BUILDING] Avg Distance: " << scores_dist[best_match]);
 
         score = max_score;
     }
@@ -96,7 +104,10 @@ struct Facade
 
         double angle = acos(abc.dot(candidate.abc) / (abc.norm() * candidate.abc.norm()));
 
+        //ROS_DEBUG_STREAM("[BUILDING] Angle Diff: "<< angle);
+
         return pdf(nd, angle) / pdf(nd, mu);
+        //return angle;
     }
 
     double scoreDist(edge candidate, double mu, double sigma)
@@ -114,7 +125,10 @@ struct Facade
         }
         avg_dist /= pcl->size();
 
+        //ROS_DEBUG_STREAM("[BUILDING] Avg Distance: "<<avg_dist);
+
         return pdf(nd, avg_dist) / pdf(nd, mu);
+        //return avg_dist;
     }
 
 

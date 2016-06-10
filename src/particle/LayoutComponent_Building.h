@@ -9,6 +9,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <building_detection/Facade.h>
 #include <building_detection/FacadesList.h>
+#include "visualization_msgs/Marker.h"
+#include <visualization_msgs/MarkerArray.h>
 #include "../Facade.hpp"
 #include "../Edge.hpp"
 #include "LayoutComponent.h"
@@ -36,7 +38,10 @@ public:
         pose_local_map_frame.pose.position.z =  p_state(2);
 
         //Porcata assurda. Funziona solo nel 2D, come tutto il resto
-        auto rotation = tf::createQuaternionFromYaw(this->getParticlePtr()->getParticleState().getRotation().angle());
+        //auto rotation = tf::createQuaternionFromYaw(this->getParticlePtr()->getParticleState().getRotation().angle());
+        auto rotation = tf::createQuaternionFromRPY(this->getParticlePtr()->getParticleState().getRoll(),
+                                                    this->getParticlePtr()->getParticleState().getPitch(),
+                                                    this->getParticlePtr()->getParticleState().getYaw());
         pose_local_map_frame.pose.orientation.x = rotation.x();
         pose_local_map_frame.pose.orientation.y = rotation.y();
         pose_local_map_frame.pose.orientation.z = rotation.z();
@@ -68,6 +73,33 @@ public:
     /**
      * Implementation of pure virtual method 'calculateWeight'
      */
+
+    visualization_msgs::Marker publish_box(double x, double y, int id)
+    {
+        visualization_msgs::Marker m1;
+        uint32_t shape = visualization_msgs::Marker::SPHERE;
+        m1.header.frame_id = "local_map";
+        m1.id = id;
+        m1.type = shape;
+        m1.action = visualization_msgs::Marker::ADD;
+        m1.pose.position.x = x;
+        m1.pose.position.y = y;
+        m1.pose.position.z = 0;
+        m1.pose.orientation.x = 0.0;
+        m1.pose.orientation.y = 0.0;
+        m1.pose.orientation.z = 0.0;
+        m1.pose.orientation.w = 1.0;
+        m1.scale.x = 1.;
+        m1.scale.y = 1.;
+        m1.scale.z = 1.;
+        m1.color.r = 0.0f;
+        m1.color.g = 0.0f;
+        m1.color.b = 1.0f;
+        m1.color.a = 1.0f;
+        m1.header.stamp = ros::Time::now();
+        return m1;
+    }
+
     void calculateComponentScore()
     {
         ROS_DEBUG_STREAM("Calculating weight of [BUILDING] component ID: " << component_id << " that belongs to particle ID: " << particle_id);
@@ -75,16 +107,85 @@ public:
         Utils::Coordinates latlon = Utils::xy2latlon_helper(current_global_pose.getOrigin().x() , current_global_pose.getOrigin().y(), 32, false);
         get_near_buildings_server_.request.latitude = latlon.latitude;
         get_near_buildings_server_.request.longitude = latlon.longitude;
+        //get_near_buildings_server_.request.theta = this->getParticlePtr()->getParticleState().getYaw();
+        get_near_buildings_server_.request.theta = 0.;
         get_near_buildings_server_.request.radius = osm_map_radius_;
 
+        ROS_DEBUG_STREAM("[BUILDING] pose: " << this->stateToGlobalFrame().getOrigin().getX() << " , " << this->stateToGlobalFrame().getOrigin().getY());
+
         edges_->clear();
+        visualization_msgs::MarkerArray marker_array;
+        marker_array.markers.clear();
+        uint32_t shape = visualization_msgs::Marker::SPHERE;
+
         //Get OSM map
         if (get_near_buildings_client_.call(get_near_buildings_server_))
         {
+            /*geometry_msgs::Point p1, p2, p3, p4;
+            p1.x = get_near_buildings_server_.response.p1x;
+            p1.y = get_near_buildings_server_.response.p1y;
+            p2.x = get_near_buildings_server_.response.p2x;
+            p2.y = get_near_buildings_server_.response.p2y;
+            p3.x = get_near_buildings_server_.response.p3x;
+            p3.y = get_near_buildings_server_.response.p3y;
+            p4.x = get_near_buildings_server_.response.p4x;
+            p4.y = get_near_buildings_server_.response.p4y;
+            edge bound_edge(p1, p2, this->stateToGlobalFrame());
+            marker_array.markers.push_back(publish_box(bound_edge.A[0], bound_edge.A[1], 0));
+            marker_array.markers.push_back(publish_box(bound_edge.B[0], bound_edge.B[1], 1));
+            edge bound_edge2(p3, p4, this->stateToGlobalFrame());
+            marker_array.markers.push_back(publish_box(bound_edge2.A[0], bound_edge2.A[1], 2));
+            marker_array.markers.push_back(publish_box(bound_edge2.B[0], bound_edge2.B[1], 3));*/
             for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
             {
-                edges_->push_back(edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame()));
+                edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
+                edges_->push_back(temp_edge);
+                visualization_msgs::Marker tmp_marker1;
+                tmp_marker1.header.frame_id = "local_map";
+                tmp_marker1.id = i + 4;
+                tmp_marker1.type = shape;
+                tmp_marker1.action = visualization_msgs::Marker::ADD;
+                tmp_marker1.pose.position.x = temp_edge.A[0];
+                tmp_marker1.pose.position.y = temp_edge.A[1];
+                tmp_marker1.pose.position.z = 0;
+                tmp_marker1.pose.orientation.x = 0.0;
+                tmp_marker1.pose.orientation.y = 0.0;
+                tmp_marker1.pose.orientation.z = 0.0;
+                tmp_marker1.pose.orientation.w = 1.0;
+                tmp_marker1.scale.x = 1.;
+                tmp_marker1.scale.y = 1.;
+                tmp_marker1.scale.z = 1.;
+                tmp_marker1.color.r = 1.0f;
+                tmp_marker1.color.g = 1.0f;
+                tmp_marker1.color.b = 1.0f;
+                tmp_marker1.color.a = 1.0f;
+                tmp_marker1.header.stamp = ros::Time::now();
+                marker_array.markers.push_back(tmp_marker1);
+
+                visualization_msgs::Marker tmp_marker2;
+                tmp_marker2.header.frame_id = "local_map";
+                tmp_marker2.id = i + 5;
+                tmp_marker2.type = shape;
+                tmp_marker2.action = visualization_msgs::Marker::ADD;
+                tmp_marker2.pose.position.x = temp_edge.B[0];
+                tmp_marker2.pose.position.y = temp_edge.B[1];
+                tmp_marker2.pose.position.z = 0;
+                tmp_marker2.pose.orientation.x = 0.0;
+                tmp_marker2.pose.orientation.y = 0.0;
+                tmp_marker2.pose.orientation.z = 0.0;
+                tmp_marker2.pose.orientation.w = 1.0;
+                tmp_marker2.scale.x = 1.;
+                tmp_marker2.scale.y = 1.;
+                tmp_marker2.scale.z = 1.;
+                tmp_marker2.color.r = 0.5f;
+                tmp_marker2.color.g = 0.5f;
+                tmp_marker2.color.b = 0.5f;
+                tmp_marker2.color.a = 1.0f;
+                tmp_marker2.header.stamp = ros::Time::now();
+                marker_array.markers.push_back(tmp_marker2);
+                //edge_pub_.publish(tmp_marker1);
             }
+            edge_pub_.publish(marker_array);
         }
 
         //Calculate score
@@ -107,11 +208,11 @@ public:
             }
             component_weight = tot_score / norm_term * getAlphas();
 
-            Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
+            /*Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
             Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;
             particle_transform.translation() << p_state(0), p_state(1), 0.;
             particle_transform.rotate(this->getParticlePtr()->getParticleState().getRotation());
-            pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+            pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);*/
 
             sensor_msgs::PointCloud2 tmp_facades_cloud;
             pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
@@ -151,7 +252,7 @@ public:
      */
     double getAlphas()
     {
-        return 0;
+        return 5;
     }
 
     /**
@@ -216,6 +317,7 @@ private:
     tf::TransformListener tf_listener_;
     pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
     ros::Publisher cloud_pub_;
+    ros::Publisher edge_pub_;
     struct
     {
         double x;
@@ -227,13 +329,14 @@ private:
         edges_.reset(new std::vector<edge>);
         facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
         cloud_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>("facades_cloud", 1);
+        edge_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("/edges", 1);
         get_near_buildings_client_ = node_handle_.serviceClient<ira_open_street_map::getNearBuildings>("/ira_open_street_map/getNearBuildings");
         get_near_buildings_client_.waitForExistence();
         node_handle_.param("score/scale_factor", scale_factor, 50.0);
         node_handle_.param("score/mu_dist", mu_dist, 0.0);
         node_handle_.param("score/mu_angle", mu_angle, 0.0);
-        node_handle_.param("score/sigma_dist", sigma_dist, 2.0);
-        node_handle_.param("score/sigma_angle", sigma_angle, 10.0);
+        node_handle_.param("score/sigma_dist", sigma_dist, 0.2);
+        node_handle_.param("score/sigma_angle", sigma_angle, 1.0);
         node_handle_.param("score/weight_dist", weight_dist, 0.6);
         node_handle_.param("score/weight_angle", weight_angle, 0.4);
         node_handle_.param("get_map/radius", osm_map_radius_, 35.0);
