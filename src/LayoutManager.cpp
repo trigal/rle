@@ -87,6 +87,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 
     this->bagfile = bagfile;
 
+    RLE_out_file.open("/home/cattaneod/RLE_distance.txt", ios::trunc);
+    RTK_GPS_out_file.open("/home/cattaneod/RTK_distance.txt", ios::trunc);
+
     // init motion model
     // mtn_model = new MotionModel(); TODO: perché qui è stato rimosso? ora dove è?
     // Augusto: è nella reconfigure_callback , appena rinominato come default_motion_model...
@@ -1319,19 +1322,22 @@ void LayoutManager::buildingsCallback(const building_detection::FacadesList &fac
 
     }
 
-    Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
-    particle_transform.translation() << GPS_RTK_LOCAL_POSE.getOrigin().getX(), GPS_RTK_LOCAL_POSE.getOrigin().getY(), 0.;
-    particle_transform.rotate(Eigen::Quaterniond(GPS_RTK_LOCAL_POSE.getRotation().getW(), GPS_RTK_LOCAL_POSE.getRotation().getX(), GPS_RTK_LOCAL_POSE.getRotation().getY(), GPS_RTK_LOCAL_POSE.getRotation().getZ()));
-    //tf::transformTFToEigen(GPS_RTK_LOCAL_POSE, particle_transform);
-    pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+    if (bestParticle)
+    {
+        Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
+        particle_transform.translation() << bestParticle->getParticleState().getPosition()[0],  bestParticle->getParticleState().getPosition()[1], 0.;
+        particle_transform.rotate(bestParticle->getParticleState().getRotation());
+        //tf::transformTFToEigen(GPS_RTK_LOCAL_POSE, particle_transform);
+        pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
 
-    sensor_msgs::PointCloud2 tmp_facades_cloud;
-    pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
-    tmp_facades_cloud.height = facades_cloud_->height;
-    tmp_facades_cloud.width = facades_cloud_->width;
-    tmp_facades_cloud.header.frame_id = "local_map";
-    tmp_facades_cloud.header.stamp = ros::Time::now();
-    facades_pub.publish(tmp_facades_cloud);
+        sensor_msgs::PointCloud2 tmp_facades_cloud;
+        pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
+        tmp_facades_cloud.height = facades_cloud_->height;
+        tmp_facades_cloud.width = facades_cloud_->width;
+        tmp_facades_cloud.header.frame_id = "local_map";
+        tmp_facades_cloud.header.stamp = ros::Time::now();
+        facades_pub.publish(tmp_facades_cloud);
+    }
 
     // Iterate through all particles
     for ( auto particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
@@ -1424,7 +1430,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
     ///////////////////////////////////////////////////////////////////////////
     // CLUSTERING PHASE
-    bool enabled_clustering = false;
+    bool enabled_clustering = true;
     int best_cluster = -1;
     int best_cluster_size = 0;
     double cluster_score = 0.0f;
@@ -1659,12 +1665,15 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // Push back line_list
             publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-            /*RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+            // occhio a startframe che è hard-coded
+            //RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+            RTK_GPS_out_file << start_frame << " " << setprecision(16) <<
                              RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
                              0 << " " << 0 << " " << 0 << " " <<
                              0 << " " << 0 << " " << 0 << " " << 0 << " " <<
                              tot_score / current_layout_shared.size() << " " <<
-                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";*/
+                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+            RTK_GPS_out_file.flush();
 
 
             //        cout  << msg.header.seq << " " << setprecision(16) <<
@@ -1716,13 +1725,15 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
-            /* RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                          average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                          roll << " " << pitch << " " << yaw << " " <<
-                          average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                          tot_score / current_layout_shared.size() << " " <<
-                          to_lat << " " << to_lon << " " <<
-                          average_distance << "\n";*/
+            // occhio a startframe che è hard-coded
+            RLE_out_file << start_frame << " " << setprecision(16) <<
+                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+                         roll << " " << pitch << " " << yaw << " " <<
+                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+                         tot_score / current_layout_shared.size() << " " <<
+                         to_lat << " " << to_lon << " " <<
+                         average_distance << "\n";
+            RLE_out_file.flush();
 
             cout << start_frame << " " << setprecision(16) <<
                  average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
@@ -2641,7 +2652,6 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
         /// EVALUATE PARTICLE SCORES AND SAVE BEST PARTICLE POINTER
         //Particle *bestParticle   = NULL;
-        shared_ptr<Particle> bestParticle;
         double bestParticleScore = 0.0f;
         double currentParticleScore      = 0.0f;
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )

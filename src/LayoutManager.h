@@ -290,6 +290,9 @@ public:
 
 private:
 
+    ///Spostato qui per testing / visualizzazione
+    shared_ptr<Particle> bestParticle;
+
     /// Store here the configuration read with reconfigureCallBack, last configuration read.
     road_layout_estimation::road_layout_estimationConfig currentLayoutManagerConfiguration;
 
