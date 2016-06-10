@@ -966,7 +966,10 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     /// Setep 06 - Check if we should create 2 particles with opposite direction
                     /// if needed, create new "components"
-                    if (snapParticleXYService.response.way_dir_opposite_particles)
+                    ///
+                    /// AAAAAAA CAMBIARE
+                    //if (snapParticleXYService.response.way_dir_opposite_particles)
+                    if (false)
                     {
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
                         tf_pose_local_map_frame_opposite_direction = tf_pose_local_map_frame;
@@ -1306,14 +1309,13 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
 
 void LayoutManager::buildingsCallback(const building_detection::FacadesList &facades)
 {
-    std::vector<shared_ptr<road_layout_estimation::Facade>> facades_list;
+    std::vector<road_layout_estimation::Facade> facades_list;
     facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
     for (auto facade_msg : facades.facades)
     {
-        shared_ptr<road_layout_estimation::Facade> facade;
-        facade.reset(new road_layout_estimation::Facade(facade_msg));
+        road_layout_estimation::Facade facade(facade_msg);
         facades_list.push_back(facade);
-        *facades_cloud_ += *(facade->pcl);
+        *facades_cloud_ += *(facade.pcl);
 
     }
 
@@ -1578,8 +1580,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        cout << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) <<  ".txt" << endl;
-        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % visualOdometryMsg.header.seq ) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 120;
+        cout << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -1721,7 +1724,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
                           to_lat << " " << to_lon << " " <<
                           average_distance << "\n";*/
 
-            cout << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+            cout << start_frame << " " << setprecision(16) <<
                  average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
                  roll << " " << pitch << " " << yaw << " " <<
                  average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<

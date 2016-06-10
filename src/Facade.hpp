@@ -55,6 +55,7 @@ struct Facade
 
     void findCandidates(boost::shared_ptr<std::vector<edge>> _edges, double _scale_factor, double current_pose_x, double current_pose_y)
     {
+        candidates.clear();
         for (size_t i = 0; i < _edges->size(); i++)
         {
             edge e = _edges->at(i);
@@ -73,6 +74,8 @@ struct Facade
     void calculateScore(double _mu_dist, double _mu_angle, double _sigma_dist, double _sigma_angle, double _weight_dist, double _weight_angle)
     {
         double max_score = 0.0;
+        boost::math::normal nd_dist(_mu_dist, _sigma_dist); //10
+        boost::math::normal nd_angle(_mu_angle, _sigma_angle); //10
 
         ROS_DEBUG_STREAM("[BUILDING] Candidate Size: " << candidates.size());
 
@@ -83,7 +86,8 @@ struct Facade
 
             //scores_angle[i] = abs(scores_angle[i]);
 
-            scores[i] = _weight_dist * scores_dist[i] + _weight_angle * scores_dist[i];
+            scores[i] = _weight_dist * (pdf(nd_dist, scores_dist[i]) / pdf(nd_dist, _mu_dist)) +
+                        _weight_angle * (pdf(nd_angle, scores_angle[i]) / pdf(nd_angle, _mu_angle));
 
             if (scores[i] > max_score)
             {
@@ -94,26 +98,25 @@ struct Facade
 
         ROS_DEBUG_STREAM("[BUILDING] Angle Diff: " << scores_angle[best_match]);
         ROS_DEBUG_STREAM("[BUILDING] Avg Distance: " << scores_dist[best_match]);
+        ROS_DEBUG_STREAM("[BUILDING] Best Edge: " << candidates.at(best_match).centroid);
 
         score = max_score;
     }
 
     double scoreAngle(edge candidate, double mu, double sigma)
     {
-        boost::math::normal nd(mu, sigma); //10
 
         double angle = acos(abc.dot(candidate.abc) / (abc.norm() * candidate.abc.norm()));
 
         //ROS_DEBUG_STREAM("[BUILDING] Angle Diff: "<< angle);
 
-        return pdf(nd, angle) / pdf(nd, mu);
-        //return angle;
+        //return pdf(nd, angle) / pdf(nd, mu);
+        return angle;
     }
 
     double scoreDist(edge candidate, double mu, double sigma)
     {
-        boost::math::normal nd(mu, sigma);
-        double avg_dist;
+        double avg_dist = 0;
 
         for (size_t i = 0; i < pcl->size(); i++)
         {
@@ -127,8 +130,8 @@ struct Facade
 
         //ROS_DEBUG_STREAM("[BUILDING] Avg Distance: "<<avg_dist);
 
-        return pdf(nd, avg_dist) / pdf(nd, mu);
-        //return avg_dist;
+        //return pdf(nd, avg_dist) / pdf(nd, mu);
+        return avg_dist;
     }
 
 

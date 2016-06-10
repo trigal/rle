@@ -10,14 +10,11 @@ Panels:
         - /TF1/Tree1
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
-        - /GT_RTK1
-        - /GT_RTK1/Namespaces1
         - /AerialMapDisplay1
         - /OSM Elements1
         - /OSM Elements1/Namespaces1
         - /PointCloud22
         - /Axes10
-        - /PointCloud23
       Splitter Ratio: 0.514196
     Tree Height: 749
   - Class: rviz/Selection
@@ -195,14 +192,6 @@ Visualization Manager:
       Position Tolerance: 0.1
       Topic: /road_layout_estimation/layout_manager/average_pose
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /kitti_player/GT_RTK
-      Name: GT_RTK
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Class: rviz/Axes
       Enabled: false
       Length: 10
@@ -275,7 +264,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 0; 127
-      Color Transformer: FlatColor
+      Color Transformer: RGB8
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -294,14 +283,6 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /edges
-      Name: MarkerArray
-      Namespaces:
-        "": true
-      Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
@@ -356,6 +337,22 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: false
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /edges
+      Name: Marker
+      Namespaces:
+        buildings: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -380,22 +377,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 144.339
+      Distance: 183.543
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.8496
-        Y: 0.176958
+        X: 8.54194
+        Y: -4.14763
         Z: 2.28882e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.5598
+      Pitch: 1.3398
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.1104
+      Yaw: 3.1904
     Saved: ~
 Window Geometry:
   Displays:

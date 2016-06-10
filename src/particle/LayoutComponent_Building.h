@@ -114,9 +114,23 @@ public:
         ROS_DEBUG_STREAM("[BUILDING] pose: " << this->stateToGlobalFrame().getOrigin().getX() << " , " << this->stateToGlobalFrame().getOrigin().getY());
 
         edges_->clear();
-        visualization_msgs::MarkerArray marker_array;
-        marker_array.markers.clear();
-        uint32_t shape = visualization_msgs::Marker::SPHERE;
+        visualization_msgs::Marker buildings;
+        buildings.header.frame_id = "local_map";
+        buildings.header.stamp = ros::Time();
+        buildings.ns = "buildings";
+        buildings.id = 0;
+        buildings.type = visualization_msgs::Marker::TRIANGLE_LIST;
+        buildings.action = visualization_msgs::Marker::ADD;
+        buildings.scale.x = 1.0;
+        buildings.scale.y = 1.0;
+        buildings.scale.z = 1.0;
+        buildings.color.r = 1.0f;
+        buildings.color.g = 0.9f;
+        buildings.color.b = 0.7f;
+        buildings.color.a = 0.75f;
+
+        float height = 3.0f;
+        geometry_msgs::Point h_A, h_B, A, B;
 
         //Get OSM map
         if (get_near_buildings_client_.call(get_near_buildings_server_))
@@ -140,52 +154,33 @@ public:
             {
                 edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
                 edges_->push_back(temp_edge);
-                visualization_msgs::Marker tmp_marker1;
-                tmp_marker1.header.frame_id = "local_map";
-                tmp_marker1.id = i + 4;
-                tmp_marker1.type = shape;
-                tmp_marker1.action = visualization_msgs::Marker::ADD;
-                tmp_marker1.pose.position.x = temp_edge.A[0];
-                tmp_marker1.pose.position.y = temp_edge.A[1];
-                tmp_marker1.pose.position.z = 0;
-                tmp_marker1.pose.orientation.x = 0.0;
-                tmp_marker1.pose.orientation.y = 0.0;
-                tmp_marker1.pose.orientation.z = 0.0;
-                tmp_marker1.pose.orientation.w = 1.0;
-                tmp_marker1.scale.x = 1.;
-                tmp_marker1.scale.y = 1.;
-                tmp_marker1.scale.z = 1.;
-                tmp_marker1.color.r = 1.0f;
-                tmp_marker1.color.g = 1.0f;
-                tmp_marker1.color.b = 1.0f;
-                tmp_marker1.color.a = 1.0f;
-                tmp_marker1.header.stamp = ros::Time::now();
-                marker_array.markers.push_back(tmp_marker1);
+                h_A.x = temp_edge.A[0];
+                h_A.y = temp_edge.A[1];
+                h_A.z =  height;
 
-                visualization_msgs::Marker tmp_marker2;
-                tmp_marker2.header.frame_id = "local_map";
-                tmp_marker2.id = i + 5;
-                tmp_marker2.type = shape;
-                tmp_marker2.action = visualization_msgs::Marker::ADD;
-                tmp_marker2.pose.position.x = temp_edge.B[0];
-                tmp_marker2.pose.position.y = temp_edge.B[1];
-                tmp_marker2.pose.position.z = 0;
-                tmp_marker2.pose.orientation.x = 0.0;
-                tmp_marker2.pose.orientation.y = 0.0;
-                tmp_marker2.pose.orientation.z = 0.0;
-                tmp_marker2.pose.orientation.w = 1.0;
-                tmp_marker2.scale.x = 1.;
-                tmp_marker2.scale.y = 1.;
-                tmp_marker2.scale.z = 1.;
-                tmp_marker2.color.r = 0.5f;
-                tmp_marker2.color.g = 0.5f;
-                tmp_marker2.color.b = 0.5f;
-                tmp_marker2.color.a = 1.0f;
-                tmp_marker2.header.stamp = ros::Time::now();
-                marker_array.markers.push_back(tmp_marker2);
+                h_B.x = temp_edge.B[0];
+                h_B.y = temp_edge.B[1];
+                h_B.z = height;
+
+                A.x = temp_edge.A[0];
+                A.y = temp_edge.A[1];
+                A.z = 0;
+
+                B.x = temp_edge.B[0];
+                B.y = temp_edge.B[1];
+                B.z = 0;
+
+
+                buildings.points.push_back(A);
+                buildings.points.push_back(h_A);
+                buildings.points.push_back(B);
+                buildings.points.push_back(B);
+                buildings.points.push_back(h_A);
+                buildings.points.push_back(h_B);
+
                 //edge_pub_.publish(tmp_marker1);
             }
-            edge_pub_.publish(marker_array);
+            edge_pub_.publish(buildings);
         }
 
         //Calculate score
@@ -196,15 +191,34 @@ public:
         {
             for (size_t i = 0; i < facades_.size(); i++)
             {
-                shared_ptr<road_layout_estimation::Facade> f = facades_.at(i);
+                road_layout_estimation::Facade f = facades_.at(i);
 
-                f->findCandidates(edges_, scale_factor, current_global_pose.getOrigin().x(), current_global_pose.getOrigin().y() );
-                f->calculateScore(mu_dist, mu_angle, sigma_dist, sigma_angle, weight_dist, weight_angle);
+                f.findCandidates(edges_, scale_factor, current_global_pose.getOrigin().x(), current_global_pose.getOrigin().y() );
+                f.calculateScore(mu_dist, mu_angle, sigma_dist, sigma_angle, weight_dist, weight_angle);
 
-                tot_score += f->score * f->pcl->size();
-                norm_term += f->pcl->size();
+                tot_score += f.score * f.pcl->size();
+                norm_term += f.pcl->size();
 
-                *facades_cloud_ += *(f->pcl);
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_pcl;
+                temp_pcl.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+                pcl::copyPointCloud<pcl::PointXYZ, pcl::PointXYZRGB>(*(f.pcl), *temp_pcl);
+                for (int j = 0; j < temp_pcl->size(); j++)
+                {
+                    if (i % 3 == 0)
+                    {
+                        temp_pcl->at(j).r = 255;
+                    }
+                    if (i % 3 == 1)
+                    {
+                        temp_pcl->at(j).g = 255;
+                    }
+                    if (i % 3 == 2)
+                    {
+                        temp_pcl->at(j).b = 255;
+                    }
+                }
+
+                *facades_cloud_ += *temp_pcl;
             }
             component_weight = tot_score / norm_term * getAlphas();
 
@@ -301,21 +315,21 @@ public:
         *edges_ = *(component.edges_);
     }
 
-    vector<shared_ptr<road_layout_estimation::Facade>>* getFacades()
+    vector<road_layout_estimation::Facade>* getFacades()
     {
         return &facades_;
     }
 
 private:
     ros::NodeHandle node_handle_;
-    vector<shared_ptr<road_layout_estimation::Facade>> facades_;
+    vector<road_layout_estimation::Facade> facades_;
     ira_open_street_map::getNearBuildings get_near_buildings_server_;
     ros::ServiceClient get_near_buildings_client_;
     double osm_map_radius_;
     boost::shared_ptr<std::vector<edge>> edges_;
     double scale_factor, mu_dist, mu_angle, sigma_dist, sigma_angle, weight_angle, weight_dist;
     tf::TransformListener tf_listener_;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr facades_cloud_;
     ros::Publisher cloud_pub_;
     ros::Publisher edge_pub_;
     struct
@@ -327,16 +341,16 @@ private:
     void init()
     {
         edges_.reset(new std::vector<edge>);
-        facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
         cloud_pub_ = node_handle_.advertise<sensor_msgs::PointCloud2>("facades_cloud", 1);
-        edge_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("/edges", 1);
+        edge_pub_ = node_handle_.advertise<visualization_msgs::Marker>("/edges", 1);
         get_near_buildings_client_ = node_handle_.serviceClient<ira_open_street_map::getNearBuildings>("/ira_open_street_map/getNearBuildings");
         get_near_buildings_client_.waitForExistence();
         node_handle_.param("score/scale_factor", scale_factor, 50.0);
         node_handle_.param("score/mu_dist", mu_dist, 0.0);
         node_handle_.param("score/mu_angle", mu_angle, 0.0);
-        node_handle_.param("score/sigma_dist", sigma_dist, 0.2);
-        node_handle_.param("score/sigma_angle", sigma_angle, 1.0);
+        node_handle_.param("score/sigma_dist", sigma_dist, 1.);
+        node_handle_.param("score/sigma_angle", sigma_angle, 0.03);
         node_handle_.param("score/weight_dist", weight_dist, 0.6);
         node_handle_.param("score/weight_angle", weight_angle, 0.4);
         node_handle_.param("get_map/radius", osm_map_radius_, 35.0);
