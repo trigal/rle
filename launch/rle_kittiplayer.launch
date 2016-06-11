@@ -22,7 +22,7 @@
         <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.05" /> <!-- value="0.05" />-->
                                                                                                                         <!--                -->
         <!--#State6DOF ***PERCENTAGE***-->                                                                              <!--                -->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.1" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" /> <!-- value="0.05" />-->

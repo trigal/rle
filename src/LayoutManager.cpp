@@ -152,7 +152,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LayoutManager::publisher_z_particle                 = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped                  = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
     LayoutManager::publisher_GT_RTK                     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
+    LayoutManager::publisher_average_position           = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/average_position", 1);
     LayoutManager::publisher_average_pose               = node_handler_parameter.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
+
 
     LayoutManager::publisher_debugInformation           = node_handler_parameter.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
     LayoutManager::facades_pub                          = node_handler_parameter.advertise<sensor_msgs::PointCloud2>              ("/facades_cloud_gps", 1);
@@ -1576,7 +1578,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ///////////////////////////////////////////////////////////////////////////
 
 
-
+        // PUBLISHING THE AVERAGE POSE (POSITION+ORIENTATION) AS AN ODOMETRY MESSAGE (NAVMSG)
         nav_msgs::Odometry odometry;
         odometry.header.frame_id = "/local_map";
         odometry.header.stamp = ros::Time::now();
@@ -1589,12 +1591,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
         publisher_average_pose.publish(odometry); // Odometry message
 
+
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 120;
-        cout << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        cout << "/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
