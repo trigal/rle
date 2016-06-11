@@ -75,6 +75,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     RLE_out_file.open       ("/home/ballardini/Desktop/RLE_distance.txt");
     RTK_GPS_out_file.open   ("/home/ballardini/Desktop/RTK_distance.txt");
 
+    //RLE_out_file.open("/home/cattaneod/RLE_distance.txt", ios::trunc);
+    //RTK_GPS_out_file.open("/home/cattaneod/RTK_distance.txt", ios::trunc);
+
     /// This sets the logger level; use this to disable all ROS prints
     if ( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, loggingLevel) )
         ros::console::notifyLoggerLevelsChanged();
@@ -149,9 +152,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LayoutManager::publisher_z_particle                 = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_particle", 1);
     LayoutManager::publisher_z_snapped                  = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/z_snapped", 1);
     LayoutManager::publisher_GT_RTK                     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
-    LayoutManager::publisher_average_position           = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/average_position", 1);
     LayoutManager::publisher_average_pose               = node_handler_parameter.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
-
 
     LayoutManager::publisher_debugInformation           = node_handler_parameter.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
     LayoutManager::facades_pub                          = node_handler_parameter.advertise<sensor_msgs::PointCloud2>              ("/facades_cloud_gps", 1);
@@ -953,13 +954,13 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
                     //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@      LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@                                                                                 component_id,
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@                                                                                 VectorXd::Zero(12),
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@                                                                                 MatrixXd::Zero(12, 12)
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@                                                                                );
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@      buildingComponent->setParticlePtr(new_particle);
-                    // @@@@@@@ disable BUILDING COMPONENT  @@@@@@      new_particle->addComponent(buildingComponent);
+                    LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
+                                                                                               component_id,
+                                                                                               VectorXd::Zero(12),
+                                                                                               MatrixXd::Zero(12, 12)
+                                                                                              );
+                    buildingComponent->setParticlePtr(new_particle);
+                    new_particle->addComponent(buildingComponent);
 
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
                     current_layout_shared.push_back(new_particle);
@@ -1326,19 +1327,22 @@ void LayoutManager::buildingsCallback(const building_detection::FacadesList &fac
 
     }
 
-    Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
-    particle_transform.translation() << GPS_RTK_LOCAL_POSE.getOrigin().getX(), GPS_RTK_LOCAL_POSE.getOrigin().getY(), 0.;
-    particle_transform.rotate(Eigen::Quaterniond(GPS_RTK_LOCAL_POSE.getRotation().getW(), GPS_RTK_LOCAL_POSE.getRotation().getX(), GPS_RTK_LOCAL_POSE.getRotation().getY(), GPS_RTK_LOCAL_POSE.getRotation().getZ()));
-    //tf::transformTFToEigen(GPS_RTK_LOCAL_POSE, particle_transform);
-    pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
+    if (bestParticle)
+    {
+        Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
+        particle_transform.translation() << bestParticle->getParticleState().getPosition()[0],  bestParticle->getParticleState().getPosition()[1], 0.;
+        particle_transform.rotate(bestParticle->getParticleState().getRotation());
+        //tf::transformTFToEigen(GPS_RTK_LOCAL_POSE, particle_transform);
+        pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);
 
-    sensor_msgs::PointCloud2 tmp_facades_cloud;
-    pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
-    tmp_facades_cloud.height = facades_cloud_->height;
-    tmp_facades_cloud.width = facades_cloud_->width;
-    tmp_facades_cloud.header.frame_id = "local_map";
-    tmp_facades_cloud.header.stamp = ros::Time::now();
-    facades_pub.publish(tmp_facades_cloud);
+        sensor_msgs::PointCloud2 tmp_facades_cloud;
+        pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
+        tmp_facades_cloud.height = facades_cloud_->height;
+        tmp_facades_cloud.width = facades_cloud_->width;
+        tmp_facades_cloud.header.frame_id = "local_map";
+        tmp_facades_cloud.header.stamp = ros::Time::now();
+        facades_pub.publish(tmp_facades_cloud);
+    }
 
     // Iterate through all particles
     for ( auto particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
@@ -1571,25 +1575,26 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         average_quaternion.normalize();
         ///////////////////////////////////////////////////////////////////////////
 
-        double roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
-        // PUBLISHING THE AVERAGE POSE (POSITION+ORIENTATION) AS AN ODOMETRY MESSAGE (NAVMSG)
+
         nav_msgs::Odometry odometry;
         odometry.header.frame_id = "/local_map";
         odometry.header.stamp = ros::Time::now();
+
         odometry.pose.pose.position.x = average_pose(0);
         odometry.pose.pose.position.y = average_pose(1);
         odometry.pose.pose.position.z = average_pose(2);
         tf::quaternionTFToMsg(average_quaternion, odometry.pose.pose.orientation);
-        publisher_average_pose.publish(odometry); // Odometry message
+        double roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
+        publisher_average_pose.publish(odometry); // Odometry message
 
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        cout << "/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 120;
+        cout << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -2676,7 +2681,6 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
         /// EVALUATE PARTICLE SCORES AND SAVE BEST PARTICLE POINTER
         //Particle *bestParticle   = NULL;
-        shared_ptr<Particle> bestParticle;
         double bestParticleScore = 0.0f;
         double currentParticleScore      = 0.0f;
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
