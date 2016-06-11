@@ -92,10 +92,9 @@ public:
     void componentPoseEstimation();
 
     /**
-     * @brief LayoutComponent_RoadLane
-     * Default Constructor
+     * @brief clone
+     * @return
      */
-
     LayoutComponent* clone()
     {
         LayoutComponent* cloned = new LayoutComponent_OSMDistance(particle_id, component_id, distance_to_closest_segment,
@@ -109,6 +108,10 @@ public:
         return cloned;
     }
 
+    /**
+     * @brief LayoutComponent_RoadLane
+     * Default Constructor
+     */
     LayoutComponent_OSMDistance(const unsigned int particle_id,
                                 const unsigned int component_id,
                                 const double euclideanDistanceMeters,

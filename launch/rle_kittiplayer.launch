@@ -5,23 +5,27 @@
         <param name="/road_layout_estimation/particles_number"                  value="10"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
-        <!--MAX VALUES HERE ARE 10-->
+        <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
         <param name="/road_layout_estimation/street_distribution_alpha"        value="1"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_alpha"         value="1"/>
         <param name="/road_layout_estimation/roadState_distribution_alpha"     value="1"/>
         <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>
 
-        <!--State6DOF ***ABSOLUTE***-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.01" />
-        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.05" />
+        <!-- PARAMETERS OSM DISTANCE COMPONENT [check max values in the .cfg file -->
+        <param name="/road_layout_estimation/street_distribution_sigma"     value="1"/>
+        <param name="/road_layout_estimation/angle_distribution_sigma "     value="0.15"/>
 
-        <!--#State6DOF ***PERCENTAGE***-->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" />
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" />
-        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" />
+        <!--State6DOF ***ABSOLUTE***-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.05" /> <!-- value="0.05" />-->
+                                                                                                                        <!--                -->
+        <!--#State6DOF ***PERCENTAGE***-->                                                                              <!--                -->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" /> <!-- value="0.05" />-->
 
 
         <!-- ARGUMENTS -->
@@ -32,7 +36,8 @@
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
 
-            <include file="$(find ira_open_street_map)/launch/$(arg bagfile).launch" />
+        <!--disabled since added inside the sgbm-building-detector node-->
+        <!--<include file="$(find ira_open_street_map)/launch/$(arg bagfile).launch" />-->
 
 
         <!-- STATIC TRANFORMS -->
@@ -48,7 +53,8 @@
                 <node pkg="tf" type="static_transform_publisher" name="dummy_transform"
                         args="0 0 0 0 0 0 base_link visual_odometry_camera_frame 50" />
 			
-        <!-- OSM QUERY NODE -->
+        <!--disabled since added inside the sgbm-building-detector node-->
+        <!-- OSM QUERY NODE
             <node
                     pkg="ira_open_street_map"
                     type="osm_query_node"
@@ -57,6 +63,7 @@
                     args="$(arg map)"
                     required="true"
             />
+        -->
 
 
         <!-- to debug in QtCreator, run the road_layout_estimation node with
@@ -68,7 +75,8 @@
                 required="true"
 		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
-        /> 
+        />
+
         <!-- VISUALIZATION STUFF -->
             <!-- Launch RViz-->
             <node pkg="rviz" type="rviz" name="rviz" respawn="true" args="-d $(arg rviz)" output="screen">
@@ -87,6 +95,8 @@
 
         <!-- Launch ROAD LANE DETECTOR  ** ISIS LAB**
         <include file="$(find isis_line_detector)/launch/linedetector.launch" />-->
+
+
 
 
 

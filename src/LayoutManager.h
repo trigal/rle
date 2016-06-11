@@ -161,7 +161,8 @@ public:
     ros::Publisher publisher_z_particle;
     ros::Publisher publisher_GT_RTK;
 
-    ros::Publisher publisher_average_pose;
+    ros::Publisher publisher_average_pose;      ///< Publishes the average odometry, as NAVIGATION ODOMETRY message.
+    ros::Publisher publisher_average_position;  ///< Publishes the average odometry, as a point (used to compare w.r.t. the GPS points).
     ros::Publisher publisher_debugInformation;
 
     // Subscriber
@@ -327,6 +328,7 @@ private:
     visualization_msgs::MarkerArray marker_z_snapped;
     visualization_msgs::MarkerArray marker_z_particle;
     visualization_msgs::MarkerArray marker_array_GT_RTK;
+    visualization_msgs::MarkerArray marker_array_positions;
 
     string bagfile;                             ///< This is used to cache the KITTI_XX.bags initialization parameters rather than GPS
 
