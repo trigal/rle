@@ -249,6 +249,7 @@ public:
      */
     void componentPerturbation()
     {
+        ROS_INFO_STREAM("Entering > " << __PRETTY_FUNCTION__);
         cout << "Perturbating BUILDING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
@@ -257,6 +258,7 @@ public:
      */
     void componentPoseEstimation()
     {
+        ROS_INFO_STREAM("Entering > " << __PRETTY_FUNCTION__);
         cout << "Propagating and estimating BUILDING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 

@@ -135,7 +135,11 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 //#573 - safe state    LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback
 //#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
-//@@@@@@@@@@@@@@@@@BUILDINGS   LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
+
+    //@@@@@@@@@@@@@@@@@BUILDINGS
+    if (true)
+        LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
+
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
     // Publisher Section
@@ -1595,7 +1599,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        int start_frame = visualOdometryMsg.header.seq + 110; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
         cout << "/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
         RTK.open(((string)("/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
@@ -2387,23 +2391,14 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
         // getAlphas virtual routine provides to summarize them
         sumOfAlphas += lc->getAlphas();
 
-// #522        if (dynamic_cast<LayoutComponent_OSMDistance* >(lc))
-// #522        {
-// #522            newScore += lc->getComponentWeight();
-// #522            continue;
-// #522        }
-// #522
-// #522        if (dynamic_cast<LayoutComponent_RoadState* >(lc))
-// #522        {
-// #522            newScore += roadState_distribution_alpha* lc->getComponentWeight();
-// #522            continue;
-// #522        }
-// #522
-// #522        if (dynamic_cast<LayoutComponent_RoadLane* >(lc))
-// #522        {
-// #522            newScore += roadState_distribution_alpha * lc->getComponentWeight();
-// #522            continue;
-// #522        }
+        if (dynamic_cast<LayoutComponent_OSMDistance* >(lc))
+            ROS_DEBUG_STREAM("COMPONENT OSM_DISTANCE Score = " << lc->getComponentWeight() << "\tSum of Alphas: " << lc->getAlphas());
+
+        if (dynamic_cast<LayoutComponent_Building* >(lc))
+            ROS_DEBUG_STREAM("COMPONENT BUILDING     Score = " << lc->getComponentWeight() << "\tSum of Alphas: " << lc->getAlphas());
+
+        //if (dynamic_cast<LayoutComponent_RoadState* >(lc))
+        //if (dynamic_cast<LayoutComponent_RoadLane* >(lc))
 
     }
 
@@ -2413,7 +2408,7 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
 // #522    ROS_ASSERT(roadState_distribution_alpha> 0.0f);
 // #522        double sumOfAlphas = street_distribution_alpha + angle_distribution_alpha + roadState_distribution_alpha;
 
-
+    ROS_DEBUG_STREAM("Total components weight: " << newScore << "\tSum of Alphas:" << sumOfAlphas << "\tNew 'sumofweights': " << newScore / sumOfAlphas);
 
     /// Execute normalization
     newScore = newScore / sumOfAlphas;
@@ -2427,6 +2422,7 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
 // #522    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfAlphas) ;
 // #522    ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
 
+    ROS_DEBUG_STREAM("PARTICLE SCORE POST UPDATE\t" << std::fixed <<  (*particle_itr_shared).getParticleScore());
     ROS_DEBUG_STREAM("Exiting calculateScore()");
 
     /// OLD DARIO IMPLEMENTATION

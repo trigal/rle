@@ -98,7 +98,8 @@ struct Facade
 
         ROS_DEBUG_STREAM("[BUILDING] Angle Diff: " << scores_angle[best_match]);
         ROS_DEBUG_STREAM("[BUILDING] Avg Distance: " << scores_dist[best_match]);
-        ROS_DEBUG_STREAM("[BUILDING] Best Edge: " << candidates.at(best_match).centroid);
+        //ROS_DEBUG_STREAM("[BUILDING] Best Edge (centroid) : " << candidates.at(best_match).centroid.x<< " "<<candidates.at(best_match).centroid.y << " "<< candidates.at(best_match).centroid.z);
+        ROS_DEBUG_STREAM("[BUILDING] Best Edge (centroid) : " << candidates.at(best_match).centroid[0] << " "<< candidates.at(best_match).centroid[1] << " "<< candidates.at(best_match).centroid[2]);
 
         score = max_score;
     }

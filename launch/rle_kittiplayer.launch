@@ -2,7 +2,7 @@
 
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="10"/>
+        <param name="/road_layout_estimation/particles_number"                  value="2"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
@@ -12,18 +12,18 @@
         <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>
 
         <!-- PARAMETERS OSM DISTANCE COMPONENT [check max values in the .cfg file -->
-        <param name="/road_layout_estimation/street_distribution_sigma"     value="1"/>
+        <param name="/road_layout_estimation/street_distribution_sigma"     value="2"/>
         <param name="/road_layout_estimation/angle_distribution_sigma "     value="0.15"/>
 
         <!--State6DOF ***ABSOLUTE***-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.01" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.1" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.1" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.01" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.05" /> <!-- value="0.05" />-->
+        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.01" /> <!-- value="0.05" />-->
                                                                                                                         <!--                -->
         <!--#State6DOF ***PERCENTAGE***-->                                                                              <!--                -->
         <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.1" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" /> <!-- value="0.01" />-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.1" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.01" /> <!-- value="0.01" />-->
         <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" /> <!-- value="0.05" />-->
 

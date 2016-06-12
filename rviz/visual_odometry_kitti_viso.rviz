@@ -141,7 +141,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: GPS Uncertainty
       Namespaces:
-        gauss_sigma: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -226,7 +226,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: ""
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -243,7 +243,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /UTM_converter
@@ -264,7 +264,7 @@ Visualization Manager:
       Color: 255; 0; 127
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -281,7 +281,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /ways
@@ -299,13 +299,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /edges
       Name: OSM Buildings on Particles
       Namespaces:
-        {}
+        buildings: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Axes
       Enabled: false
       Length: 1
@@ -395,22 +395,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 49.306
+      Distance: 76.7324
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.92434
-        Y: -0.980403
+        X: 19.9097
+        Y: -13.864
         Z: 4.37588e-06
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.4154
+      Pitch: 1.3548
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.0154
+      Yaw: 3.2704
     Saved: ~
 Window Geometry:
   Displays:
@@ -432,5 +432,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1871
-  X: 0
+  X: -7
   Y: 17
