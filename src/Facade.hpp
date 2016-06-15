@@ -1,12 +1,17 @@
 #ifndef FACADE_H
 #define FACADE_H
 
+#include <pcl/console/parse.h>
+#include <pcl/console/time.h>
 #include <building_detection/Facade.h>
 #include "Edge.hpp"
 namespace road_layout_estimation
 {
 struct Facade
 {
+    //  PCL computation time
+    pcl::console::TicToc tt;
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcl;
     Eigen::Vector3d abc;
     double d;
@@ -37,6 +42,7 @@ struct Facade
 
     bool isClose(edge e, double scale_factor, double current_pose_x, double current_pose_y)
     {
+        tt.tic();
         bool is_close = false;
         double min_dist = DBL_MAX;
         for (size_t n = 0; n < pcl->size(); n++)
@@ -50,11 +56,17 @@ struct Facade
         {
             is_close = true;
         }
+        double ttt=tt.toc();
+        if (ttt>1)
+            ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
         return is_close;
+
     }
 
     void findCandidates(boost::shared_ptr<std::vector<edge>> _edges, double _scale_factor, double current_pose_x, double current_pose_y)
-    {
+    {        
+        pcl::console::TicToc tt;
+        tt.tic();
         candidates.clear();
         for (size_t i = 0; i < _edges->size(); i++)
         {
@@ -69,16 +81,29 @@ struct Facade
         scores.reserve(candidates.size());
         scores_dist.reserve(candidates.size());
         scores_angle.reserve(candidates.size());
+
+        double ttt=tt.toc();
+        if (ttt>1)
+            ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
+
     }
 
     void calculateScore(double _mu_dist, double _mu_angle, double _sigma_dist, double _sigma_angle, double _weight_dist, double _weight_angle)
     {
+        pcl::console::TicToc tt;
+        tt.tic();
         double max_score = 0.0;
         boost::math::normal nd_dist(_mu_dist, _sigma_dist); //10
         boost::math::normal nd_angle(_mu_angle, _sigma_angle); //10
 
-        ROS_DEBUG_STREAM("[BUILDING] Candidate Size: " << candidates.size());
+        if (candidates.size()==0)
+        {
+            score = max_score;
+            return;
+        }
 
+        ROS_DEBUG_STREAM("[BUILDING] Candidate Size: " << candidates.size());
+        best_match = 0;
         for (size_t i = 0; i < candidates.size(); i++)
         {
             scores_dist[i] = scoreDist(candidates[i], _mu_dist, _sigma_dist);
@@ -96,12 +121,15 @@ struct Facade
             }
         }
 
-        ROS_DEBUG_STREAM("[BUILDING] Angle Diff: " << scores_angle[best_match]);
-        ROS_DEBUG_STREAM("[BUILDING] Avg Distance: " << scores_dist[best_match]);
+        //ROS_DEBUG_STREAM("[BUILDING] Angle Diff: " << scores_angle[best_match]);
+        //ROS_DEBUG_STREAM("[BUILDING] Avg Distance: " << scores_dist[best_match]);
         //ROS_DEBUG_STREAM("[BUILDING] Best Edge (centroid) : " << candidates.at(best_match).centroid.x<< " "<<candidates.at(best_match).centroid.y << " "<< candidates.at(best_match).centroid.z);
         ROS_DEBUG_STREAM("[BUILDING] Best Edge (centroid) : " << candidates.at(best_match).centroid[0] << " "<< candidates.at(best_match).centroid[1] << " "<< candidates.at(best_match).centroid[2]);
 
         score = max_score;
+        double ttt=tt.toc();
+        if (ttt>1)
+            ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
     }
 
     double scoreAngle(edge candidate, double mu, double sigma)
@@ -117,6 +145,7 @@ struct Facade
 
     double scoreDist(edge candidate, double mu, double sigma)
     {
+        tt.tic();
         double avg_dist = 0;
 
         for (size_t i = 0; i < pcl->size(); i++)
@@ -132,7 +161,11 @@ struct Facade
         //ROS_DEBUG_STREAM("[BUILDING] Avg Distance: "<<avg_dist);
 
         //return pdf(nd, avg_dist) / pdf(nd, mu);
+        double ttt=tt.toc();
+        if (ttt>1)
+            ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
         return avg_dist;
+
     }
 
 

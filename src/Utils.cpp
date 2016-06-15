@@ -11,6 +11,7 @@
  ***************************************************************************/
 
 #include "Utils.h"
+#include <random>
 
 #include <stdlib.h>
 #include <math.h>
@@ -683,9 +684,14 @@ geometry_msgs::Pose Utils::getPoseFromVector(const VectorXd& msg)
 ///
 double Utils::getNoise(double err)
 {
-    srand(time(0));
-    double noise = (-err) + static_cast <double> (rand()) / ( static_cast <double> (RAND_MAX / (err - (-err))));
-    return noise;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(-err, err);
+    return dis(gen);
+
+    //srand(time(0));
+    //double noise = (-err) + static_cast <double> (rand()) / ( static_cast <double> (RAND_MAX / (err - (-err))));
+    //return noise;
 }
 
 ///

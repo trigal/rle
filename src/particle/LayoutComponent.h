@@ -41,7 +41,7 @@ public:
     /// This function is the implementation of pose propagation of layout component
     /// Can be a POSE to be moved or a STATE like RoadState
     ///
-    virtual void componentPoseEstimation() = 0;
+    virtual void componentPoseEstimation(int i) = 0;
 
     ///
     /// \brief componentPerturbation

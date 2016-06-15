@@ -135,13 +135,13 @@ void State6DOF::addNoise(double position_offset, double orientation_offset, doub
     srand(time(0));
     this->_pose(0) += Utils::getNoise(position_offset);
     this->_pose(1) += Utils::getNoise(position_offset);
-    this->_pose(2) += Utils::getNoise(position_offset);
+    this->_pose(2) += 0 ;// Utils::getNoise(position_offset);
 
     this->_rotation.angle() += Utils::getNoise(orientation_offset);
 
     this->_translational_velocity(0) += Utils::getNoise(linear_offset);
     this->_translational_velocity(1) += Utils::getNoise(linear_offset);
-    this->_translational_velocity(2) += Utils::getNoise(linear_offset);
+    this->_translational_velocity(2) += 0; // Utils::getNoise(linear_offset);
 
     this->_rotational_velocity.angle() += Utils::getNoise(angular_offset);
 }

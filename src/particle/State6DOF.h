@@ -25,6 +25,14 @@ public:
     // constructor & destructors ------------------------------------------------------
     State6DOF();
     State6DOF(const nav_msgs::Odometry &odom_msg);
+    //State6DOF(State6DOF &toCopy)
+    //    : _pose(toCopy._pose),
+    //      _rotation(toCopy._rotation),
+    //      _translational_velocity(toCopy._translational_velocity),
+    //      _rotational_velocity(toCopy._rotational_velocity)
+    //{
+    //
+    //}
 
     // methods ------------------------------------------------------------------------
     Eigen::MatrixXd subtract_vectXd(State6DOF &to_be_subtracted);

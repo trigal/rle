@@ -73,7 +73,7 @@ private:
 public:
 
     // Virtual functions -------------------------------------------------------
-    void componentPoseEstimation(); //this is evoked by the chain Sampling > PropagateLayoutComponents > ComponentPoseEstimation ...
+    void componentPoseEstimation(int index); //this is evoked by the chain Sampling > PropagateLayoutComponents > ComponentPoseEstimation ...
     void calculateComponentScore();
     void componentPerturbation();
 

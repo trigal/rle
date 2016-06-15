@@ -41,8 +41,8 @@ public:
 
     LayoutComponent* clone()
     {
-        LayoutComponent* cloned = new LayoutComponent_Crossing(*this);
-        return cloned;
+        //LayoutComponent* cloned = new LayoutComponent_Crossing(*this);
+        //return cloned;
     }
 
     /**

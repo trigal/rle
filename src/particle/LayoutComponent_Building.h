@@ -1,6 +1,9 @@
 #ifndef LAYOUTCOMPONENT_BUILDING_H
 #define LAYOUTCOMPONENT_BUILDING_H
 
+#include <pcl/console/parse.h>
+#include <pcl/console/time.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -25,6 +28,9 @@ using namespace std;
 class LayoutComponent_Building : public LayoutComponent
 {
 public:
+
+    //  PCL computation time
+    pcl::console::TicToc tt;
 
     tf::Stamped<tf::Pose> stateToGlobalFrame()
     {
@@ -102,6 +108,7 @@ public:
 
     void calculateComponentScore()
     {
+        tt.tic();
         ROS_DEBUG_STREAM("Calculating weight of [BUILDING] component ID: " << component_id << " that belongs to particle ID: " << particle_id);
         tf::Stamped<tf::Pose> current_global_pose = stateToGlobalFrame();
         Utils::Coordinates latlon = Utils::xy2latlon_helper(current_global_pose.getOrigin().x() , current_global_pose.getOrigin().y(), 32, false);
@@ -133,55 +140,55 @@ public:
         geometry_msgs::Point h_A, h_B, A, B;
 
         //Get OSM map
-        if (get_near_buildings_client_.call(get_near_buildings_server_))
-        {
-            /*geometry_msgs::Point p1, p2, p3, p4;
-            p1.x = get_near_buildings_server_.response.p1x;
-            p1.y = get_near_buildings_server_.response.p1y;
-            p2.x = get_near_buildings_server_.response.p2x;
-            p2.y = get_near_buildings_server_.response.p2y;
-            p3.x = get_near_buildings_server_.response.p3x;
-            p3.y = get_near_buildings_server_.response.p3y;
-            p4.x = get_near_buildings_server_.response.p4x;
-            p4.y = get_near_buildings_server_.response.p4y;
-            edge bound_edge(p1, p2, this->stateToGlobalFrame());
-            marker_array.markers.push_back(publish_box(bound_edge.A[0], bound_edge.A[1], 0));
-            marker_array.markers.push_back(publish_box(bound_edge.B[0], bound_edge.B[1], 1));
-            edge bound_edge2(p3, p4, this->stateToGlobalFrame());
-            marker_array.markers.push_back(publish_box(bound_edge2.A[0], bound_edge2.A[1], 2));
-            marker_array.markers.push_back(publish_box(bound_edge2.B[0], bound_edge2.B[1], 3));*/
-            for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
-            {
-                edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
-                edges_->push_back(temp_edge);
-                h_A.x = temp_edge.A[0];
-                h_A.y = temp_edge.A[1];
-                h_A.z =  height;
-
-                h_B.x = temp_edge.B[0];
-                h_B.y = temp_edge.B[1];
-                h_B.z = height;
-
-                A.x = temp_edge.A[0];
-                A.y = temp_edge.A[1];
-                A.z = 0;
-
-                B.x = temp_edge.B[0];
-                B.y = temp_edge.B[1];
-                B.z = 0;
-
-
-                buildings.points.push_back(A);
-                buildings.points.push_back(h_A);
-                buildings.points.push_back(B);
-                buildings.points.push_back(B);
-                buildings.points.push_back(h_A);
-                buildings.points.push_back(h_B);
-
-                //edge_pub_.publish(tmp_marker1);
-            }
-            edge_pub_.publish(buildings);
-        }
+//        if (get_near_buildings_client_.call(get_near_buildings_server_))
+//        {
+//            /*geometry_msgs::Point p1, p2, p3, p4;
+//            p1.x = get_near_buildings_server_.response.p1x;
+//            p1.y = get_near_buildings_server_.response.p1y;
+//            p2.x = get_near_buildings_server_.response.p2x;
+//            p2.y = get_near_buildings_server_.response.p2y;
+//            p3.x = get_near_buildings_server_.response.p3x;
+//            p3.y = get_near_buildings_server_.response.p3y;
+//            p4.x = get_near_buildings_server_.response.p4x;
+//            p4.y = get_near_buildings_server_.response.p4y;
+//            edge bound_edge(p1, p2, this->stateToGlobalFrame());
+//            marker_array.markers.push_back(publish_box(bound_edge.A[0], bound_edge.A[1], 0));
+//            marker_array.markers.push_back(publish_box(bound_edge.B[0], bound_edge.B[1], 1));
+//            edge bound_edge2(p3, p4, this->stateToGlobalFrame());
+//            marker_array.markers.push_back(publish_box(bound_edge2.A[0], bound_edge2.A[1], 2));
+//            marker_array.markers.push_back(publish_box(bound_edge2.B[0], bound_edge2.B[1], 3));*/
+//            for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
+//            {
+//                edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
+//                edges_->push_back(temp_edge);
+//                h_A.x = temp_edge.A[0];
+//                h_A.y = temp_edge.A[1];
+//                h_A.z =  height;
+//
+//                h_B.x = temp_edge.B[0];
+//                h_B.y = temp_edge.B[1];
+//                h_B.z = height;
+//
+//                A.x = temp_edge.A[0];
+//                A.y = temp_edge.A[1];
+//                A.z = 0;
+//
+//                B.x = temp_edge.B[0];
+//                B.y = temp_edge.B[1];
+//                B.z = 0;
+//
+//
+//                buildings.points.push_back(A);
+//                buildings.points.push_back(h_A);
+//                buildings.points.push_back(B);
+//                buildings.points.push_back(B);
+//                buildings.points.push_back(h_A);
+//                buildings.points.push_back(h_B);
+//
+//                //edge_pub_.publish(tmp_marker1);
+//            }
+//            edge_pub_.publish(buildings);
+//        }
 
         //Calculate score
         double tot_score = 0.0;
@@ -189,6 +196,10 @@ public:
         facades_cloud_->clear();
         if (facades_.size() > 0)
         {
+            pcl::console::TicToc forannidati;
+            forannidati.tic();
+
+
             for (size_t i = 0; i < facades_.size(); i++)
             {
                 road_layout_estimation::Facade f = facades_.at(i);
@@ -199,28 +210,33 @@ public:
                 tot_score += f.score * f.pcl->size();
                 norm_term += f.pcl->size();
 
-                pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_pcl;
-                temp_pcl.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-                pcl::copyPointCloud<pcl::PointXYZ, pcl::PointXYZRGB>(*(f.pcl), *temp_pcl);
-                for (int j = 0; j < temp_pcl->size(); j++)
-                {
-                    if (i % 3 == 0)
-                    {
-                        temp_pcl->at(j).r = 255;
-                    }
-                    if (i % 3 == 1)
-                    {
-                        temp_pcl->at(j).g = 255;
-                    }
-                    if (i % 3 == 2)
-                    {
-                        temp_pcl->at(j).b = 255;
-                    }
-                }
+//                pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_pcl;
+//                temp_pcl.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+//                pcl::copyPointCloud<pcl::PointXYZ, pcl::PointXYZRGB>(*(f.pcl), *temp_pcl);
+//                for (int j = 0; j < temp_pcl->size(); j++)
+//                {
+//                    if (i % 3 == 0)
+//                    {
+//                        temp_pcl->at(j).r = 255;
+//                    }
+//                    if (i % 3 == 1)
+//                    {
+//                        temp_pcl->at(j).g = 255;
+//                    }
+//                    if (i % 3 == 2)
+//                    {
+//                        temp_pcl->at(j).b = 255;
+//                    }
+//                }
 
-                *facades_cloud_ += *temp_pcl;
+//                *facades_cloud_ += *temp_pcl;
             }
             component_weight = tot_score / norm_term * getAlphas();
+
+
+            double ttt2=forannidati.toc();
+            if (ttt2>1)
+                ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << " forannidati " << ttt2 << " milliseconds");
 
             /*Eigen::Affine3d particle_transform = Eigen::Affine3d::Identity();
             Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;
@@ -228,19 +244,23 @@ public:
             particle_transform.rotate(this->getParticlePtr()->getParticleState().getRotation());
             pcl::transformPointCloud(*facades_cloud_, *facades_cloud_, particle_transform);*/
 
-            sensor_msgs::PointCloud2 tmp_facades_cloud;
-            pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
-            tmp_facades_cloud.height = facades_cloud_->height;
-            tmp_facades_cloud.width = facades_cloud_->width;
-            tmp_facades_cloud.header.frame_id = "local_map";
-            tmp_facades_cloud.header.stamp = ros::Time::now();
-            cloud_pub_.publish(tmp_facades_cloud);
+//            sensor_msgs::PointCloud2 tmp_facades_cloud;
+//            pcl::toROSMsg(*facades_cloud_, tmp_facades_cloud);
+//            tmp_facades_cloud.height = facades_cloud_->height;
+//            tmp_facades_cloud.width = facades_cloud_->width;
+//            tmp_facades_cloud.header.frame_id = "local_map";
+//            tmp_facades_cloud.header.stamp = ros::Time::now();
+//            cloud_pub_.publish(tmp_facades_cloud);
         }
         else
         {
             ROS_DEBUG_STREAM("[BUILDING] NO DETECTION: propagating previous score");
+            component_weight=component_weight*0.5;
         }
 
+        double ttt=tt.toc();
+        if (ttt>1)
+            ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
         ROS_DEBUG_STREAM("[BUILDING] Actual score is " << component_weight);
     }
 
@@ -249,16 +269,16 @@ public:
      */
     void componentPerturbation()
     {
-        ROS_INFO_STREAM("Entering > " << __PRETTY_FUNCTION__);
+        ROS_DEBUG_STREAM("Entering > " << __PRETTY_FUNCTION__);
         cout << "Perturbating BUILDING component ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
     /**
      * Implementation of pure virtual method 'componentPerturbation'
      */
-    void componentPoseEstimation()
+    void componentPoseEstimation(int index)
     {
-        ROS_INFO_STREAM("Entering > " << __PRETTY_FUNCTION__);
+        ROS_DEBUG_STREAM("Entering > " << __PRETTY_FUNCTION__);
         cout << "Propagating and estimating BUILDING component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id << endl;
     }
 
@@ -268,7 +288,7 @@ public:
      */
     double getAlphas()
     {
-        return 5;
+        return 10;
     }
 
     /**

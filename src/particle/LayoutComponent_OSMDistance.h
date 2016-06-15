@@ -9,6 +9,12 @@
 #include <tf/transform_listener.h>
 #include <vector>
 
+
+#include <pcl/console/parse.h>
+#include <pcl/console/time.h>
+
+
+
 #include "LayoutComponent.h"
 #include "../Utils.h"
 #include "ira_open_street_map/snap_particle_xy.h"
@@ -55,10 +61,10 @@ private:
     tf::TransformListener tf_listener;
 
     /// The ROS-Service declaration. Initialization in the constructor.
-    ros::ServiceClient snap_particle_xy_client;
+    //ros::ServiceClient snap_particle_xy_client;
 
     /// The message/service used to call/receive info from the service above
-    ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
+    //ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
 
 public:
 
@@ -89,7 +95,7 @@ public:
      *      2. Particle::propagateLayoutComponents()
      *      1. LayoutManager::sampling()
      */
-    void componentPoseEstimation();
+    void componentPoseEstimation(int index);
 
     /**
      * @brief clone
@@ -104,7 +110,7 @@ public:
         dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->pose_diff_score_component = this->pose_diff_score_component;
         dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->first_quaternion_diff = this->first_quaternion_diff;
         dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->second_quaternion_diff = this->second_quaternion_diff;
-        dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->snapParticle_serviceMessage = this->snapParticle_serviceMessage;
+        //dynamic_cast<LayoutComponent_OSMDistance*>(cloned)->snapParticle_serviceMessage = this->snapParticle_serviceMessage;
         return cloned;
     }
 
@@ -122,7 +128,7 @@ public:
                                 const double angle_distribution_weight
                                )
     {
-        ROS_INFO_STREAM(__PRETTY_FUNCTION__);
+        //ROS_INFO_STREAM(__PRETTY_FUNCTION__);
         this->particle_id                       = particle_id;
         this->component_id                      = component_id; // this refs #525
         this->distance_to_closest_segment       = euclideanDistanceMeters;
@@ -132,7 +138,7 @@ public:
         this->street_distribution_alpha         = street_distribution_weight;
         this->angle_distribution_alpha          = angle_distribution_weight ;
 
-        snap_particle_xy_client                 = node_handler.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
+        //snap_particle_xy_client                 = node_handler.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
 
         pose_diff_score_component               = 0.0f;
         final_angle_diff_score_component        = 0.0f;

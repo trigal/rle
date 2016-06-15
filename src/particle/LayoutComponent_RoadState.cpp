@@ -260,7 +260,7 @@ void LayoutComponent_RoadState::setMsg_lines(const road_layout_estimation::msg_l
  *
  * UPDATE 10/dec/2015, SPLITTING calculateComponentScore according to #536
  */
-void LayoutComponent_RoadState::componentPoseEstimation()
+void LayoutComponent_RoadState::componentPoseEstimation(int index)
 {
     ROS_DEBUG_STREAM("componentPoseEstimation, component ID: " << component_id << " of particle ID: " << particle_id << " componentState: " << getComponentState()(0) << ";" << getComponentState()(1) << ";" << getComponentState()(2));
 

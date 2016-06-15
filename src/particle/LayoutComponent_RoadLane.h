@@ -68,7 +68,7 @@ public:
      *      2. Particle::propagateLayoutComponents()
      *      1. LayoutManager::sampling()
      */
-    void componentPoseEstimation();
+    void componentPoseEstimation(int index);
 
     /**
      * @brief LayoutComponent_RoadLane

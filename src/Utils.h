@@ -34,9 +34,9 @@ class Utils
 public:
     struct Coordinates
     {
-        float latitude;
-        float longitude;
-        float altitude;
+        double latitude;
+        double longitude;
+        double altitude;
     };
 
     static geometry_msgs::Point latlon_converter(double lat, double lngd);

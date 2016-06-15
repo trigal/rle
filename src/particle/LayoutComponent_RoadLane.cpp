@@ -35,7 +35,7 @@ double LayoutComponent_RoadLane::getAlphas()
  * this is done inside the detector and I don't know how to change things
  * there.
  */
-void LayoutComponent_RoadLane::componentPoseEstimation()
+void LayoutComponent_RoadLane::componentPoseEstimation(int index)
 {
     ROS_DEBUG_STREAM ("Propagating and estimating ROAD LANE component pose. ID: " << component_id << " that belongs to particle ID: " << particle_id );
 }

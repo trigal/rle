@@ -22,6 +22,8 @@ int     LayoutManager::odometryMessageCounter = 0;       ///< Filter step counte
 visualization_msgs::Marker marker1;
 visualization_msgs::Marker marker2;
 
+inline void latlon2xy_helper(double &lat, double &lngd);
+
 ///
 /// \brief LayoutManager::buildPoseArrayMsg
 ///        Creates a geometry message poseArray to visualize the particle pose into RVIZ
@@ -136,7 +138,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 //#573 - safe state    LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
 
-    //@@@@@@@@@@@@@@@@@BUILDINGS
+    //@@@@@@@@@@@@@@@@@BUILDINGS disabilita sergio
     if (true)
         LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
 
@@ -158,7 +160,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LayoutManager::publisher_GT_RTK                     = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/GT_RTK", 1);
     LayoutManager::publisher_average_position           = node_handler_parameter.advertise<visualization_msgs::MarkerArray>       ("/road_layout_estimation/layout_manager/average_position", 1);
     LayoutManager::publisher_average_pose               = node_handler_parameter.advertise<nav_msgs::Odometry>                    ("/road_layout_estimation/layout_manager/average_pose", 1);
-
+    LayoutManager::RLETIME                              = node_handler_parameter.advertise<std_msgs::Int64>                        ("/road_layout_estimation/layout_manager/loop_time", 1);
 
     LayoutManager::publisher_debugInformation           = node_handler_parameter.advertise<road_layout_estimation::msg_debugInformation >("/road_layout_estimation/debugInformation", 1);
     LayoutManager::facades_pub                          = node_handler_parameter.advertise<sensor_msgs::PointCloud2>              ("/facades_cloud_gps", 1);
@@ -851,6 +853,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's pose
                     State6DOF p_pose;
                     p_pose.setPose(Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0));
+
+                    p_pose.addNoise(1.5,0.07,0,0);
+
+                    bool ok_direction=true; //inverte direzione, occhio che c'è opposite_direction sotto
+                    if (ok_direction)
+                    {
                     tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
 
                     AngleAxisd rotation = AngleAxisd(
@@ -861,6 +869,26 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                   tf_pose_local_map_frame.getRotation().getZ()
                                               ));
                     p_pose.setRotation(rotation);
+                    }
+                    else
+                    {
+
+                        tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized() * tf::createQuaternionFromYaw(M_PI));
+
+                        AngleAxisd rotation = AngleAxisd(
+                                                  Quaterniond(
+                                                      tf_pose_local_map_frame.getRotation().getW(),
+                                                      tf_pose_local_map_frame.getRotation().getX(),
+                                                      tf_pose_local_map_frame.getRotation().getY(),
+                                                      tf_pose_local_map_frame.getRotation().getZ()
+                                                  ));
+                        p_pose.setRotation(rotation);
+
+                    }
+
+
+
+
 
                     // Init particle's sigma
                     MatrixXd p_sigma = default_mtn_model.getErrorCovariance();
@@ -981,7 +1009,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     /// Setep 06 - Check if we should create 2 particles with opposite direction
                     /// if needed, create new "components"
                     ///
-                    /// AAAAAAA CAMBIARE
+                    /// AAAAAAA CAMBIARE PER DOPPIO SENSO
                     //if (snapParticleXYService.response.way_dir_opposite_particles)
                     if (false)
                     {
@@ -1367,6 +1395,8 @@ void LayoutManager::buildingsCallback(const building_detection::FacadesList &fac
 
 void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg)
 {
+    pcl::console::TicToc overallODOMETRYCALLBACK;
+    overallODOMETRYCALLBACK.tic();
     ROS_INFO_STREAM("--------------------------------------------------------------------------------");
     ROS_INFO_STREAM("Entering OdomCallBackv2, [odometryMessageCounter: " << odometryMessageCounter++ << "]");
     vector<shared_ptr<Particle>>::iterator particle_itr;
@@ -1447,8 +1477,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     int best_cluster_size = 0;
     double cluster_score = 0.0f;
     double best_cluster_score = -1.0f;
+    pcl::console::TicToc ttcluster;
     if (enabled_clustering)
     {
+        ttcluster.tic();
         ///////////////////////////////////////////////////////////////////////////
         // FIRST STEP, every particle in_cluster value = -1
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
@@ -1535,6 +1567,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             }
         }
         cout << "Best cluster size: " << best_cluster_size << endl;
+        ROS_ERROR_STREAM("CLUSTERING\t"<< ttcluster.toc());
         ///////////////////////////////////////////////////////////////////////////
     }
 
@@ -1542,10 +1575,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     ///////////////////////////////////////////////////////////////////////////
     // CREATING STATISTICS FOR RLE OUTPUT
 
+    pcl::console::TicToc ttstat,ttstat1,ttstat2,ttstat3,ttstat4;
+    ttstat.tic();
     bool enabled_statistics = true;
     if (enabled_statistics)
     {
         double average_distance = 0.0f;
+        ttstat1.tic();
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         {
             //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
@@ -1579,6 +1615,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
                 average_distance += (*particle_itr)->getDistance_to_closest_segment() * (*particle_itr)->getParticleScore() / tot_score;
         }
         average_quaternion.normalize();
+        ROS_ERROR_STREAM("AVERAGING\t" << ttstat1.toc());
         ///////////////////////////////////////////////////////////////////////////
 
 
@@ -1596,24 +1633,24 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         publisher_average_pose.publish(odometry); // Odometry message
 
 
+        ttstat2.tic();
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 110; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
-        cout << "/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/home/ballardini/catkin_ws/src/kitti_player/dataset/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 175; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
+        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_10_03_drive_0027_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_10_03_drive_0027_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
             ros::shutdown();
         }
         RTK >> from_latitude >> from_longitude >> from_altitude;
-
         double roll_gps, pitch_gps, yaw_gps;
         RTK >> roll_gps >> pitch_gps >> yaw_gps;
-
         cout <<  "LAT LON FROM GPS FILE " << from_latitude << "\t" << from_longitude << endl;
         RTK.close();
+        ROS_ERROR_STREAM("RTK READING\t" << ttstat2.toc());
 
         sensor_msgs::NavSatFix gps_fix;
         gps_fix.header.frame_id = "/map";
@@ -1631,12 +1668,22 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ira_open_street_map::latlon_2_xyRequest query_latlon2xy;
         query_latlon2xy.latitude = from_latitude;
         query_latlon2xy.longitude = from_longitude;
-        ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
-        if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy, response_latlon2xy))
+        //ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
+        //if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy, response_latlon2xy))
+          if (true)
         {
-            cout << std::setprecision(16) << response_latlon2xy;
+              ttstat3.tic();
+            double a = from_latitude;
+            double b = from_longitude;
+
+            latlon2xy_helper(a,b);
+            //ROS_ERROR_STREAM("check this\t" << a << "\t" << response_latlon2xy.x);
+            //ROS_ERROR_STREAM("check this\t" << b << "\t" << response_latlon2xy.y);
+
+            //cout << std::setprecision(16) << response_latlon2xy;
             tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
-            RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x, response_latlon2xy.y, 0));
+            // --- RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x, response_latlon2xy.y, 0));
+            RTK_map_frame.setOrigin(tf::Vector3(a,b, 0));
             //RTK_map_frame.setRotation(tf::createIdentityQuaternion());
             RTK_map_frame.setRotation(tf::createQuaternionFromRPY(roll_gps, pitch_gps, yaw_gps));
             RTK_map_frame.frame_id_ = "/map";
@@ -1717,6 +1764,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             //                            0 << " " << 0 << " " << 0 << " " << 0 << " " <<
             //                            tot_score / current_layout_shared.size() << " " <<
             //                            query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+
+            ROS_ERROR_STREAM("SAVING RTK\t" << ttstat3.toc());
         }
         else
         {
@@ -1738,24 +1787,30 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         // Transform pose from "local_map" to "map"
         try
         {
+            ttstat4.tic();
             tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
 
-            ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
-            ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
-            query_xy2latlon.x = average_pose_map_frame.getOrigin().getX();
-            query_xy2latlon.y = average_pose_map_frame.getOrigin().getY();
-            if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon, response_xy2latlon))
-            {
-                // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
-                to_lat = response_xy2latlon.latitude;
-                to_lon = response_xy2latlon.longitude;
-            }
-            else
-            {
-                ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon_2_srv' service");
-                ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-                return;
-            }
+            //ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
+            //ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
+            double a = average_pose_map_frame.getOrigin().getX();
+            double b = average_pose_map_frame.getOrigin().getY();
+            //query_xy2latlon.x = average_pose_map_frame.getOrigin().getX();
+            //query_xy2latlon.y = average_pose_map_frame.getOrigin().getY();
+            latlon2xy_helper(a,b);
+            to_lat = a;
+            to_lon = b;
+            //if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon, response_xy2latlon))
+            //{
+            //    // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
+            //    to_lat = response_xy2latlon.latitude;
+            //    to_lon = response_xy2latlon.longitude;
+            //}
+            //else
+            //{
+            //    ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon_2_srv' service");
+            //    ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+            //    return;
+            //}
 
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
@@ -1770,13 +1825,16 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             RLE_out_file.flush();
 
 
-            cout << start_frame << " " << setprecision(16) <<
-                 average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                 roll << " " << pitch << " " << yaw << " " <<
-                 average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                 tot_score / current_layout_shared.size() << " " <<
-                 to_lat << " " << to_lon << " " <<
-                 average_distance << "\n";
+            //cout << start_frame << " " << setprecision(16) <<
+            //     average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+            //     roll << " " << pitch << " " << yaw << " " <<
+            //     average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
+            //     tot_score / current_layout_shared.size() << " " <<
+            //     to_lat << " " << to_lon << " " <<
+            //     average_distance << "\n";
+
+            ROS_ERROR_STREAM("SAVING RLE\t" << ttstat4.toc());
+
         }
         catch (tf::TransformException &ex)
         {
@@ -1791,28 +1849,30 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         */
 
         // TODO: calculate LAT LON
-        tf::StampedTransform VO;
-        try
-        {
-            tf_listener.lookupTransform("/local_map", "/visual_odometry_car_frame", ros::Time(0), VO);
-
-            tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
-
-            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                             VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
-                             roll << " " << pitch << " " << yaw << " " <<
-                             VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
-                             tot_score / current_layout_shared.size() << "\n";
-            LIBVISO_out_file.flush();
-        }
-        catch (tf::TransformException &ex)
-        {
-            ROS_WARN_STREAM("VO");
-        }
+//        tf::StampedTransform VO;
+//        try
+//        {
+//            tf_listener.lookupTransform("/local_map", "/visual_odometry_car_frame", ros::Time(0), VO);
+//
+//            tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
+//
+//            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+//                             VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
+//                             roll << " " << pitch << " " << yaw << " " <<
+//                             VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
+//                             tot_score / current_layout_shared.size() << "\n";
+//            LIBVISO_out_file.flush();
+//        }
+//        catch (tf::TransformException &ex)
+//        {
+//            ROS_WARN_STREAM("VO");
+//        }
+        ROS_ERROR_STREAM("STATISTICS: " << ttstat.toc());
     }
     // -------------------------------------------------------------------------------------------------------------------------------------
 
-    ROS_INFO_STREAM("Exiting OdomCallBack v2");
+
+    ROS_ERROR_STREAM("Exiting OdomCallBack v2\t overall time: \t" << overallODOMETRYCALLBACK.toc());
 
     //Start the timer.  Does nothing if the timer is already started.
     this->rleStart();
@@ -1974,16 +2034,28 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
  */
 void LayoutManager::componentsEstimation()
 {
+    pcl::console::TicToc ttsampling;
+    pcl::console::TicToc ttperturb;
+    pcl::console::TicToc ttweight;
+    double ttt=0;
+
     ROS_DEBUG("> Entering componentsEstimation");
 
     // STEP 1: SAMPLING (PREDICT COMPONENTS POSES)
-    sampling();
+    ttt=0;ttsampling.tic();sampling();ttt=ttsampling.toc();
+    if (ttt>1)
+        ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << "\t" <<ttt << " milliseconds IN RLE A\t"<<ttt); //questa chiama i vari PROPAGATE LAYOUT COMPONENTS ovvero <<componentPoseEstimation>
 
     // STEP 2: PERTURBATE COMPONENT POSES
-    componentsPerturbation();
+    ttt=0;ttperturb.tic();//componentsPerturbation();
+    ttt=ttperturb.toc();
+    if (ttt>1)
+        ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << "\t" <<ttt << " milliseconds IN RLE B\t"<<ttt);
 
     // STEP 3: WEIGHT LAYOUT-COMPONENTS
-    calculateLayoutComponentsWeight();
+    ttweight.tic();calculateLayoutComponentsWeight();ttt=ttweight.toc();
+    if (ttt>1)
+        ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << "\t" <<ttt << " milliseconds IN RLE C\t"<<ttt);
 
     ROS_DEBUG("< Exiting componentsEstimation");
 }
@@ -1998,13 +2070,14 @@ void LayoutManager::sampling()
 {
     ROS_DEBUG_STREAM("> Entering Sampling of all components");
     vector<shared_ptr<Particle>>::iterator itr;
+    int partinumber=0;
     for ( itr = current_layout_shared.begin(); itr != current_layout_shared.end(); itr++ )
     {
         ROS_INFO_STREAM_ONCE("--- Propagating components of particle, ID: " << (*itr)->getId() << " ---");
 
         // QtCreator annoying bug... solved with this 'trick'
         shared_ptr<Particle> particle = *itr;
-        particle->propagateLayoutComponents();
+        particle->propagateLayoutComponents(partinumber++);
 
         //itr->propagateLayoutComponents();
     }
@@ -2042,6 +2115,7 @@ void LayoutManager::componentsPerturbation()
 ///
 void LayoutManager::calculateLayoutComponentsWeight()
 {
+    tt.tic();
     ROS_DEBUG_STREAM("> Entering calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
     // first, iterate over all particles of 'current_layout_shared'
     for (int i = 0; i < current_layout_shared.size(); i++)
@@ -2058,6 +2132,10 @@ void LayoutManager::calculateLayoutComponentsWeight()
         }
     }
     ROS_DEBUG_STREAM("< Exiting calculateLayoutComponentsWeight (and then calling *virtual* calculateComponentScore ");
+
+    double ttt=tt.toc();
+    if (ttt>1)
+        ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
 }
 /** **************************************************************************************************************/
 
@@ -2552,6 +2630,7 @@ bool LayoutManager::getAllParticlesLatLonService(road_layout_estimation::getAllP
  */
 void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 {
+    tt2.tic();
 
     setCurrent_layoutScore(0.0f);
 
@@ -2596,8 +2675,18 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
     if (this->deltaTimerTime > 10)
     {
-        ROS_WARN_STREAM("Warning, deltaTimer>10 seconds. Force deltatimer = 0.1 HARDCODED");
-        this->deltaTimerTime = 0.1;
+        ROS_WARN_STREAM("Warning, deltaTimer>10 seconds "<<this->deltaTimerTime );
+        //this->deltaTimerTime = 10;                                      //refs #613  qui originariamente c'era 0.1 al posto di 10
+    }                                                                   //refs #613
+    else                                                                //refs #613
+    {                                                                   //refs #613 questa parte l'ho aggiunta risolvendo bug
+        ROS_WARN_STREAM("Delta 'corretti'"<<this->deltaTimerTime);      //refs #613 questa parte l'ho aggiunta risolvendo bug
+    }                                                                   //refs #613 questa parte l'ho aggiunta risolvendo bug
+
+    if (this->deltaTimerTime < 0)
+    {
+        ROS_ERROR_STREAM("STICAZZI")         ;
+        ros::shutdown();
     }
 
     // Check if car has moved, if it has moved then estimate new layout.
@@ -2742,14 +2831,17 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         }
 
 
+        pcl::console::TicToc ttresampling;
         // RESAMPLING --------------------------------------------------------------------------------------------------------------------------
         if (resampling_count++ == resampling_interval)
             //    if(0)
         {
+            ttresampling.tic();
             ROS_DEBUG_STREAM("> Begin resampling phase!");
             resampling_count = 0;
-            ROS_DEPRECATED vector<Particle> new_current_layout;
+            //ROS_DEPRECATED vector<Particle> new_current_layout;
             vector<shared_ptr <Particle>> new_current_layout_shared;
+            new_current_layout_shared.reserve(current_layout_shared.size());
             vector<double> particle_score_vect;
             double cum_score_sum = 0.0f;
 
@@ -2771,48 +2863,62 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
                 // find weight that is at least num
                 vector<double>::iterator score_itr;
+                //shared_ptr<Particle> temp_part;
 
+                clock_t tic = clock();
+                int ddd=0;
                 for (int k = 0; k < current_layout_shared.size(); ++k)
                 {
-                    if (uniform_rand2(rng) <= 95) //This percentage of weighted samples
+                    if (true) //This percentage of weighted samples
                     {
                         // WEIGHTED RESAMPLER
                         int particle_counter = 0;
+                        clock_t ran1=clock();
                         double num = uniform_rand(rng);
+                        clock_t ran2=clock();
 
+                        clock_t tic = clock();
+                        ddd=0;
                         for (score_itr = particle_score_vect.begin(); score_itr != particle_score_vect.end(); score_itr++ )
                         {
                             if ( *score_itr >= num)
                             {
                                 shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(particle_counter))); //#586
+                                //temp_part.reset(new Particle(*current_layout_shared.at(particle_counter))); //#586
                                 temp_part->setId(k);
                                 temp_part->setParticleScore(1.0f);
                                 //                            stat_out_file << temp_part.getId() << "\t";
                                 //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPosition())(0);
                                 //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPosition())(1);
-                                new_current_layout_shared.push_back(temp_part);
+                                new_current_layout_shared.push_back(temp_part);                                
                                 break;
                             }
+                            ddd++;
                             particle_counter++;
                         }
+                        clock_t toc = clock();
+                        ROS_ERROR("CREA LA PARTICELLA Elapsed: %f seconds\t#@%d\t\t RAN=%f \n", (double)(toc - tic) / CLOCKS_PER_SEC,ddd,(double)(ran1 - ran2) / CLOCKS_PER_SEC);
                     }
                     else
                     {
-                        // UNIFORM RESAMPLER
-                        int temp_rand = floor(uniform_rand3(rng));
-                        shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(temp_rand)));
-                        temp_part->setId(k);
-                        temp_part->setParticleScore(1.0f);
-                        new_current_layout_shared.push_back(temp_part);
+                        // just 4 fun even if (true)  is set  .... // UNIFORM RESAMPLER
+                        // just 4 fun even if (true)  is set  .... int temp_rand = floor(uniform_rand3(rng));
+                        // just 4 fun even if (true)  is set  .... shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(temp_rand)));
+                        // just 4 fun even if (true)  is set  .... temp_part->setId(k);
+                        // just 4 fun even if (true)  is set  .... temp_part->setParticleScore(1.0f);
+                        // just 4 fun even if (true)  is set  .... new_current_layout_shared.push_back(temp_part);
                     }
 
                 }
+                clock_t toc = clock();
+                ROS_ERROR("ROULETTE Elapsed: %f seconds     USING %f\n", (double)(toc - tic) / CLOCKS_PER_SEC,cum_score_sum);
 
                 // copy resampled particle-set
                 current_layout_shared.clear();
                 current_layout_shared = new_current_layout_shared;
+                new_current_layout_shared.clear();
             }
-            ROS_DEBUG_STREAM("< End resampling phase!");
+            ROS_DEBUG_STREAM("< End resampling phase! \t" << ttresampling.toc());
         }
         // END RESAMPLING ----------------------------------------------------------------------------------------------------------------------
 
@@ -2827,7 +2933,12 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
     }
 
-    ROS_INFO_STREAM ("Exiting RLE layoutEstimation\t");
+    int64_t elapsedtime=tt2.toc();
+    std_msgs::Int64 t;
+    t.data = elapsedtime;
+    RLETIME.publish(t);
+
+    ROS_INFO_STREAM ("Exiting RLE layoutEstimation\t time: \t" << elapsedtime);
 
     //return current_layout_shared; // current layout is the <vector> of Particles
 }
@@ -2874,3 +2985,69 @@ void LayoutManager::setCurrent_layout_shared(const vector<shared_ptr<Particle> >
 //{
 //    current_layout = p_set;
 //}
+
+
+
+inline void latlon2xy_helper(double &lat, double &lngd)
+{
+
+    // WGS 84 datum
+    double eqRad = 6378137.0;
+    double flat = 298.2572236;
+
+    // constants used in calculations:
+    double a = eqRad;           // equatorial radius in meters
+    double f = 1.0 / flat;        // polar flattening
+    double b = a * (1.0 - f);     // polar radius
+    double e = sqrt(1.0 - (pow(b, 2) / pow(a, 2))); // eccentricity
+    double k0 = 0.9996;
+    double drad = M_PI / 180.0;
+
+    double phi = lat * drad;   // convert latitude to radians
+    double utmz = 1.0 + floor((lngd + 180.0) / 6.0); // longitude to utm zone
+    double zcm = 3.0 + 6.0 * (utmz - 1.0) - 180.0;     // central meridian of a zone
+    double esq = (1.0 - (b / a) * (b / a));
+    double e0sq = e * e / (1.0 - e * e);
+    double M = 0.0;
+    double M0 = 0.0;
+    double N = a / sqrt(1.0 - pow(e * sin(phi), 2));
+    double T = pow(tan(phi), 2);
+    double C = e0sq * pow(cos(phi), 2);
+    double A = (lngd - zcm) * drad * cos(phi);
+
+    // calculate M (USGS style)
+    M = phi * (1.0 - esq * (1.0 / 4.0 + esq * (3.0 / 64.0 + 5.0 * esq / 256.0)));
+    M = M - sin(2.0 * phi) * (esq * (3.0 / 8.0 + esq * (3.0 / 32.0 + 45.0 * esq / 1024.0)));
+    M = M + sin(4.0 * phi) * (esq * esq * (15.0 / 256.0 + esq * 45.0 / 1024.0));
+    M = M - sin(6.0 * phi) * (esq * esq * esq * (35.0 / 3072.0));
+    M = M * a; // Arc length along standard meridian
+
+    // now we are ready to calculate the UTM values...
+    // first the easting (relative to CM)
+    double x = k0 * N * A * (1.0 + A * A * ((1.0 - T + C) / 6.0 + A * A * (5.0 - 18.0 * T + T * T + 72.0 * C - 58.0 * e0sq) / 120.0));
+    x = x + 500000.0; // standard easting
+
+    // now the northing (from the equator)
+    double y = k0 * (M - M0 + N * tan(phi) * (A * A * (1.0 / 2.0 + A * A * ((5.0 - T + 9.0 * C + 4.0 * C * C) / 24.0 + A * A * (61.0 - 58.0 * T + T * T + 600.0 * C - 330.0 * e0sq) / 720.0))));
+    if (y < 0)
+    {
+        y = 10000000.0 + y; // add in false northing if south of the equator
+    }
+    double easting = round(10.0 * x) / 10.0;
+    double northing = round(10.0 * y) / 10.0;
+
+
+    lat = easting;
+    lngd = northing;
+
+
+    // the following lines were added to debug the rviz_satellite with Bing Maps. You can delete when needed.
+    //double sinLatitude = sin(latitude * M_PI/180);
+    //coords.x = ((longitude + 180.0f) / 360.0f) * 256.0f * pow(2,zoom);
+    //coords.y = (0.5f-log((1.0f+sinLatitude) / (1.0f-sinLatitude)) / (4.0f*M_PI)) * 256.0f * pow(2,zoom);
+
+    //double sinLatitude = sin(lat * M_PI/180);
+    //ROS_ERROR_STREAM ("DIFFERENCE\t"<<coords.x << " " <<((lngd + 180.0f) / 360.0f) * 256.0f * pow(2,19));
+    //ROS_ERROR_STREAM ("DIFFERENCE\t"<<coords.y << " " <<(0.5f-log((1.0f+sinLatitude) / (1.0f-sinLatitude)) / (4.0f*M_PI)) * 256.0f * pow(2,19));
+
+}

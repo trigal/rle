@@ -70,7 +70,7 @@ public:
      * @brief propagateLayoutComponents
      * This function will use "motion-model" class to propagate all particle's components
      */
-    void propagateLayoutComponents();
+    void propagateLayoutComponents(int partinumber);
 
     /**
      * @brief addComponent Add new component to the particle
@@ -297,13 +297,18 @@ public:
           particle_sigma(toCopy.getParticleSigma()), kalman_gain(toCopy.getKalmanGain()),
           particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel())
     {
-        for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
+        //vector<LayoutComponent*>* a = toCopy.getLayoutComponentsPtr();
+        for (auto & layoutComponent: toCopy.getLayoutComponents())
+        //for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
         {
             LayoutComponent* copyComponent = layoutComponent->clone();
             shared_ptr<Particle> particle_ptr(this);
             copyComponent->setParticlePtr(particle_ptr);
             this->addComponent(copyComponent);
         }
+
+
+
 
         // unsigned int particle_id;                       ///< particle id
         // State6DOF particle_state;                       ///< particle state (12x1: 6DoF pose + 6 Speed Derivates)
@@ -322,15 +327,17 @@ public:
         particle_id = 0;
         kalman_gain.resize(0, 0);
         particle_sigma.resize(0, 0);
-        particle_components.resize(0);
+        particle_components.clear();
+        //particle_components.resize(0);
         particle_score = 0.0f;
 //#522        distance_to_closest_segment = 0.0f;
 
         // delete all particle's components
-        for (int i = 0; i < particle_components.size(); ++i)
-        {
-            delete particle_components.at(i);
-        }
+      //  for (int i = 0; i < particle_components.size(); ++i)
+      //  {
+      //      delete particle_components.at(i);
+      //  }
+
     }
 
 };

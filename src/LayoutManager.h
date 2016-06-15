@@ -82,6 +82,9 @@
 #include <fstream>
 #include <limits>
 
+#include <pcl/console/parse.h>
+#include <pcl/console/time.h>
+#include <std_msgs/Int64.h>
 
 
 using boost::math::normal;
@@ -136,6 +139,9 @@ class LayoutManager
 {
 public:
 
+    //  PCL computation time
+    pcl::console::TicToc tt,tt2;
+
     ///DEBUG!!!
     tf::Stamped<tf::Pose> GPS_RTK_LOCAL_POSE;
     pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
@@ -160,6 +166,7 @@ public:
     ros::Publisher publisher_z_snapped;
     ros::Publisher publisher_z_particle;
     ros::Publisher publisher_GT_RTK;
+    ros::Publisher RLETIME;
 
     ros::Publisher publisher_average_pose;      ///< Publishes the average odometry, as NAVIGATION ODOMETRY message.
     ros::Publisher publisher_average_position;  ///< Publishes the average odometry, as a point (used to compare w.r.t. the GPS points).

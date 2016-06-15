@@ -12,6 +12,7 @@ Panels:
         - /Particle Set1/Namespaces1
         - /Ave-Pose1
         - /OSM Elements1/Namespaces1
+        - /PointCloud23
         - /Average Localization1/Namespaces1
       Splitter Ratio: 0.75
     Tree Height: 654
@@ -121,13 +122,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 170; 0
-      Enabled: true
+      Enabled: false
       Keep: 1000000
-      Length: 2
+      Length: 10
       Name: LIBVISO
       Position Tolerance: 0.1
-      Topic: /stereo_odometer/odometry_xforward
-      Value: true
+      Topic: /stereo_odometer/odometry
+      Value: false
     - Arrow Length: 10
       Class: rviz/PoseArray
       Color: 0; 255; 0
@@ -177,7 +178,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/particle_set
       Name: Particle Set
       Namespaces:
-        particle_set: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.1
@@ -226,7 +227,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: ""
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -243,7 +244,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /UTM_converter
@@ -264,7 +265,7 @@ Visualization Manager:
       Color: 255; 0; 127
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -281,7 +282,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /ways
@@ -299,13 +300,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /edges
       Name: OSM Buildings on Particles
       Namespaces:
-        buildings: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Axes
       Enabled: false
       Length: 1
@@ -333,9 +334,9 @@ Visualization Manager:
       Min Intensity: 0
       Name: PointCloud2
       Position Transformer: XYZ
-      Queue Size: 10
+      Queue Size: 1
       Selectable: true
-      Size (Pixels): 10
+      Size (Pixels): 2
       Size (m): 10
       Style: Points
       Topic: /facades_cloud_gps
@@ -348,7 +349,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/GT_RTK
       Name: RTK GPS
       Namespaces:
-        RTK_MARKER: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -356,7 +357,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/average_position
       Name: Average Localization
       Namespaces:
-        LOCALIZATION_MARKER: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -395,22 +396,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 76.7324
+      Distance: 104.656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 19.9097
-        Y: -13.864
-        Z: 4.37588e-06
+        X: 82.6731
+        Y: 43.0049
+        Z: 1.60618e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.3548
+      Pitch: 1.3748
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.2704
+      Yaw: 3.79859
     Saved: ~
 Window Geometry:
   Displays:
@@ -432,5 +433,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1871
-  X: -7
+  X: 1960
   Y: 17

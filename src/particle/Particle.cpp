@@ -26,36 +26,43 @@ using std::vector;
 /**
  * @brief propagateLayoutComponents Update every particle's components pose using motion model equations
  */
-void Particle::propagateLayoutComponents()
+void Particle::propagateLayoutComponents(int partinumber)
 {
     ROS_DEBUG_STREAM("> Entering propagateLayoutComponents");
 
     vector<LayoutComponent*>::iterator itr;
     unsigned char component_counter = 0; // preferred over (it - vec.begin())
+    pcl::console::TicToc tt;
+    tt.tic();
+
     for (itr = particle_components.begin(); itr != particle_components.end(); itr++)
     {
-        ROS_DEBUG_STREAM("Cycling through component id: " << (int)(component_counter++) << " of " << (*itr)->getComponentId());
+        ROS_DEBUG_STREAM("Cycling through component id: " << component_counter++ << " of " << (*itr)->getComponentId());
 
         if (dynamic_cast<LayoutComponent_OSMDistance* >(*itr))
         {
-            ROS_DEBUG_STREAM("OSMDistanceComponent detected");
-            (*itr)->componentPoseEstimation(); //virtual
+            ROS_ERROR_STREAM("OSMDistanceComponent detected\t\t\tindex:\t"<< partinumber);
+            (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
         }
         if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
+            ROS_ERROR_STREAM("CHECIFAIQUI");
+            ros::shutdown();
             ROS_DEBUG_STREAM("roadStateComponent detected");
-            (*itr)->componentPoseEstimation(); //virtual
+            (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
         }
         if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
         {
+            ROS_ERROR_STREAM("CHECIFAIQUI");
+            ros::shutdown();
             ROS_DEBUG_STREAM("roadLaneComponent detected");
-            (*itr)->componentPoseEstimation(); //virtual
+            (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
         }
 
-        ROS_WARN_STREAM("Unkown component");
+        ROS_DEBUG_STREAM("Unkown component");
 
         // propagate component pose with motion model equations
         // VectorXd pc_state = (*itr)->getComponentState();
@@ -65,7 +72,7 @@ void Particle::propagateLayoutComponents()
         //(*itr)->setComponentState(new_pose);
     }
 
-    ROS_DEBUG_STREAM("< Exiting propagateLayoutComponents");
+    ROS_DEBUG_STREAM("< Exiting propagateLayoutComponents\t" << tt.toc());
 }
 
 /** **************************************************************************************************************/
