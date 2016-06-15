@@ -5,6 +5,8 @@
 #include <pcl/console/time.h>
 #include <building_detection/Facade.h>
 #include "Edge.hpp"
+#include <boost/math/distributions/normal.hpp>
+
 namespace road_layout_estimation
 {
 struct Facade

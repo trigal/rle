@@ -99,8 +99,8 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
     // Transform pose from "local_map" to "map"
     try
     {
-        tf_listener.waitForTransform("map", "local_map", ros::Time(0), ros::Duration(0.5)); // TODO: Feature #588
-        tf_listener.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+        tf_listener_->waitForTransform("map", "local_map", ros::Time(0), ros::Duration(0.5)); // TODO: Feature #588
+        tf_listener_->transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
     }
     catch (tf::TransformException &ex)
     {
@@ -164,8 +164,8 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
         // Transform pose from "map" to "local_map"
         try
         {
-            tf_listener.waitForTransform("local_map", "map", ros::Time(0), ros::Duration(0.5)); // TODO: Feature #588
-            tf_listener.transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
+            tf_listener_->waitForTransform("local_map", "map", ros::Time(0), ros::Duration(0.5)); // TODO: Feature #588
+            tf_listener_->transformPose("local_map", ros::Time(0), tf_snapped_map_frame, "map", tf_snapped_local_map_frame);
         }
         catch (tf::TransformException &ex)
         {

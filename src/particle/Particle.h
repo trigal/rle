@@ -32,6 +32,9 @@ class LayoutComponent; // also in LayoutComponent.h https://en.wikipedia.org/wik
 #include <vector>
 #include <typeinfo>
 
+#include <tf/tf.h>
+
+
 using namespace Eigen;
 using std::vector;
 
@@ -52,6 +55,8 @@ private:
     MatrixXd kalman_gain;                           ///< kalman gain got while estimating the pose
     double particle_score;                          ///< score got with particle-score formula
     MotionModel particle_mtn_model;                 ///< particle motion model
+    ros::NodeHandle node_handle_;
+    tf::TransformListener *listener_;
 
 
 public:
@@ -252,31 +257,35 @@ public:
     double getRoadWidth();
 
     //constructor ----------------------------------------------------------------------
-    Particle()
+    Particle(ros::NodeHandle node_handle,tf::TransformListener *listener): node_handle_(node_handle)
     {
+        this->listener_=listener;
         particle_id = 0;
         kalman_gain = MatrixXd::Zero(12, 12);
         particle_sigma = MatrixXd::Zero(12, 12);
         particle_score = 0.0f;
 //#522        distance_to_closest_segment = 0.0f;
     }
-    Particle(unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md)
+    Particle(ros::NodeHandle node_handle, tf::TransformListener *listener,unsigned int id, MotionModel mt_md) : particle_id(id), particle_mtn_model(mt_md), node_handle_(node_handle)
     {
+        this->listener_=listener;
         kalman_gain = MatrixXd::Zero(12, 12);
         particle_sigma = MatrixXd::Zero(12, 12);
         particle_score = 0.0f;
 //#522        distance_to_closest_segment = 0.0f;
     }
-    Particle(unsigned int id, State6DOF& state, MotionModel mt_md )
-        : particle_id(id), particle_state(state), particle_mtn_model(mt_md)
+    Particle(ros::NodeHandle node_handle, tf::TransformListener *listener, unsigned int id, State6DOF& state, MotionModel mt_md )
+        : particle_id(id), particle_state(state), particle_mtn_model(mt_md), node_handle_(node_handle)
     {
+        this->listener_=listener;
         particle_sigma = MatrixXd::Zero(12, 12);
         particle_score = 0.0f;
 //#522        distance_to_closest_segment = 0.0f;
     }
-    Particle(unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
-        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md)
+    Particle(ros::NodeHandle node_handle, tf::TransformListener *listener, unsigned int id, State6DOF state, MatrixXd state_sigma, MotionModel mt_md)
+        : particle_id(id), particle_state(state), particle_sigma(state_sigma), particle_mtn_model(mt_md), node_handle_(node_handle)
     {
+        this->listener_=listener;
         ROS_DEBUG_STREAM("Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model)");
         ROS_DEBUG_STREAM("Motion Model Absolute Translational Velocity errors:\t" << mt_md.propagate_translational_absolute_vel_error_x << "\t" << mt_md.propagate_translational_absolute_vel_error_y << "\t" << mt_md.propagate_translational_absolute_vel_error_z);
         ROS_DEBUG_STREAM("Motion Model    %     Translational Velocity errors:\t" << mt_md.getPropagate_translational_percentage_vel_error_x() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_y() << "\t" << mt_md.getPropagate_translational_percentage_vel_error_z());
@@ -295,8 +304,9 @@ public:
     Particle (Particle &toCopy)
         : particle_id(toCopy.getId()), particle_state(toCopy.getParticleState()),
           particle_sigma(toCopy.getParticleSigma()), kalman_gain(toCopy.getKalmanGain()),
-          particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel())
+          particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel()), node_handle_(toCopy.node_handle_)
     {
+        listener_=toCopy.listener_;
         //vector<LayoutComponent*>* a = toCopy.getLayoutComponentsPtr();
         for (auto & layoutComponent: toCopy.getLayoutComponents())
         //for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())

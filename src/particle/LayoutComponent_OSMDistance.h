@@ -58,7 +58,7 @@ private:
 
     // ROS node handler and TF listener needed to look up for transforms.
     ros::NodeHandle node_handler;            // WARNING: this is a copy?! seems to be ok ... http://answers.ros.org/question/12375/is-it-possible-to-have-2-nodehandlers-for-a-single-node/
-    tf::TransformListener tf_listener;
+    tf::TransformListener *tf_listener_;
 
     /// The ROS-Service declaration. Initialization in the constructor.
     //ros::ServiceClient snap_particle_xy_client;
@@ -103,7 +103,7 @@ public:
      */
     LayoutComponent* clone()
     {
-        LayoutComponent* cloned = new LayoutComponent_OSMDistance(particle_id, component_id, distance_to_closest_segment,
+        LayoutComponent* cloned = new LayoutComponent_OSMDistance(node_handler, tf_listener_, particle_id, component_id, distance_to_closest_segment,
                                                                   final_angle_diff_score_component, street_distribution_sigma,
                                                                   angle_distribution_sigma, street_distribution_alpha, angle_distribution_alpha);
 
@@ -118,7 +118,9 @@ public:
      * @brief LayoutComponent_RoadLane
      * Default Constructor
      */
-    LayoutComponent_OSMDistance(const unsigned int particle_id,
+    LayoutComponent_OSMDistance(ros::NodeHandle nh,
+                                tf::TransformListener *listener,
+                                const unsigned int particle_id,
                                 const unsigned int component_id,
                                 const double euclideanDistanceMeters,
                                 const double angularDistanceRAD,
@@ -126,8 +128,9 @@ public:
                                 const double angle_distribution_sigma,
                                 const double street_distribution_weight,
                                 const double angle_distribution_weight
-                               )
+                               ): node_handler(nh)
     {
+        tf_listener_=listener;
         //ROS_INFO_STREAM(__PRETTY_FUNCTION__);
         this->particle_id                       = particle_id;
         this->component_id                      = component_id; // this refs #525
@@ -145,6 +148,11 @@ public:
 
         ROS_ASSERT(this->street_distribution_alpha   > 0.0f);
         ROS_ASSERT(this->angle_distribution_alpha    > 0.0f);
+    }
+
+    ~LayoutComponent_OSMDistance()
+    {
+        node_handler.shutdown();
     }
 
     double getDistance_to_closest_segment() const;

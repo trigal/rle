@@ -69,7 +69,7 @@ geometry_msgs::PoseArray LayoutManager::buildPoseArrayMsg(std::vector<shared_ptr
  *
  * TODO: bagfile is still needed even in the case of kittiplayer
  */
-LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::string& visualOdometryTopic, string &bagfile, double timerInterval, ros::console::Level loggingLevel)
+LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::string& visualOdometryTopic, string &bagfile, double timerInterval, ros::console::Level loggingLevel):node_handle(node_handler_parameter)
 {
 
     // init output files
@@ -92,7 +92,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     resampling_count = 0;
     LayoutManager::first_msg = true;
     visualOdometryOldMsg.header.stamp = ros::Time::now();    // init header timestamp
-    node_handle = node_handler_parameter;                    // set this node_handle as the same of 'road_layout_manager'
+                  // set this node_handle as the same of 'road_layout_manager'
     start_with_gps_message  = true;                          // select RLE mode, hard-coded KITTI initializations, or GPS message TODO:FIX this shame
 
     this->bagfile = bagfile;
@@ -440,6 +440,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
     ////////////////////////////////////////////////////////////////////////////
     if (!LayoutManager::layoutManagerFirstRun)
     {
+        ROS_ERROR_STREAM("CERCA QUESTA STRINGA 1342354235");
+        ros::shutdown();
         if (currentConfiguration.particles_number > num_particles)
         {
             // let's add some empty particles to particle-set:
@@ -448,8 +450,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             for (int i = 0; i < particles_to_add; i++)
             {
                 ROS_WARN_STREAM("NEW PARTICLE");
-                //Particle new_particle(counter, default_mtn_model);
-                shared_ptr<Particle> newParticlePtr = make_shared<Particle>(counter, default_mtn_model);
+                //Particle new_particle(node_handle, counter, default_mtn_model);
+                shared_ptr<Particle> newParticlePtr = make_shared<Particle>(node_handle,&tf_listener,counter, default_mtn_model);
 
                 newParticlePtr->in_cluster = -1;
 //#522                newParticlePtr->distance_to_closest_segment = 0.0f; //default value
@@ -897,7 +899,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                     // Create particle, set its score and other parameters
                     //Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
-                    shared_ptr <Particle> new_particle = make_shared<Particle>(particle_id, p_pose, p_sigma, default_mtn_model);
+                    shared_ptr <Particle> new_particle = make_shared<Particle>(node_handle,&tf_listener,particle_id, p_pose, p_sigma, default_mtn_model);
 //#522                    new_particle->distance_to_closest_segment = 0.0f;       //distance is ZERO because particle is snapped
 
                     //new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
@@ -969,7 +971,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                          * The distances are ZERO since the particle was just created and snapped to the nearest road segment. Also the angular is zero, because
                          * we're saving the misalignment, that is zero in this case.
                          */
-                        LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(particle_id,
+                        LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(node_handle, &tf_listener, particle_id,
                                                                                                        component_id,
                                                                                                        0.0f,    //distance_to_closest_segment
                                                                                                        0.0f,    //final_angle_diff_score_component
@@ -988,7 +990,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
                     //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
-                    LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
+                    LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(node_handle, &tf_listener,particle_id,
                                                                                                component_id,
                                                                                                VectorXd::Zero(12),
                                                                                                MatrixXd::Zero(12, 12)
@@ -1034,7 +1036,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         // Create particle, set its score and other parameters
                         //Particle new_particle_opposite(particle_id, p_pose, p_sigma, default_mtn_model);
-                        shared_ptr <Particle> new_particle_opposite = make_shared<Particle>(particle_id, p_pose, p_sigma, default_mtn_model);
+                        shared_ptr <Particle> new_particle_opposite = make_shared<Particle>(node_handle,&tf_listener,particle_id, p_pose, p_sigma, default_mtn_model);
 //#522                        new_particle_opposite->distance_to_closest_segment = 0.0f; //distance is ZERO because particle is snapped
                         //new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
                         new_particle_opposite->setParticleScore(1); // don't calculate score with distance because particle is snapped
@@ -1099,7 +1101,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                              * The distances are ZERO since the particle was just created and snapped to the nearest road segment. Also the angular is zero, because
                              * we're saving the misalignment, that is zero in this case.
                              */
-                            LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(particle_id,
+                            LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(node_handle, &tf_listener , particle_id,
                                                                                                            component_id,
                                                                                                            0.0f,    //distance_to_closest_segment
                                                                                                            0.0f,    //final_angle_diff_score_component
@@ -1112,7 +1114,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             new_particle_opposite->addComponent(roadOSMDistance);
 
                         }
-                        LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(particle_id,
+                        LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(node_handle, &tf_listener,particle_id,
                                                                                                    component_id,
                                                                                                    VectorXd::Zero(12),
                                                                                                    MatrixXd::Zero(12, 12)
@@ -1149,7 +1151,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             for (int i = 0; i < currentConfiguration.particles_number; i++)
             {
                 //Particle zero_part(i, default_mtn_model);
-                shared_ptr<Particle> zero_part = make_shared<Particle>(i, default_mtn_model);
+                shared_ptr<Particle> zero_part = make_shared<Particle>(node_handle,&tf_listener,i, default_mtn_model);
                 MatrixXd tmp_cov = default_mtn_model.getErrorCovariance();
                 zero_part->setParticleSigma(tmp_cov);
                 current_layout_shared.push_back(zero_part);
@@ -2884,7 +2886,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                             if ( *score_itr >= num)
                             {
                                 shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(particle_counter))); //#586
-                                //temp_part.reset(new Particle(*current_layout_shared.at(particle_counter))); //#586
+                                //temp_part.reset(new Particle(node_handle,tf_listener, *current_layout_shared.at(particle_counter))); //#586
                                 temp_part->setId(k);
                                 temp_part->setParticleScore(1.0f);
                                 //                            stat_out_file << temp_part.getId() << "\t";
@@ -2903,7 +2905,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                     {
                         // just 4 fun even if (true)  is set  .... // UNIFORM RESAMPLER
                         // just 4 fun even if (true)  is set  .... int temp_rand = floor(uniform_rand3(rng));
-                        // just 4 fun even if (true)  is set  .... shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(temp_rand)));
+                        // just 4 fun even if (true)  is set  .... shared_ptr<Particle> temp_part(new Particle(node_handle,tf_listener, *current_layout_shared.at(temp_rand)));
                         // just 4 fun even if (true)  is set  .... temp_part->setId(k);
                         // just 4 fun even if (true)  is set  .... temp_part->setParticleScore(1.0f);
                         // just 4 fun even if (true)  is set  .... new_current_layout_shared.push_back(temp_part);

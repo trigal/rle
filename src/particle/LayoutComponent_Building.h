@@ -23,6 +23,8 @@
 #include "ira_open_street_map/getNearBuildings.h"
 #include "ira_open_street_map/get_node_coordinates.h"
 
+#include "Particle.h"
+
 using namespace std;
 
 class LayoutComponent_Building : public LayoutComponent
@@ -62,7 +64,7 @@ public:
         // Transform pose from "local_map" to "map"
         try
         {
-            tf_listener_.transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
+            tf_listener_->transformPose("map", ros::Time(0), tf_pose_local_map_frame, "local_map", tf_pose_map_frame);
         }
         catch (tf::TransformException &ex)
         {
@@ -305,8 +307,9 @@ public:
         return cloned;
     }
 
-    LayoutComponent_Building(const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov)
+    LayoutComponent_Building(ros::NodeHandle nh, tf::TransformListener *listener, const unsigned int p_id, const unsigned int c_id, const VectorXd& c_state, const MatrixXd& c_cov): node_handle_(nh)
     {
+        tf_listener_=listener;
         particle_id = p_id;
         component_id = c_id;
         component_weight = 0;
@@ -315,8 +318,9 @@ public:
         init();
     }
 
-    LayoutComponent_Building()
+    LayoutComponent_Building(ros::NodeHandle nh,tf::TransformListener *listener): node_handle_(nh)
     {
+        tf_listener_=listener;
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -325,7 +329,7 @@ public:
         init();
     }
 
-    LayoutComponent_Building(LayoutComponent_Building& component)
+    LayoutComponent_Building(LayoutComponent_Building& component): node_handle_(component.node_handle_), tf_listener_(component.tf_listener_)
     {
         particle_id = component.particle_id;
         component_id = component.component_id;
@@ -337,6 +341,12 @@ public:
         *edges_ = *(component.edges_);
     }
 
+    ~LayoutComponent_Building()
+    {
+        node_handle_.shutdown();
+
+    }
+
     vector<road_layout_estimation::Facade>* getFacades()
     {
         return &facades_;
@@ -344,13 +354,14 @@ public:
 
 private:
     ros::NodeHandle node_handle_;
+    tf::TransformListener *tf_listener_;
+
     vector<road_layout_estimation::Facade> facades_;
     ira_open_street_map::getNearBuildings get_near_buildings_server_;
     ros::ServiceClient get_near_buildings_client_;
     double osm_map_radius_;
     boost::shared_ptr<std::vector<edge>> edges_;
     double scale_factor, mu_dist, mu_angle, sigma_dist, sigma_angle, weight_angle, weight_dist;
-    tf::TransformListener tf_listener_;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr facades_cloud_;
     ros::Publisher cloud_pub_;
     ros::Publisher edge_pub_;

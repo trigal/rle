@@ -1,7 +1,7 @@
 #ifndef EDGE_HPP
 #define EDGE_HPP
 
-#include "particle/Particle.h"
+#include <tf/tf.h>
 
 struct edge
 {
