@@ -35,7 +35,8 @@ public:
     tf::Stamped<tf::Pose> stateToGlobalFrame()
     {
         // Get particle state
-        Vector3d p_state = this->getParticlePtr()->getParticleState()._pose;
+        Particle* temp = this->getParticlePtr();
+        Vector3d p_state = temp->getParticleState()._pose;
         geometry_msgs::PoseStamped pose_local_map_frame;
         pose_local_map_frame.header.frame_id = "local_map";
         pose_local_map_frame.header.stamp = ros::Time::now();
@@ -45,9 +46,9 @@ public:
 
         //Porcata assurda. Funziona solo nel 2D, come tutto il resto
         //auto rotation = tf::createQuaternionFromYaw(this->getParticlePtr()->getParticleState().getRotation().angle());
-        auto rotation = tf::createQuaternionFromRPY(this->getParticlePtr()->getParticleState().getRoll(),
-                                                    this->getParticlePtr()->getParticleState().getPitch(),
-                                                    this->getParticlePtr()->getParticleState().getYaw());
+        auto rotation = tf::createQuaternionFromRPY(temp->getParticleState().getRoll(),
+                                                    temp->getParticleState().getPitch(),
+                                                    temp->getParticleState().getYaw());
         pose_local_map_frame.pose.orientation.x = rotation.x();
         pose_local_map_frame.pose.orientation.y = rotation.y();
         pose_local_map_frame.pose.orientation.z = rotation.z();

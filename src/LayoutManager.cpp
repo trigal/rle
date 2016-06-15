@@ -978,7 +978,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                        currentConfiguration.street_distribution_alpha,
                                                                                                        currentConfiguration.angle_distribution_alpha
                                                                                                       );
-                        roadOSMDistance->setParticlePtr(new_particle);
+                        roadOSMDistance->setParticlePtr(new_particle.get());
                         new_particle->addComponent(roadOSMDistance);
 
 
@@ -993,7 +993,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                VectorXd::Zero(12),
                                                                                                MatrixXd::Zero(12, 12)
                                                                                               );
-                    buildingComponent->setParticlePtr(new_particle);
+                    buildingComponent->setParticlePtr(new_particle.get());
                     new_particle->addComponent(buildingComponent);
 
                     /// Setep 05 - Push particle into particle-set and update the particles id counter
@@ -1108,7 +1108,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                            currentConfiguration.street_distribution_alpha,
                                                                                                            currentConfiguration.angle_distribution_alpha
                                                                                                           );
-                            roadOSMDistance->setParticlePtr(new_particle_opposite);
+                            roadOSMDistance->setParticlePtr(new_particle_opposite.get());
                             new_particle_opposite->addComponent(roadOSMDistance);
 
                         }
@@ -1117,7 +1117,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                                                                                                    VectorXd::Zero(12),
                                                                                                    MatrixXd::Zero(12, 12)
                                                                                                   );
-                        buildingComponent->setParticlePtr(new_particle_opposite);
+                        buildingComponent->setParticlePtr(new_particle_opposite.get());
                         new_particle_opposite->addComponent(buildingComponent);
                         //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
@@ -2884,6 +2884,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                             if ( *score_itr >= num)
                             {
                                 shared_ptr<Particle> temp_part(new Particle(*current_layout_shared.at(particle_counter))); //#586
+                                temp_part->copyComponents(*current_layout_shared.at(particle_counter));
                                 //temp_part.reset(new Particle(*current_layout_shared.at(particle_counter))); //#586
                                 temp_part->setId(k);
                                 temp_part->setParticleScore(1.0f);
@@ -2913,10 +2914,20 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                 clock_t toc = clock();
                 ROS_ERROR("ROULETTE Elapsed: %f seconds     USING %f\n", (double)(toc - tic) / CLOCKS_PER_SEC,cum_score_sum);
 
+
+                for (int k = 0; k < current_layout_shared.size(); k++) {
+                    //current_layout_shared.at(k).reset();
+                    ROS_ERROR_STREAM("COUNT: "<<current_layout_shared.at(k).use_count());
+                }
                 // copy resampled particle-set
                 current_layout_shared.clear();
                 current_layout_shared = new_current_layout_shared;
-                new_current_layout_shared.clear();
+
+                /*for (int k = 0; k < new_current_layout_shared.size(); k++) {
+                    new_current_layout_shared.at(k).reset();
+                    ROS_ERROR_STREAM("COUNT: "<<new_current_layout_shared.at(k).use_count());
+                }*/
+                //new_current_layout_shared.clear();
             }
             ROS_DEBUG_STREAM("< End resampling phase! \t" << ttresampling.toc());
         }

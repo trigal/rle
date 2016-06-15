@@ -81,14 +81,14 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
 
     // Get particle state
     tt2.tic();
-    Vector3d particle_position_state = this->particlePtr->getParticleState().getPosition();
+    Vector3d particle_position_state = this->getParticlePtr()->getParticleState().getPosition();
     geometry_msgs::PoseStamped pose_local_map_frame;
     pose_local_map_frame.header.frame_id = "local_map";
     pose_local_map_frame.header.stamp = ros::Time::now();
     pose_local_map_frame.pose.position.x = particle_position_state(0);
     pose_local_map_frame.pose.position.y =  particle_position_state(1);
     pose_local_map_frame.pose.position.z =  particle_position_state(2);
-    Eigen::Quaterniond particle_orientation_state_quaterion(this->particlePtr->getParticleState().getRotation());
+    Eigen::Quaterniond particle_orientation_state_quaterion(this->getParticlePtr()->getParticleState().getRotation());
     pose_local_map_frame.pose.orientation.w = particle_orientation_state_quaterion.w();
     pose_local_map_frame.pose.orientation.x = particle_orientation_state_quaterion.x();
     pose_local_map_frame.pose.orientation.y = particle_orientation_state_quaterion.y();

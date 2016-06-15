@@ -79,9 +79,9 @@ void LayoutComponent_RoadLane::calculateComponentScore()
     /// check if the associated particle has the TAG oneway; this is done asking
     /// to the parent particle to access the RoadLane component and retrieving
     /// the oneway flag using the getOneWayHelper function;
-    bool isOneWay           = this->particlePtr->getOneWayFlag();
+    bool isOneWay           = this->getParticlePtr()->getOneWayFlag();
 
-    double roadWidth = this->particlePtr->getRoadWidth(); //6.0f;                // total width of the OSM road
+    double roadWidth = this->getParticlePtr()->getRoadWidth(); //6.0f;                // total width of the OSM road
     double distanceFromWayCenter = -1.8f;   // distance from ROAD/Osm-Way center
     int currentLaneOSM = -1 ;               ///< store the lane number here. -1 is not initialized. Let set 1 (one) as minimum, people count from 1 (strange thing..)
 
@@ -92,7 +92,7 @@ void LayoutComponent_RoadLane::calculateComponentScore()
         currentLaneStatusSummarized(i) = megavariabile(i) + megavariabile(int(megavariabile.rows()/2)+i);
 
     // Testing phase here, now feasable thanks to #522 and enchanced with #538
-    distanceFromWayCenter   = this->particlePtr->getDistance_to_closest_segment();
+    distanceFromWayCenter   = this->getParticlePtr()->getDistance_to_closest_segment();
 
 //    QUESTA FUNZIONE NON HA + E -, LA DISTANZA NON È PESATA CON UN MENO O PIÙ A SECONDA CHE SIA DA UNA PARTE O DALL'ALTRA  DELLA STRADA... UP TO NOW.
 //            http://stackoverflow.com/questions/1560492/how-to-tell-whether-a-point-is-to-the-right-or-left-side-of-a-line

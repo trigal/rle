@@ -18,7 +18,7 @@ class LayoutComponent
 
 protected:
     //ROS_DEPRECATED Particle *particle;         /// Pointer to the parent particle. refs #523
-    shared_ptr<Particle> particlePtr;          /// shared Pointer to the parent particle. refs #523
+    Particle* particlePtr;
     unsigned int particle_id;   /// Tells particle ID of where this component is living. This is the id of the *particle
     unsigned int component_id;  /// Component ID
     double component_weight;    /// Used for resampling
@@ -148,8 +148,8 @@ public:
 
     //ROS_DEPRECATED Particle *getParticle() const;      ///refs #523
     //ROS_DEPRECATED void setParticle(Particle *value);  ///refs #523
-    shared_ptr<Particle> getParticlePtr() const;
-    void setParticlePtr(const shared_ptr<Particle> &value);
+    Particle* getParticlePtr() const;
+    void setParticlePtr(Particle* value);
 };
 
 

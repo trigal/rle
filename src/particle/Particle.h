@@ -55,7 +55,7 @@ private:
 
 
 public:
-
+    //public std::enable_shared_from_this<Particle>;
     int in_cluster;                                 ///< used to calculate statistics; the statistics are not always enabled, there is a flag to activate them
 
     /// stores the last calculated euclidean distance from the OSM road segment.
@@ -298,14 +298,15 @@ public:
           particle_score(toCopy.getParticleScore()), particle_mtn_model(toCopy.getMotionModel())
     {
         //vector<LayoutComponent*>* a = toCopy.getLayoutComponentsPtr();
-        for (auto & layoutComponent: toCopy.getLayoutComponents())
+        /*for (auto & layoutComponent: toCopy.getLayoutComponents())
         //for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
         {
             LayoutComponent* copyComponent = layoutComponent->clone();
             shared_ptr<Particle> particle_ptr(this);
+            ROS_ERROR_STREAM("ASDASDADAS "<<particle_ptr.use_count());
             copyComponent->setParticlePtr(particle_ptr);
             this->addComponent(copyComponent);
-        }
+        }*/
 
 
 
@@ -320,16 +321,33 @@ public:
 
     }
 
+    void copyComponents(Particle &toCopy) {
+        for (auto & layoutComponent: toCopy.getLayoutComponents())
+        //for (LayoutComponent * layoutComponent : toCopy.getLayoutComponents())
+        {
+            LayoutComponent* copyComponent = layoutComponent->clone();
+            copyComponent->setParticlePtr(this);
+            this->addComponent(copyComponent);
+        }
+    }
+
 
     //destructor -------------------------------------------------------------
     ~Particle()
     {
-        particle_id = 0;
         kalman_gain.resize(0, 0);
         particle_sigma.resize(0, 0);
-        particle_components.clear();
+        ROS_ERROR_STREAM("PARTICLE ID: "<<particle_id);
+        ROS_ERROR_STREAM("COMPONENT SIZE: "<<particle_components.size());
+        while(!particle_components.empty()) {
+            ROS_ERROR_STREAM("TRY TO DELETE: "<<particle_components.back());
+            if(particle_components.back())
+                delete particle_components.back();
+            particle_components.pop_back();
+        }
         //particle_components.resize(0);
         particle_score = 0.0f;
+        particle_id = 0;
 //#522        distance_to_closest_segment = 0.0f;
 
         // delete all particle's components
