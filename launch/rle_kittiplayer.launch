@@ -1,12 +1,12 @@
 <launch>
 
         <!-- RLE Parameters -->
-        <param name="/road_layout_estimation/resampling_interval"               value="4"/>
+        <param name="/road_layout_estimation/resampling_interval"               value="8"/>
         <param name="/road_layout_estimation/particles_number"                  value="30"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="0.5"/>     <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/rle_frequency"                     value="5"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
-        <param name="/road_layout_estimation/street_distribution_alpha"        value="1"/>     <!--these values should be greater than zero-->
+        <param name="/road_layout_estimation/street_distribution_alpha"        value="5"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_alpha"         value="1"/>
         <param name="/road_layout_estimation/roadState_distribution_alpha"     value="1"/>
         <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>

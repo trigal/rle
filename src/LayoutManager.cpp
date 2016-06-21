@@ -139,7 +139,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
 
     //@@@@@@@@@@@@@@@@@BUILDINGS disabilita sergio
-    if (true)
+    if (false)
         LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
@@ -1639,9 +1639,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 175; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
-        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_10_03_drive_0027_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_10_03_drive_0027_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
+        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;

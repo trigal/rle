@@ -5,8 +5,8 @@ project(road_layout_estimation)
 #SET (CMAKE_BUILD_TYPE Debug)
 #SET (ROS_BUILD_TYPE Debug)
 #SET (CMAKE_CXX_FLAGS "-O0 -std=c++11") #RelWithDebInfo Release
-SET (CMAKE_BUILD_TYPE RelWithDebInfo)
-SET (ROS_BUILD_TYPE RelWithDebInfo)
+SET (CMAKE_BUILD_TYPE Release)
+SET (ROS_BUILD_TYPE Release)
 SET (CMAKE_CXX_FLAGS "-O3 -std=c++11")
 
 

@@ -142,55 +142,56 @@ public:
         geometry_msgs::Point h_A, h_B, A, B;
 
         //Get OSM map
-//        if (get_near_buildings_client_.call(get_near_buildings_server_))
-//        {
-//            /*geometry_msgs::Point p1, p2, p3, p4;
-//            p1.x = get_near_buildings_server_.response.p1x;
-//            p1.y = get_near_buildings_server_.response.p1y;
-//            p2.x = get_near_buildings_server_.response.p2x;
-//            p2.y = get_near_buildings_server_.response.p2y;
-//            p3.x = get_near_buildings_server_.response.p3x;
-//            p3.y = get_near_buildings_server_.response.p3y;
-//            p4.x = get_near_buildings_server_.response.p4x;
-//            p4.y = get_near_buildings_server_.response.p4y;
-//            edge bound_edge(p1, p2, this->stateToGlobalFrame());
-//            marker_array.markers.push_back(publish_box(bound_edge.A[0], bound_edge.A[1], 0));
-//            marker_array.markers.push_back(publish_box(bound_edge.B[0], bound_edge.B[1], 1));
-//            edge bound_edge2(p3, p4, this->stateToGlobalFrame());
-//            marker_array.markers.push_back(publish_box(bound_edge2.A[0], bound_edge2.A[1], 2));
-//            marker_array.markers.push_back(publish_box(bound_edge2.B[0], bound_edge2.B[1], 3));*/
-//            for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
-//            {
-//                edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
-//                edges_->push_back(temp_edge);
-//                h_A.x = temp_edge.A[0];
-//                h_A.y = temp_edge.A[1];
-//                h_A.z =  height;
-//
-//                h_B.x = temp_edge.B[0];
-//                h_B.y = temp_edge.B[1];
-//                h_B.z = height;
-//
-//                A.x = temp_edge.A[0];
-//                A.y = temp_edge.A[1];
-//                A.z = 0;
-//
-//                B.x = temp_edge.B[0];
-//                B.y = temp_edge.B[1];
-//                B.z = 0;
-//
-//
-//                buildings.points.push_back(A);
-//                buildings.points.push_back(h_A);
-//                buildings.points.push_back(B);
-//                buildings.points.push_back(B);
-//                buildings.points.push_back(h_A);
-//                buildings.points.push_back(h_B);
-//
-//                //edge_pub_.publish(tmp_marker1);
-//            }
-//            edge_pub_.publish(buildings);
-//        }
+        if (get_near_buildings_client_.call(get_near_buildings_server_))
+        {
+            /*geometry_msgs::Point p1, p2, p3, p4;
+            p1.x = get_near_buildings_server_.response.p1x;
+            p1.y = get_near_buildings_server_.response.p1y;
+            p2.x = get_near_buildings_server_.response.p2x;
+            p2.y = get_near_buildings_server_.response.p2y;
+            p3.x = get_near_buildings_server_.response.p3x;
+            p3.y = get_near_buildings_server_.response.p3y;
+            p4.x = get_near_buildings_server_.response.p4x;
+            p4.y = get_near_buildings_server_.response.p4y;
+            edge bound_edge(p1, p2, this->stateToGlobalFrame());
+            marker_array.markers.push_back(publish_box(bound_edge.A[0], bound_edge.A[1], 0));
+            marker_array.markers.push_back(publish_box(bound_edge.B[0], bound_edge.B[1], 1));
+            edge bound_edge2(p3, p4, this->stateToGlobalFrame());
+            marker_array.markers.push_back(publish_box(bound_edge2.A[0], bound_edge2.A[1], 2));
+            marker_array.markers.push_back(publish_box(bound_edge2.B[0], bound_edge2.B[1], 3));*/
+            for (size_t i = 0; i < get_near_buildings_server_.response.points.size() - 1; i = i + 2)
+            {
+                //QUESTE DUE SERVONO
+                edge temp_edge(get_near_buildings_server_.response.points[i], get_near_buildings_server_.response.points[i + 1], this->stateToGlobalFrame());
+                edges_->push_back(temp_edge);
+                //h_A.x = temp_edge.A[0];
+                //h_A.y = temp_edge.A[1];
+                //h_A.z =  height;
+                //
+                //h_B.x = temp_edge.B[0];
+                //h_B.y = temp_edge.B[1];
+                //h_B.z = height;
+                //
+                //A.x = temp_edge.A[0];
+                //A.y = temp_edge.A[1];
+                //A.z = 0;
+                //
+                //B.x = temp_edge.B[0];
+                //B.y = temp_edge.B[1];
+                //B.z = 0;
+                //
+                //
+                //buildings.points.push_back(A);
+                //buildings.points.push_back(h_A);
+                //buildings.points.push_back(B);
+                //buildings.points.push_back(B);
+                //buildings.points.push_back(h_A);
+                //buildings.points.push_back(h_B);
+
+                //edge_pub_.publish(tmp_marker1);
+            }
+            //edge_pub_.publish(buildings);
+        }
 
         //Calculate score
         double tot_score = 0.0;
@@ -263,7 +264,7 @@ public:
         double ttt=tt.toc();
         if (ttt>1)
             ROS_ERROR_STREAM(__PRETTY_FUNCTION__ << ttt << " milliseconds");
-        ROS_DEBUG_STREAM("[BUILDING] Actual score is " << component_weight);
+        ROS_ERROR_STREAM("[BUILDING] Actual score is " << component_weight);
     }
 
     /**
@@ -290,7 +291,7 @@ public:
      */
     double getAlphas()
     {
-        return 10;
+        return 5;
     }
 
     /**

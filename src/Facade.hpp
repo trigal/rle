@@ -100,6 +100,7 @@ struct Facade
 
         if (candidates.size()==0)
         {
+            ROS_ERROR_STREAM("NO CANDIDATES");
             score = max_score;
             return;
         }
