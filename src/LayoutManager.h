@@ -140,7 +140,7 @@ class LayoutManager
 public:
 
     //  PCL computation time
-    pcl::console::TicToc tt,tt2;
+    pcl::console::TicToc tt, tt2;
 
     ///DEBUG!!!
     tf::Stamped<tf::Pose> GPS_RTK_LOCAL_POSE;
@@ -306,10 +306,10 @@ private:
 
     tf::TransformListener tf_listener;
     boost::mt19937 rng;                                     ///< The uniform pseudo-random algorithm
-    ROS_DEPRECATED double street_distribution_sigma;                       ///< Street gaussian distribution sigma
-    ROS_DEPRECATED double angle_distribution_sigma;                        ///< Angle difference gaussian distribution sigma
-    ROS_DEPRECATED double street_distribution_alpha;                      ///< Tells how does street pdf weight on score calculation
-    ROS_DEPRECATED double angle_distribution_alpha;                       ///< Tells how does angle pdf weight on score calculation
+    ROS_DEPRECATED double street_distribution_sigma;        ///< Street gaussian distribution sigma
+    ROS_DEPRECATED double angle_distribution_sigma;         ///< Angle difference gaussian distribution sigma
+    ROS_DEPRECATED double street_distribution_alpha;        ///< Tells how does street pdf weight on score calculation
+    ROS_DEPRECATED double angle_distribution_alpha;         ///< Tells how does angle pdf weight on score calculation
     double roadState_distribution_alpha;                    ///< Tells how does roadStateComponents weight on the score calculation
     int    resampling_interval;                             ///< The resampling interval of the main Particle Filter
 

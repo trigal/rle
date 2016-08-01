@@ -23,10 +23,8 @@ void LayoutComponent_OSMDistance::calculateComponentScore()
     this->final_angle_diff_score_component = 0.0f; //set in both parts of the IF, resetted here
 
     //      if street have 2 directions check angle diff with opposite angle
-    //if (this->snapParticle_serviceMessage.response.way_dir_opposite_particles) //cazzomene controlla cmq
-    if (1)
+    if (this->snapParticle_serviceMessage.response.way_dir_opposite_particles)
     {
-
         //      get PDF score
         double second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist, 0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
 
@@ -65,10 +63,7 @@ void LayoutComponent_OSMDistance::componentPerturbation()
 
 void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
 {
-    pcl::console::TicToc tt,tt2,tt3,tt4;
-    tt.tic();
-
-    //ROS_INFO_STREAM("Entering > " << __PRETTY_FUNCTION__);
+    ROS_DEBUG_STREAM("Entering > " << __PRETTY_FUNCTION__);
     /*
      *  First phase, coming from Sampling >
      *                              PropagateLayoutComponents >
@@ -80,7 +75,6 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
 
 
     // Get particle state
-    tt2.tic();
     Vector3d particle_position_state = this->particlePtr->getParticleState().getPosition();
     geometry_msgs::PoseStamped pose_local_map_frame;
     pose_local_map_frame.header.frame_id = "local_map";
@@ -109,25 +103,18 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
         ros::shutdown();    // TODO: handle this, now shutdown requested. augusto debug
         return;
     }
-    ROS_DEBUG_STREAM("tt2\t" << tt2.toc());
 
-
-    // Build request for getting snapped XY values + orientation of the road    
-    ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
+    // Build request for getting snapped XY values + orientation of the road
+    //ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
     snapParticle_serviceMessage.request.x = tf_pose_map_frame.getOrigin().getX();
     snapParticle_serviceMessage.request.y = tf_pose_map_frame.getOrigin().getY();
     snapParticle_serviceMessage.request.max_distance_radius = 100; // distance radius for finding the closest nodes for particle snap WARNING: parametrize this value
-        // 100 per lo snap una volta funzionante?!!?!?!?!? DIOSANTO
     ros::ServiceClient snap_particle_xy_client;
     snap_particle_xy_client                 = node_handler.serviceClient<ira_open_street_map::snap_particle_xy>("/ira_open_street_map/snap_particle_xy");
 
-    printf("> going to ask\n");
-    tt4.tic();
     // Get distance from snapped particle pose and set it as particle score
     if (snap_particle_xy_client.call(snapParticle_serviceMessage))
     {
-        printf("< got an answer\n");
-        ROS_DEBUG_STREAM("snap particle : tt4\t" << tt4.toc());
         /*
          * This refs #538 . Checks if the particle is on the left(1) or right(0)
          *
@@ -142,7 +129,6 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
          * this is calculated inside osm_query_node.cpp - snap_particle_xy
          */
 
-        tt3.tic();
         this->isLeft = snapParticle_serviceMessage.response.isLeft; // this refs #538
 
         // Snapped pose is is map frame, convert from MSG to TF first.
@@ -191,17 +177,12 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
         this->distance_to_closest_segment = distance;
 
 
-        ROS_DEBUG_STREAM("tt3\t" << tt3.toc());
-
-
         // calculate QUATERNIONE difference for both cases
         this->first_quaternion_diff = tf_snapped_local_map_frame.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
 
         tf_snapped_local_map_frame_opposite_direction = tf_snapped_local_map_frame; // COPY TRANSFORM (I PRAY FOR THIS)
         tf_snapped_local_map_frame_opposite_direction.setRotation(tf_snapped_local_map_frame * tf::createQuaternionFromYaw(M_PI)); // INVERT DIRECTION
         this->second_quaternion_diff = tf_snapped_local_map_frame_opposite_direction.getRotation().inverse() * tf_pose_local_map_frame.getRotation();
-
-
 
 
     }
@@ -218,9 +199,6 @@ void LayoutComponent_OSMDistance::componentPoseEstimation(int index)
         //ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
     }// end snap particle client
 
-
-
-    ROS_DEBUG_STREAM(__PRETTY_FUNCTION__ << " %%%555 index= "<< index <<"\t" << tt.toc());
 
 }
 

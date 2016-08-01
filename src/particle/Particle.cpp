@@ -41,22 +41,18 @@ void Particle::propagateLayoutComponents(int partinumber)
 
         if (dynamic_cast<LayoutComponent_OSMDistance* >(*itr))
         {
-            ROS_ERROR_STREAM("OSMDistanceComponent detected\t\t\tindex:\t"<< partinumber);
+            ROS_DEBUG_STREAM("OSMDistanceComponent detected\t\t\tindex:\t" << partinumber);
             (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
         }
         if (dynamic_cast<LayoutComponent_RoadState* >(*itr))
         {
-            ROS_ERROR_STREAM("CHECIFAIQUI");
-            ros::shutdown();
             ROS_DEBUG_STREAM("roadStateComponent detected");
             (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
         }
         if (dynamic_cast<LayoutComponent_RoadLane* >(*itr))
         {
-            ROS_ERROR_STREAM("CHECIFAIQUI");
-            ros::shutdown();
             ROS_DEBUG_STREAM("roadLaneComponent detected");
             (*itr)->componentPoseEstimation(partinumber); //virtual
             continue;
@@ -72,7 +68,7 @@ void Particle::propagateLayoutComponents(int partinumber)
         //(*itr)->setComponentState(new_pose);
     }
 
-    ROS_DEBUG_STREAM("< Exiting propagateLayoutComponents\t" << tt.toc());
+    ROS_DEBUG_STREAM("< Exiting propagateLayoutComponents, elapsed time was: \t" << tt.toc() << " ms");
 }
 
 /** **************************************************************************************************************/

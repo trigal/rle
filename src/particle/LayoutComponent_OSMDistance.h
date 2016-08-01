@@ -64,7 +64,7 @@ private:
     //ros::ServiceClient snap_particle_xy_client;
 
     /// The message/service used to call/receive info from the service above
-    //ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
+    ira_open_street_map::snap_particle_xy snapParticle_serviceMessage;
 
 public:
 
@@ -130,7 +130,7 @@ public:
                                 const double angle_distribution_weight
                                ): node_handler(nh)
     {
-        tf_listener_=listener;
+        tf_listener_ = listener;
         //ROS_INFO_STREAM(__PRETTY_FUNCTION__);
         this->particle_id                       = particle_id;
         this->component_id                      = component_id; // this refs #525
