@@ -347,6 +347,15 @@ private:
 
     bool start_with_gps_message; ///< select RLE mode, hard-coded KITTI initializations, or GPS message
 
+
+    /// Components enablers
+    bool componentEnabled_OSMDistance   = true;
+    bool componentEnabled_RoadLane      = false;
+    bool componentEnabled_RoadState     = false;
+    bool componentEnabled_Building      = false;
+    bool componentEnabled_Crossing      = false;
+
+
     /**
      * @brief checkHasMoved
      * @return

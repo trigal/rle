@@ -2,7 +2,7 @@
 
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="10"/>
+        <param name="/road_layout_estimation/particles_number"                  value="1"/>
         <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
