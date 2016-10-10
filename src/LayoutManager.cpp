@@ -450,8 +450,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                 shared_ptr<Particle> newParticlePtr = make_shared<Particle>(node_handle, &tf_listener, counter, default_mtn_model); //refs #616
 
                 newParticlePtr->in_cluster = -1;
-//#522                newParticlePtr->distance_to_closest_segment = 0.0f; //default value
-// BUG: this is the old behavior with the distance stored as a particle parameter
+                //#522                newParticlePtr->distance_to_closest_segment = 0.0f; //default value
+                // BUG: this is the old behavior with the distance stored as a particle parameter
                 State6DOF tmp;
                 tmp.addNoise(0.5, 0.5, 0.5, 0.5);
 
@@ -480,8 +480,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         double dy = tf_pose_map_frame.getOrigin().getY() - snapParticleRequestResponse.response.snapped_y;
                         double dz = tf_pose_map_frame.getOrigin().getZ() - 0;
                         double distance = sqrt(dx * dx + dy * dy + dz * dz);
-//#522                        newParticlePtr->distance_to_closest_segment = distance;
-// BUG: this is the old behavior with the distance stored as a particle parameter
+                        //#522                        newParticlePtr->distance_to_closest_segment = distance;
+                        // BUG: this is the old behavior with the distance stored as a particle parameter
                         newParticlePtr->setParticleScore(pdf(normal_dist, distance));
                     }
                     else
@@ -693,12 +693,12 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
             // (simulate gps time fix, this will give time to publish poses to Rviz, not needed for RViz 2d pose estimate)
 
             // Publish GPS fix on map
-//            fix.header.frame_id = "map";
-//            fix.header.stamp = ros::Time::now();
-//            fix.pose.position.x = latlon_2_xy_srv.response.x;
-//            fix.pose.position.y = latlon_2_xy_srv.response.y;
-//            fix.pose.orientation.w = 1;
-//            LayoutManager::gps_pub.publish(fix);
+            //            fix.header.frame_id = "map";
+            //            fix.header.stamp = ros::Time::now();
+            //            fix.pose.position.x = latlon_2_xy_srv.response.x;
+            //            fix.pose.position.y = latlon_2_xy_srv.response.y;
+            //            fix.pose.orientation.w = 1;
+            //            LayoutManager::gps_pub.publish(fix);
 
 
             //// ------------------------ WAIT FOR RVIZ INITIAL POSE  --------------------- //
@@ -898,7 +898,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Create particle, set its score and other parameters
                     //Particle new_particle(particle_id, p_pose, p_sigma, default_mtn_model);
                     shared_ptr <Particle> new_particle = make_shared<Particle>(node_handle, &tf_listener, particle_id, p_pose, p_sigma, default_mtn_model); //refs #616
-//#522                    new_particle->distance_to_closest_segment = 0.0f;       //distance is ZERO because particle is snapped
+                    //#522                    new_particle->distance_to_closest_segment = 0.0f;       //distance is ZERO because particle is snapped
 
                     //new_particle.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // dont' calculate score with distance because particle is snapped
                     new_particle->setParticleScore(1); // dont' calculate score with distance because particle is snapped
@@ -1055,7 +1055,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                         // Create particle, set its score and other parameters
                         //Particle new_particle_opposite(particle_id, p_pose, p_sigma, default_mtn_model);
                         shared_ptr <Particle> new_particle_opposite = make_shared<Particle>(node_handle, &tf_listener, particle_id, p_pose, p_sigma, default_mtn_model); //refs #616
-//#522                        new_particle_opposite->distance_to_closest_segment = 0.0f; //distance is ZERO because particle is snapped
+                        //#522                        new_particle_opposite->distance_to_closest_segment = 0.0f; //distance is ZERO because particle is snapped
                         //new_particle_opposite.setParticleScore(pdf(street_normal_dist,0) * pdf(angle_normal_dist, 0)); // don't calculate score with distance because particle is snapped
                         new_particle_opposite->setParticleScore(1); // don't calculate score with distance because particle is snapped
                         // WARNING: in the line above, comment says something different from what is written. furthermore, pdf are not weighted like:
@@ -1087,53 +1087,71 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                             VectorXd state = new_particle_opposite->getParticleState().getPosition();
 
-                            ROS_INFO_STREAM("Adding roadState component!");
-                            LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
-                                                                                                 component_id++,
-                                                                                                 ros::Time::now(),
-                                                                                                 &this->getHighwayInfo_client,
-                                                                                                 lines,
-                                                                                                 getHighwayService.response.width,
-                                                                                                 currentConfiguration.roadState_distribution_alpha);
-                            roadState->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
-                            (*roadState).setComponentState(state);
-                            new_particle_opposite->addComponent(roadState);
-                            ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
+                            /*
+                             * *********** ROAD STATE COMPONENT ***********
+                             * Creating the FIRST component, ROAD STATE COMPONENT
+                             */
+                            if (componentEnabled_RoadState)
+                            {
+                                ROS_INFO_STREAM("Adding roadState component!");
+                                LayoutComponent_RoadState *roadState = new LayoutComponent_RoadState(particle_id,
+                                                                                                     component_id++,
+                                                                                                     ros::Time::now(),
+                                                                                                     &this->getHighwayInfo_client,
+                                                                                                     lines,
+                                                                                                     getHighwayService.response.width,
+                                                                                                     currentConfiguration.roadState_distribution_alpha);
+                                roadState->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
+                                (*roadState).setComponentState(state);
+                                new_particle_opposite->addComponent(roadState);
+                                ROS_INFO_STREAM("road state just created: " << roadState->getComponentId() << "\t" << roadState->getComponentState()(0));
+                            }
 
 
                             /*
+                             * *********** ROAD LANE COMPONENT ***********
                              * Creating this second component here; this ensure that
                              * we have same number of both components in each particle
                              */
-                            ROS_INFO_STREAM("Adding roadLane component!");
-                            LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
-                                                                                              component_id++,
-                                                                                              getHighwayService.response.number_of_lanes,
-                                                                                              currentConfiguration.roadLane_distribution_alpha);
-                            roadLane->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
-                            new_particle_opposite->addComponent(roadLane);
+                            if (componentEnabled_RoadLane)
+                            {
+                                ROS_INFO_STREAM("Adding roadLane component!");
+                                LayoutComponent_RoadLane *roadLane = new LayoutComponent_RoadLane(particle_id,
+                                                                                                  component_id++,
+                                                                                                  getHighwayService.response.number_of_lanes,
+                                                                                                  currentConfiguration.roadLane_distribution_alpha);
+                                roadLane->setParticlePtr(new_particle_opposite); //adding the pointer to newly created particle, refs #523 -- this creates the #529 bug -- FIXED with #531
+                                new_particle_opposite->addComponent(roadLane);
+                            }
                             //#573 - safe state    END *****************************************************************************************************
-
 
 
                             /*
                              * Creating the third component here: ROAD OSM DISTANCE for the two eucliedean distances we used in the RLE-ITSC2015. This refs #522
                              * The distances are ZERO since the particle was just created and snapped to the nearest road segment. Also the angular is zero, because
                              * we're saving the misalignment, that is zero in this case.
+                             * Warning <<Feature #634>>
                              */
-                            LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(node_handle, &tf_listener , particle_id,
-                                                                                                           component_id,
-                                                                                                           0.0f,    //distance_to_closest_segment
-                                                                                                           0.0f,    //final_angle_diff_score_component
-                                                                                                           currentConfiguration.street_distribution_sigma,
-                                                                                                           currentConfiguration.angle_distribution_sigma,
-                                                                                                           currentConfiguration.street_distribution_alpha,
-                                                                                                           currentConfiguration.angle_distribution_alpha
-                                                                                                          ); //refs #616
-                            roadOSMDistance->setParticlePtr(new_particle_opposite);
-                            new_particle_opposite->addComponent(roadOSMDistance);
+                            if (componentEnabled_OSMDistance)
+                            {
+                                LayoutComponent_OSMDistance *roadOSMDistance = new LayoutComponent_OSMDistance(node_handle, &tf_listener , particle_id,
+                                                                                                               component_id,
+                                                                                                               0.0f,    //distance_to_closest_segment
+                                                                                                               0.0f,    //final_angle_diff_score_component
+                                                                                                               currentConfiguration.street_distribution_sigma,
+                                                                                                               currentConfiguration.angle_distribution_sigma,
+                                                                                                               currentConfiguration.street_distribution_alpha,
+                                                                                                               currentConfiguration.angle_distribution_alpha
+                                                                                                              ); //refs #616
+                                roadOSMDistance->setParticlePtr(new_particle_opposite);
+                                new_particle_opposite->addComponent(roadOSMDistance);
+                            }
 
                         }
+                        else
+                            ROS_ERROR_STREAM("Can't add ROAD RELATED components due to getHighwayInfo call failure");
+                        //////////// CREATE ROAD RELATED COMPONENTS - inside OPPOSITE DIRECTION ////////////
+
 
                         if (componentEnabled_Building)
                         {
@@ -1145,8 +1163,6 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                             buildingComponent->setParticlePtr(new_particle_opposite);
                             new_particle_opposite->addComponent(buildingComponent);
                         }
-
-                        //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
                         /// Setep 05-bis - Push particle into particle-set and update the particles id counter
                         current_layout_shared.push_back(new_particle_opposite);
@@ -1875,24 +1891,24 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         */
 
         // TODO: calculate LAT LON
-//        tf::StampedTransform VO;
-//        try
-//        {
-//            tf_listener.lookupTransform("/local_map", "/visual_odometry_car_frame", ros::Time(0), VO);
-//
-//            tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
-//
-//            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-//                             VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
-//                             roll << " " << pitch << " " << yaw << " " <<
-//                             VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
-//                             tot_score / current_layout_shared.size() << "\n";
-//            LIBVISO_out_file.flush();
-//        }
-//        catch (tf::TransformException &ex)
-//        {
-//            ROS_WARN_STREAM("VO");
-//        }
+        //        tf::StampedTransform VO;
+        //        try
+        //        {
+        //            tf_listener.lookupTransform("/local_map", "/visual_odometry_car_frame", ros::Time(0), VO);
+        //
+        //            tf::Matrix3x3(VO.getRotation()).getRPY(roll, pitch, yaw);
+        //
+        //            LIBVISO_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+        //                             VO.getOrigin().getX()  << " " << VO.getOrigin().getY()  << " " << VO.getOrigin().getZ()  << " " <<
+        //                             roll << " " << pitch << " " << yaw << " " <<
+        //                             VO.getRotation().getX() << " " << VO.getRotation().getY() << " " << VO.getRotation().getZ() << " " << VO.getRotation().getW() << " " <<
+        //                             tot_score / current_layout_shared.size() << "\n";
+        //            LIBVISO_out_file.flush();
+        //        }
+        //        catch (tf::TransformException &ex)
+        //        {
+        //            ROS_WARN_STREAM("VO");
+        //        }
         ROS_ERROR_STREAM("STATISTICS: " << ttstat.toc());
     }
     // -------------------------------------------------------------------------------------------------------------------------------------
@@ -1914,8 +1930,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 bool LayoutManager::checkHasMoved()
 {
     //MatrixXd diff_matrix = (visual_odometry.getOdometry().array() > motion_threshold).cast<double>();
-//  MatrixXd diff_matrix = MatrixXd::Ones(12,12);
-//  return diff_matrix.count() > 0; //every position over the threshold will count as 1
+    //  MatrixXd diff_matrix = MatrixXd::Ones(12,12);
+    //  return diff_matrix.count() > 0; //every position over the threshold will count as 1
 
     return true;
 }
@@ -2318,7 +2334,7 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
 
             /// update the particle variable; this is also used in the
             /// CREATING STATISTICS FOR RLE OUTPUT section
-//#522            (*particle_itr).distance_to_closest_segment = distance;
+            //#522            (*particle_itr).distance_to_closest_segment = distance;
 
             /// For debuggin purposes: add line to marker array distances
             //publishMarkerArrayDistances((*particle_itr).getId(),
@@ -2329,9 +2345,9 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
             //                            tf_pose_local_map_frame.getOrigin().getZ());
 
             //      get PDF score FOR DISTANCE
-//#522            boost::math::normal normal_dist(0, street_distribution_sigma);
+            //#522            boost::math::normal normal_dist(0, street_distribution_sigma);
             //double pose_diff_score_component = pdf(normal_dist, distance);
-//#522            (*particle_itr).pose_diff_score_component = pdf(normal_dist, distance) / pdf(normal_dist , 0.0f);
+            //#522            (*particle_itr).pose_diff_score_component = pdf(normal_dist, distance) / pdf(normal_dist , 0.0f);
             //tf_snapped_local_map_frame.getRotation().getAngleShortestPath(tf_pose_local_map_frame.getRotation()) // check this out, maybe works .. this line isn't tested yet
 
             // calculate angle difference ---------------------------------------------------------------------------------------
@@ -2339,11 +2355,11 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
             street_direction = first_quaternion_diff;
 
             //      get PDF score from first angle
-//#522            boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
+            //#522            boost::math::normal angle_normal_dist(0, angle_distribution_sigma);
             double first_angle_difference = Utils::normalize_angle(first_quaternion_diff.getAngle());
-//#522            double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference) / pdf(angle_normal_dist, 0.0f);
+            //#522            double first_angle_diff_score = pdf(angle_normal_dist, first_angle_difference) / pdf(angle_normal_dist, 0.0f);
 
-//#522            (*particle_itr).final_angle_diff_score_component  = 0.0f;
+            //#522            (*particle_itr).final_angle_diff_score_component  = 0.0f;
             double second_angle_diff_score = 0.0f;
             double second_angle_difference = 0.0f;
 
@@ -2356,20 +2372,20 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
 
                 //      get PDF score
                 second_angle_difference = Utils::normalize_angle(second_quaternion_diff.getAngle());
-//#522                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist, 0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
+                //#522                second_angle_diff_score = pdf(angle_normal_dist, second_angle_difference) / pdf(angle_normal_dist, 0.0f); //TODO: refs #442 check if this normalization is correct or I used the opposite angle
 
-//#522                //      set score
-//#522                if (second_angle_diff_score > first_angle_diff_score)
-//#522                    (*particle_itr).final_angle_diff_score_component = second_angle_diff_score;
-//#522                else
-//#522                    (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
+                //#522                //      set score
+                //#522                if (second_angle_diff_score > first_angle_diff_score)
+                //#522                    (*particle_itr).final_angle_diff_score_component = second_angle_diff_score;
+                //#522                else
+                //#522                    (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
 
                 ROS_DEBUG_STREAM("ONEWAY-No \tSPATIAL_DISTANCE: " << distance << "\tANGLE_1: " << first_angle_difference << "\tANGLE_2: " << second_angle_difference);
             }
             else
             {
                 ROS_DEBUG_STREAM("ONEWAY-Yes\tSPATIAL_DISTANCE: " << distance << "\tANGLE_1: " << first_angle_difference);
-//#522                (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
+                //#522                (*particle_itr).final_angle_diff_score_component = first_angle_diff_score;
             }
 
             ///Augusto: TEST FINAL. ** BE CAREFUL, THIS IS EQUAL TO INVERTED DIRECTION IF TEST2 IS ENABLED .
@@ -2410,7 +2426,7 @@ void LayoutManager::calculateGeometricScores(const shared_ptr<Particle>& particl
         {
             // Either service is down or particle is too far from a street
             (*particle_itr).setParticleScore(0);
-//#522                (*particle_itr).distance_to_closest_segment = std::numeric_limits<double>::infinity();
+            //#522                (*particle_itr).distance_to_closest_segment = std::numeric_limits<double>::infinity();
             ROS_ERROR_STREAM("RLE Main loop, snap_particle_xy service call");
             ROS_ERROR_STREAM("Either service is down or particle is too far from a street. Shutdown in LayoutManager.cpp");
             ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
@@ -2452,21 +2468,21 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
 
     ROS_DEBUG_STREAM("PARTICLE SCORE PRE UPDATE\t" << std::fixed <<  (*particle_itr_shared).getParticleScore());
 
-// #522    ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
-// #522    ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
+    // #522    ROS_ASSERT((*particle_itr).pose_diff_score_component        > 0.0f);
+    // #522    ROS_ASSERT((*particle_itr).final_angle_diff_score_component > 0.0f);
 
     /// First sum the first parts coded inside the particle (not the component).
     /// Before the N-number of components here we hace a single layout component
     /// and a getComponentWeight, now it is splitted with this lines and the
     /// following for
     double newScore = 0.0f;
-// #522    double newScore = (
-// #522                          (
-// #522                              street_distribution_alpha    * (*particle_itr).pose_diff_score_component          +
-// #522                              angle_distribution_alpha     * (*particle_itr).final_angle_diff_score_component
-// #522                              //roadState_distribution_alpha * lc->getComponentWeight()
-// #522                          )
-// #522                      );
+    // #522    double newScore = (
+    // #522                          (
+    // #522                              street_distribution_alpha    * (*particle_itr).pose_diff_score_component          +
+    // #522                              angle_distribution_alpha     * (*particle_itr).final_angle_diff_score_component
+    // #522                              //roadState_distribution_alpha * lc->getComponentWeight()
+    // #522                          )
+    // #522                      );
 
 
     /*  This is the second part I was writing about before.
@@ -2500,10 +2516,10 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
     }
 
     // L1 Normalization factor, check if the single values are > 0 (L1, sum)
-// #522    ROS_ASSERT(street_distribution_alpha   > 0.0f);
-// #522    ROS_ASSERT(angle_distribution_alpha    > 0.0f);
-// #522    ROS_ASSERT(roadState_distribution_alpha> 0.0f);
-// #522        double sumOfAlphas = street_distribution_alpha + angle_distribution_alpha + roadState_distribution_alpha;
+    // #522    ROS_ASSERT(street_distribution_alpha   > 0.0f);
+    // #522    ROS_ASSERT(angle_distribution_alpha    > 0.0f);
+    // #522    ROS_ASSERT(roadState_distribution_alpha> 0.0f);
+    // #522        double sumOfAlphas = street_distribution_alpha + angle_distribution_alpha + roadState_distribution_alpha;
 
     ROS_DEBUG_STREAM("Total components weight: " << newScore << "\tSum of Alphas: " << sumOfAlphas << "\tNew 'sumofweights': " << newScore / sumOfAlphas);
 
@@ -2513,11 +2529,11 @@ void LayoutManager::calculateScore(const shared_ptr<Particle>& particle_itr_shar
     /// Set the score to the particle
     (*particle_itr_shared).setParticleScore( (*particle_itr_shared).getParticleScore() * newScore );
 
-// #522    ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
-// #522    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log) : " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
-// #522    //ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
-// #522    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfAlphas) ;
-// #522    ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
+    // #522    ROS_DEBUG_STREAM("PARTICLE SCORE DIST: \t" << std::fixed <<  (*particle_itr).pose_diff_score_component             << "\texp(log) : " << exp(log(abs((*particle_itr).pose_diff_score_component)))) ;
+    // #522    ROS_DEBUG_STREAM("PARTICLE SCORE ANGL: \t" << std::fixed <<  (*particle_itr).final_angle_diff_score_component      << "\texp(log) : " << exp(log(abs((*particle_itr).final_angle_diff_score_component   )))) ;
+    // #522    //ROS_DEBUG_STREAM("COMPONENT SCORE:     \t" << std::fixed <<  lc->getComponentWeight()                              << "\texp(log) : " << exp(log(abs(lc->getComponentWeight())))                 ) ;
+    // #522    ROS_DEBUG_STREAM("ALL SCORES SUM :     \t" << std::fixed <<  newScore                                              << "\tmax score: " << sumOfAlphas) ;
+    // #522    ROS_DEBUG_STREAM("PARTICLE SCORE TOTAL \t" << std::fixed <<  (*particle_itr).getParticleScore());
 
     ROS_DEBUG_STREAM("PARTICLE SCORE POST UPDATE\t" << std::fixed <<  (*particle_itr_shared).getParticleScore());
     ROS_DEBUG_STREAM("Exiting calculateScore()");
@@ -2745,36 +2761,36 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
 
         /// GET SOME GEOMETRIC VALUES -- check #522 for some ideas about the following FOR cycle
-// #522        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
-// #522            this->calculateGeometricScores(*particle_itr);
+        // #522        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+        // #522            this->calculateGeometricScores(*particle_itr);
 
 
 
         /// COMPUTE NORMALIZATON (disabled, I just print some values here)
-// #522        double minDistance = std::numeric_limits<double>::max();
-// #522        double minAngle    = std::numeric_limits<double>::max();
-// #522        double maxDistance = std::numeric_limits<double>::min();
-// #522        double maxAngle    = std::numeric_limits<double>::min();
-// #522        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
-// #522        {
-// #522            ROS_INFO_STREAM("#distance: "       << (*particle_itr)->pose_diff_score_component <<
-// #522                            "  \tangle (rad): " << (*particle_itr)->final_angle_diff_score_component <<
-// #522                            "  \tcomponent(0): " << (*particle_itr)->getLayoutComponents().at(0)->getComponentWeight()
-// #522                           );
-// #522
-// #522            if ((*particle_itr)->pose_diff_score_component > maxDistance)
-// #522                maxDistance = (*particle_itr)->pose_diff_score_component ;
-// #522            if ((*particle_itr)->pose_diff_score_component < minDistance)
-// #522                minDistance = (*particle_itr)->pose_diff_score_component ;
-// #522            if ((*particle_itr)->final_angle_diff_score_component > maxAngle)
-// #522                maxAngle = (*particle_itr)->final_angle_diff_score_component;
-// #522            if ((*particle_itr)->final_angle_diff_score_component < minAngle)
-// #522                minAngle = (*particle_itr)->final_angle_diff_score_component;
-// #522        }
-// #522        ROS_DEBUG_STREAM("**********************************************************************************");
-// #522        ROS_DEBUG_STREAM("minDistance: " << minDistance << "\tmaxDistance: " << maxDistance);
-// #522        ROS_DEBUG_STREAM("minAngle   : " << minAngle    << "\tmaxAngle   : " << maxAngle);
-// #522        ROS_DEBUG_STREAM("**********************************************************************************");
+        // #522        double minDistance = std::numeric_limits<double>::max();
+        // #522        double minAngle    = std::numeric_limits<double>::max();
+        // #522        double maxDistance = std::numeric_limits<double>::min();
+        // #522        double maxAngle    = std::numeric_limits<double>::min();
+        // #522        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+        // #522        {
+        // #522            ROS_INFO_STREAM("#distance: "       << (*particle_itr)->pose_diff_score_component <<
+        // #522                            "  \tangle (rad): " << (*particle_itr)->final_angle_diff_score_component <<
+        // #522                            "  \tcomponent(0): " << (*particle_itr)->getLayoutComponents().at(0)->getComponentWeight()
+        // #522                           );
+        // #522
+        // #522            if ((*particle_itr)->pose_diff_score_component > maxDistance)
+        // #522                maxDistance = (*particle_itr)->pose_diff_score_component ;
+        // #522            if ((*particle_itr)->pose_diff_score_component < minDistance)
+        // #522                minDistance = (*particle_itr)->pose_diff_score_component ;
+        // #522            if ((*particle_itr)->final_angle_diff_score_component > maxAngle)
+        // #522                maxAngle = (*particle_itr)->final_angle_diff_score_component;
+        // #522            if ((*particle_itr)->final_angle_diff_score_component < minAngle)
+        // #522                minAngle = (*particle_itr)->final_angle_diff_score_component;
+        // #522        }
+        // #522        ROS_DEBUG_STREAM("**********************************************************************************");
+        // #522        ROS_DEBUG_STREAM("minDistance: " << minDistance << "\tmaxDistance: " << maxDistance);
+        // #522        ROS_DEBUG_STREAM("minAngle   : " << minAngle    << "\tmaxAngle   : " << maxAngle);
+        // #522        ROS_DEBUG_STREAM("**********************************************************************************");
         //for( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         //{
         //    ROS_INFO_STREAM("Before normalization\t" << (*particle_itr).pose_diff_score_component << " \tAngle: " << (*particle_itr).final_angle_diff_score_component);
@@ -2808,34 +2824,34 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
 
 
         /// Publish debug information
-// #522        try
-// #522        {
-// #522            if (bestParticle != NULL)
-// #522            {
-// #522                road_layout_estimation::msg_debugInformation debugInfoMessage;
-// #522
-// #522                debugInfoMessage.distance_Euclidean    = (*bestParticle).pose_diff_score_component;
-// #522                debugInfoMessage.distance_Angular      = (*bestParticle).final_angle_diff_score_component;
-// #522                debugInfoMessage.bestParticleScore     = (*bestParticle).getParticleScore();
-// #522                debugInfoMessage.overAllParticleScore = current_layoutScore;
-// #522
-// #522                //vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
-// #522                //LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
-// #522                LayoutComponent_RoadState* lc  = bestParticle->giveMeThatComponent<LayoutComponent_RoadState>(); // refs #503
-// #522                if (lc)
-// #522                {
-// #522                    debugInfoMessage.scoreRoadLane_Lanes   = lc->getScoreLanes();
-// #522                    debugInfoMessage.scoreRoadLane_Width   = lc->getScoreWidth();
-// #522                    debugInfoMessage.scoreRoadLane_Total   = lc->getTotalComponentScore();
-// #522                }
-// #522
-// #522                this->publisher_debugInformation.publish(debugInfoMessage);
-// #522            }
-// #522        }
-// #522        catch (...)
-// #522        {
-// #522            ROS_ERROR_STREAM("Something went wrong in the publising debug information " << __LINE__ << " of " << __FILE__);
-// #522        }
+        // #522        try
+        // #522        {
+        // #522            if (bestParticle != NULL)
+        // #522            {
+        // #522                road_layout_estimation::msg_debugInformation debugInfoMessage;
+        // #522
+        // #522                debugInfoMessage.distance_Euclidean    = (*bestParticle).pose_diff_score_component;
+        // #522                debugInfoMessage.distance_Angular      = (*bestParticle).final_angle_diff_score_component;
+        // #522                debugInfoMessage.bestParticleScore     = (*bestParticle).getParticleScore();
+        // #522                debugInfoMessage.overAllParticleScore = current_layoutScore;
+        // #522
+        // #522                //vector<LayoutComponent*> *vec = bestParticle->getLayoutComponentsPtr();
+        // #522                //LayoutComponent_RoadState* lc  = dynamic_cast<LayoutComponent_RoadState*>(vec->at(0)); //JUST BECAUSE NOW WE HAVE ONLY ONE COMPONENT
+        // #522                LayoutComponent_RoadState* lc  = bestParticle->giveMeThatComponent<LayoutComponent_RoadState>(); // refs #503
+        // #522                if (lc)
+        // #522                {
+        // #522                    debugInfoMessage.scoreRoadLane_Lanes   = lc->getScoreLanes();
+        // #522                    debugInfoMessage.scoreRoadLane_Width   = lc->getScoreWidth();
+        // #522                    debugInfoMessage.scoreRoadLane_Total   = lc->getTotalComponentScore();
+        // #522                }
+        // #522
+        // #522                this->publisher_debugInformation.publish(debugInfoMessage);
+        // #522            }
+        // #522        }
+        // #522        catch (...)
+        // #522        {
+        // #522            ROS_ERROR_STREAM("Something went wrong in the publising debug information " << __LINE__ << " of " << __FILE__);
+        // #522        }
 
 
 
@@ -2844,10 +2860,10 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
         // ------------------------------ resampling ------------------------------------- //
         if (new_detections)
         {
-//          Add new candidate-components ----------------------------------------------------- //
-//          (1) given N new candidate-layout-components duplicate 2^N particles and those particles to them
-//          (2) calculate score
-//          (3) resample all combination
+            //          Add new candidate-components ----------------------------------------------------- //
+            //          (1) given N new candidate-layout-components duplicate 2^N particles and those particles to them
+            //          (2) calculate score
+            //          (3) resample all combination
         }
 
 
