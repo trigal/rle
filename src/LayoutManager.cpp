@@ -1135,13 +1135,16 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
 
                         }
 
-// disable building component                        LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(node_handle, &tf_listener, particle_id,
-// disable building component                                                                                                   component_id,
-// disable building component                                                                                                   VectorXd::Zero(12),
-// disable building component                                                                                                   MatrixXd::Zero(12, 12)
-// disable building component                                                                                                  ); //refs #616
-// disable building component                        buildingComponent->setParticlePtr(new_particle_opposite);
-// disable building component                        new_particle_opposite->addComponent(buildingComponent);
+                        if (componentEnabled_Building)
+                        {
+                            LayoutComponent_Building *buildingComponent = new LayoutComponent_Building(node_handle, &tf_listener, particle_id,
+                                                                                                       component_id,
+                                                                                                       VectorXd::Zero(12),
+                                                                                                       MatrixXd::Zero(12, 12)
+                                                                                                      ); //refs #616
+                            buildingComponent->setParticlePtr(new_particle_opposite);
+                            new_particle_opposite->addComponent(buildingComponent);
+                        }
 
                         //////////// CREATE ROAD RELATED COMPONENTS ////////////
 
