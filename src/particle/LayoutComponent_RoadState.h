@@ -38,11 +38,13 @@ class LayoutComponent_RoadState : public LayoutComponent
 {
 private:
 
+    double state_width;
+
     // Description msg_lines
     // Header header
     // float64         number_of_lines  #adaptiveness of the filter! number of lanes that we were looking for
     // float64         goodLines        #how many good lines are currently found
-    // float64         width            #full road width, calculated with valid line offsets
+    // float64         width            #full road width, calculated with valid line offsets (only continous line)
     // float64         naive_width      #full road width, calculated with all line offsets (even invalid)
     // ###int32           oneway           #MAKE SENSE? nope, moved to LayoutComponent_RoadState as class parameter
     // int64           way_id           #FOR COMPATIBILITY WITH roadStateComponent FAKE
@@ -51,6 +53,7 @@ private:
     // Description msg_lineInfo (from the detector)
     // ## This message is part of msg_lines.
     // ## Since it does not have an header is not meant to be used stand alone
+    // bool    continuous
     // bool    isValid
     // int32   counter
     // float32 offset
@@ -64,9 +67,7 @@ private:
 
     ros::Time       timestamp;
 
-    double scoreLanes;
     double scoreWidth;
-    double totalComponentScore;
     const double maxValueForGoodLine = 10;                  ///< This parameter should reflect the isis-line-detector value
     double roadState_distribution_alpha;                    ///< the alpha once used inside the LayoutManager, after #534 inside each component
 
@@ -85,15 +86,12 @@ public:
 
     // Getters and setters -----------------------------------------------------
     double      getComponentRoad_width()               const;
-    double      getComponentRoad_naiveWidth()          const;
     ros::Time   getTimestamp();
     void        setComponentRoad_width                 (double value);
-    void        setComponentRoad_naiveWidth            (double value);
     void        setTimestamp(ros::Time time);
 
     // Other public functions --------------------------------------------------
     int         getLanes_number()             const;///< Calculate the number of LANES given the number of lines stored inside msg_lines
-    void        calculateCurrentLane();             ///< Calculate the current lane using the
 
     // Constructors and destructors --------------------------------------------
     LayoutComponent_RoadState()
@@ -111,6 +109,7 @@ public:
 
         getHighwayInfo_client = NULL;
         oneway = 0;
+        state_width = 0;
     }
 
     LayoutComponent* clone()
@@ -136,7 +135,7 @@ public:
         //this->road_width = road_width;
         //this->way_id=way_id;
 
-
+        this->state_width = road_width;
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12, 12);
@@ -188,12 +187,8 @@ public:
     void    setWay_id(const int64_t &value);
     bool    getOneway() const;
     void    setOneway(const bool &value);
-    double  getScoreLanes() const;
-    void    setScoreLanes(double value);
     double  getScoreWidth() const;
     void    setScoreWidth(double value);
-    double  getTotalComponentScore() const;
-    void    setTotalComponentScore(double value);
 
     road_layout_estimation::msg_lines   getMsg_lines() const;
     void                                setMsg_lines(const road_layout_estimation::msg_lines &value);
