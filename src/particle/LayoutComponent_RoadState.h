@@ -96,6 +96,7 @@ public:
     // Constructors and destructors --------------------------------------------
     LayoutComponent_RoadState()
     {
+        ROS_ERROR_STREAM("ROAD STATE CREATA");
         particle_id = 0;
         component_id = 0;
         component_weight = 0;
@@ -127,6 +128,8 @@ public:
                                              ros::Time timestamp,
                                              ros::ServiceClient *serviceClientFromLayoutManager)
     {
+
+        ROS_ERROR_STREAM("ROAD STATE CREATA");
         this->particle_id = particle_id;
         this->component_id = component_id;
         this->timestamp = timestamp;
@@ -153,11 +156,15 @@ public:
                               int32_t oneway,
                               double roadState_distribution_alpha)
     {
+
+        ROS_ERROR_STREAM("ROAD STATE CREATA");
         this->particle_id   = particle_id;
         this->component_id  = component_id;
         this->timestamp     = timestamp;
         this->msg_lines     = msg_lines;
         this->roadState_distribution_alpha = roadState_distribution_alpha;
+
+        this->state_width = 5.;
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);

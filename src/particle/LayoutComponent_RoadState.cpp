@@ -57,35 +57,56 @@ void LayoutComponent_RoadState::setWay_id(const int64_t &value)
 void LayoutComponent_RoadState::calculateComponentScore()
 {
     ROS_DEBUG_STREAM("> Entering calculateComponentScore, component ID: " << component_id << " of particle ID: " << particle_id);
+    //ROS_WARN_STREAM("ROADSTATESCORE 1");
 
     ira_open_street_map::getHighwayInfo getHighwayInfo;
     getHighwayInfo.request.way_id = this->getWay_id();
 
     if (getHighwayInfo_client->call(getHighwayInfo))
-  //#536 if (this->serviceOk)
+//#563    if (this->serviceOk)
     {
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
-        ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says width:       " << this->getComponentRoad_width()      );
+        //ROS_DEBUG_STREAM("calculateComponentScore, OSM says   wayId: " << this->getWay_id());
+        //ROS_DEBUG_STREAM("calculateComponentScore, OSM says   witdh: " << getHighwayInfo.response.width           << ", component says width:       " << this->getComponentRoad_width()      );
         double OSMWidth = getHighwayInfo.response.width;
         double laneWidth = OSMWidth / getHighwayInfo.response.number_of_lanes;
 
+        //ROS_WARN_STREAM("OSMWidth: "<<OSMWidth<<", laneWidth: "<<laneWidth<<", n_lines: "<<getHighwayInfo.response.number_of_lanes);
 
-        boost::math::normal mixture1(OSMWidth - laneWidth,1);
-        boost::math::normal mixture2(OSMWidth,1);
-        boost::math::normal mixture3(OSMWidth + laneWidth,1);
+        if (OSMWidth <= 0)
+        {
+            this->scoreWidth = 0.0f;
+            component_weight = 0.0f;
+            return;
+        }
+
+
+        boost::math::normal mixture2(OSMWidth, 1);
+        boost::math::normal mixture3(OSMWidth + laneWidth, 1);
 
         double weight_mixture1 = 0.25;
         double weight_mixture2 = 0.5;
         double weight_mixture3 = 0.25;
+        double max_pdf, component_pdf;
+        if (getHighwayInfo.response.number_of_lanes == 1)
+        {
+            weight_mixture1 = 0;
+            weight_mixture2 = 0.7;
+            weight_mixture3 = 0.3;
 
-        double max_pdf = weight_mixture1 * pdf(mixture1, OSMWidth) + weight_mixture2 * pdf(mixture2, OSMWidth) + weight_mixture3 * pdf(mixture3, OSMWidth);
-
-        double component_pdf = weight_mixture1 * pdf(mixture1, this->state_width) + weight_mixture2 * pdf(mixture2, this->state_width) + weight_mixture3 * pdf(mixture3, this->state_width);
+            max_pdf = weight_mixture2 * pdf(mixture2, OSMWidth) + weight_mixture3 * pdf(mixture3, OSMWidth);
+            component_pdf = weight_mixture2 * pdf(mixture2, this->state_width) + weight_mixture3 * pdf(mixture3, this->state_width);
+        }
+        else
+        {
+            boost::math::normal mixture1(OSMWidth - laneWidth, 1);
+            max_pdf = weight_mixture1 * pdf(mixture1, OSMWidth) + weight_mixture2 * pdf(mixture2, OSMWidth) + weight_mixture3 * pdf(mixture3, OSMWidth);
+            component_pdf = weight_mixture1 * pdf(mixture1, this->state_width) + weight_mixture2 * pdf(mixture2, this->state_width) + weight_mixture3 * pdf(mixture3, this->state_width);
+        }
 
         this->scoreWidth = component_pdf / max_pdf;
         component_weight = component_pdf / max_pdf;
 
-        ROS_ERROR_STREAM("TESTWIDTH - OSM-Width=" << OSMWidth << ", Component-Width=" << this->state_width <<", SCORE=" << this->scoreWidth);
+        //ROS_ERROR_STREAM("TESTWIDTH - OSM-Width=" << OSMWidth << ", Component-Width=" << this->state_width <<", SCORE=" << this->scoreWidth);
 
     }
     else
@@ -115,12 +136,12 @@ void LayoutComponent_RoadState::componentPerturbation()
     //boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
     //double road_width = this->getRoad_width() * var_nor();
 
-    double road_width = this->getComponentRoad_width() * Utils::box_muller(1, 0.001);
+    //double road_width = this->getComponentRoad_width() * Utils::box_muller(1, 0.001);
 
 
-    ROS_DEBUG_STREAM("roadWith: " << this->getComponentRoad_width() << "\tPerturbed: " << road_width);
+    // ROS_DEBUG_STREAM("roadWith: " << this->getComponentRoad_width() << "\tPerturbed: " << road_width);
 
-    this->setComponentRoad_width(road_width);
+    //this->setComponentRoad_width(road_width);
 }
 
 double LayoutComponent_RoadState::getAlphas()
@@ -192,42 +213,53 @@ void LayoutComponent_RoadState::componentPoseEstimation(int index)
          * I'm gonna put this ASSERT, if stops here something is strange ...
          */
 
-        ROS_ASSERT_MSG(getHighwayInfo.response.oneway == this->getOneway(),"Check why the hell the oneway tags are different inside LayoutComponent_RoadState!");
+        ROS_ASSERT_MSG(getHighwayInfo.response.oneway == this->getOneway(), "Check why the hell the oneway tags are different inside LayoutComponent_RoadState!");
 
-        serviceOk=true;
+        serviceOk = true;
     }
     else
     {
         ROS_ERROR_STREAM("Can't get HighwayInfo with wayId = " << this->getWay_id());
 
-        serviceOk=false;
+        serviceOk = false;
     }
 
     std::random_device rd;
     std::mt19937 gen(rd());
     double detector_width = 0, detector_weight = 0;
 
-    if(msg_lines.width > 0) {
+    if (msg_lines.width > 0)
+    {
         detector_width = msg_lines.width;
-        detector_weight = 0.7;
+        detector_weight = 0.9;
     }
-    else if(msg_lines.naive_width > 0) {
+    else if (msg_lines.naive_width > 0)
+    {
         detector_width = msg_lines.naive_width;
-        detector_weight = 0.3;
+        detector_weight = 0.7;
 
     }
-    std::discrete_distribution<> d({(1-detector_weight),detector_weight});
+    else
+    {
+        detector_width = 5;
+        detector_weight = 0.1;
+    }
+    std::discrete_distribution<> d({(1 - detector_weight), detector_weight});
 
-    std::array<std::normal_distribution<double>, 2> a = {
-        std::normal_distribution<double>(this->state_width,1.0),
-        std::normal_distribution<double>(detector_width,1.0)
+    if (this->state_width <= 0)
+        this->state_width = 5.;
+
+    std::array<std::normal_distribution<double>, 2> a =
+    {
+        std::normal_distribution<double>(this->state_width, 1.0),
+        std::normal_distribution<double>(detector_width, 1.0)
     };
 
     int mixture_index;
     mixture_index = d(gen);
     double new_width = a[mixture_index](gen);
 
-    ROS_ERROR_STREAM("TESTSAMPLE - Old State=" << this->state_width << ", New State=" << new_width);
+    //ROS_ERROR_STREAM("TESTSAMPLE - Old State=" << this->state_width << ", New State=" << new_width);
 
     this->state_width = new_width;
 

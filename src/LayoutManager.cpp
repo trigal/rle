@@ -74,9 +74,9 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
 {
 
     // init output files
-    LIBVISO_out_file.open   ("/home/ballardini/Desktop/LIBVISO_distance.txt");
-    RLE_out_file.open       ("/home/ballardini/Desktop/RLE_distance.txt");
-    RTK_GPS_out_file.open   ("/home/ballardini/Desktop/RTK_distance.txt");
+    LIBVISO_out_file.open   ("/home/cattaneod/Desktop/LIBVISO_distance.txt");
+    RLE_out_file.open       ("/home/cattaneod/Desktop/RLE_distance.txt");
+    RTK_GPS_out_file.open   ("/home/cattaneod/Desktop/RTK_distance.txt");
 
     //RLE_out_file.open("/home/cattaneod/RLE_distance.txt", ios::trunc);
     //RTK_GPS_out_file.open("/home/cattaneod/RTK_distance.txt", ios::trunc);
@@ -136,8 +136,10 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     /// With this lines the components callbacks are activated/deactivated.
     /// The enabler variables are stored in LayoutManager.h
     if (componentEnabled_OSMDistance)   LayoutManager::odometry_sub  = node_handle.subscribe(visualOdometryTopic, 1, &LayoutManager::odometryCallback, this);
-    if (componentEnabled_RoadLane)      LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback   //#573 - safe state
-    if (componentEnabled_RoadState)     LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);                            //#573 - safe state
+    //if (componentEnabled_RoadLane)      LayoutManager::road_lane_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback   //#573 - safe state
+    //if (componentEnabled_RoadState)     LayoutManager::roadState_sub = node_handle.subscribe("/kitti_player/lanes", 3, &LayoutManager::roadStateCallback, this);                            //#573 - safe state
+    if (componentEnabled_RoadLane)      LayoutManager::road_lane_sub = node_handle.subscribe("/isis_line_detector/lines", 3, &LayoutManager::roadLaneCallback , this); //ISISLAB Ruben callback   //#573 - safe state
+    if (componentEnabled_RoadState)     LayoutManager::roadState_sub = node_handle.subscribe("/isis_line_detector/lines", 3, &LayoutManager::roadStateCallback, this);                            //#573 - safe state
     if (componentEnabled_Building)      LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
 
@@ -1495,8 +1497,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
     // COLLECTING RESULTS && STATISTICS
     State6DOF state;
-    Vector3d average_pose;
-    average_pose.setZero();
+    Vector3d average_pose_total, average_pose_cluster;
+    average_pose_total.setZero();
+    average_pose_cluster.setZero();
     //Eigen::Quaterniond average_quaternion = Eigen::Quaterniond::Identity();
     tf::Quaternion average_quaternion = tf::createIdentityQuaternion();
     average_quaternion.setX(0);
@@ -1514,7 +1517,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
     ///////////////////////////////////////////////////////////////////////////
     // CLUSTERING PHASE
-    bool enabled_clustering = false;
+    bool enabled_clustering = true;
     int best_cluster = -1;
     int best_cluster_size = 0;
     double cluster_score = 0.0f;
@@ -1619,24 +1622,26 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
     pcl::console::TicToc ttstat, ttstat1, ttstat2, ttstat3, ttstat4;
     ttstat.tic();
-    bool enabled_statistics = false;
+    bool enabled_statistics = true;
     if (enabled_statistics)
     {
-        double average_distance = 0.0f;
+        double average_distance_total = 0.0f;
+        double average_distance_cluster = 0.0f;
         ttstat1.tic();
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         {
             //cout << "particle in_cluster: " << (*particle_itr).in_cluster << " and the best is: " << best_cluster << endl;
 
             // CHECK IF THE PARTICLE IS IN THE BEST CLUSTER
-            if (enabled_clustering && ((*particle_itr)->in_cluster != best_cluster) )
-                continue;
+            //if (enabled_clustering && ((*particle_itr)->in_cluster != best_cluster) )
+            //    continue;
 
             state = (*particle_itr)->getParticleState();
-            if (enabled_clustering)
-                average_pose += state.getPosition() * (*particle_itr)->getParticleScore() / cluster_score; //tot_score;
-            else
-                average_pose += state.getPosition() * (*particle_itr)->getParticleScore() / tot_score;
+            //if (enabled_clustering)
+            if ((*particle_itr)->in_cluster == best_cluster)
+                average_pose_cluster += state.getPosition() * (*particle_itr)->getParticleScore() / cluster_score; //tot_score;
+            //else
+            average_pose_total += state.getPosition() * (*particle_itr)->getParticleScore() / tot_score;
 
             //sum += (*particle_itr).getParticleScore() / tot_score;
             Eigen::Quaterniond q = Eigen::Quaterniond(state.getRotation());
@@ -1646,18 +1651,39 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             t.setZ(q.z());
             t.setW(q.w());
 
-            if (enabled_clustering)
-                average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr)->getParticleScore() / cluster_score);
-            else
-                average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr)->getParticleScore() / tot_score);
+            //if (enabled_clustering)
+//                average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr)->getParticleScore() / cluster_score);
+            //else
+            average_quaternion += t.slerp(tf::createIdentityQuaternion(), (*particle_itr)->getParticleScore() / tot_score);
 
-            if (enabled_clustering)
-                average_distance += (*particle_itr)->getDistance_to_closest_segment() * (*particle_itr)->getParticleScore() / cluster_score;
-            else
-                average_distance += (*particle_itr)->getDistance_to_closest_segment() * (*particle_itr)->getParticleScore() / tot_score;
+            //if (enabled_clustering)
+            if ((*particle_itr)->in_cluster == best_cluster)
+                average_distance_cluster += (*particle_itr)->getDistance_to_closest_segment() * (*particle_itr)->getParticleScore() / cluster_score;
+            //else
+            average_distance_total += (*particle_itr)->getDistance_to_closest_segment() * (*particle_itr)->getParticleScore() / tot_score;
         }
         average_quaternion.normalize();
         ROS_ERROR_STREAM("AVERAGING\t" << ttstat1.toc());
+
+        //VARIANZA
+        double varianza_total = 0.0f;
+        double varianza_cluster = 0.0f;
+        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+        {
+            state = (*particle_itr)->getParticleState();
+            double dx;
+            double dy;
+            state = (*particle_itr)->getParticleState();
+            dx = state.getPosition()(0) - average_pose_total(0);
+            dy = state.getPosition()(1) - average_pose_total(1);
+            varianza_total += sqrt(dx * dx + dy * dy) * (*particle_itr)->getParticleScore() / tot_score;
+            if ((*particle_itr)->in_cluster == best_cluster)
+            {
+                dx = state.getPosition()(0) - average_pose_cluster(0);
+                dy = state.getPosition()(1) - average_pose_cluster(1);
+                varianza_cluster += sqrt(dx * dx + dy * dy) * (*particle_itr)->getParticleScore() / cluster_score;
+            }
+        }
         ///////////////////////////////////////////////////////////////////////////
 
 
@@ -1666,9 +1692,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         odometry.header.frame_id = "/local_map";
         odometry.header.stamp = ros::Time::now();
 
-        odometry.pose.pose.position.x = average_pose(0);
-        odometry.pose.pose.position.y = average_pose(1);
-        odometry.pose.pose.position.z = average_pose(2);
+        odometry.pose.pose.position.x = average_pose_total(0);
+        odometry.pose.pose.position.y = average_pose_total(1);
+        odometry.pose.pose.position.z = average_pose_total(2);
         tf::quaternionTFToMsg(average_quaternion, odometry.pose.pose.orientation);
         double roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
@@ -1679,9 +1705,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
-        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        int start_frame = visualOdometryMsg.header.seq + 800; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
+        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/ROAD/2011_10_03_drive_0042_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/ROAD/2011_10_03_drive_0042_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -1712,6 +1738,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         query_latlon2xy.longitude = from_longitude;
         //ira_open_street_map::latlon_2_xyResponse response_latlon2xy;
         //if (LayoutManager::latlon_2_xy_client.call(query_latlon2xy, response_latlon2xy))
+        tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
         if (true)
         {
             ttstat3.tic();
@@ -1723,7 +1750,6 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             //ROS_ERROR_STREAM("check this\t" << b << "\t" << response_latlon2xy.y);
 
             //cout << std::setprecision(16) << response_latlon2xy;
-            tf::Stamped<tf::Pose> RTK_map_frame, RTK_local_map_frame;
             // --- RTK_map_frame.setOrigin(tf::Vector3(response_latlon2xy.x, response_latlon2xy.y, 0));
             RTK_map_frame.setOrigin(tf::Vector3(a, b, 0));
             //RTK_map_frame.setRotation(tf::createIdentityQuaternion());
@@ -1781,9 +1807,9 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             LOCALIZATION_MARKER.color.r = 1.0;
             LOCALIZATION_MARKER.color.g = 0.0;
             LOCALIZATION_MARKER.color.b = 1.0;
-            LOCALIZATION_MARKER.pose.position.x = average_pose(0);
-            LOCALIZATION_MARKER.pose.position.y = average_pose(1);
-            LOCALIZATION_MARKER.pose.position.z = average_pose(2);
+            LOCALIZATION_MARKER.pose.position.x = average_pose_total(0);
+            LOCALIZATION_MARKER.pose.position.y = average_pose_total(1);
+            LOCALIZATION_MARKER.pose.position.z = average_pose_total(2);
             marker_array_positions.markers.push_back(LOCALIZATION_MARKER);
             publisher_average_position.publish(marker_array_positions);
 
@@ -1824,7 +1850,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         // TRANSFORM AVERAGE POSE TO LAT/LON (NEED CONVERSION FROM LOCAL_MAP TO MAP AND ROS-SERVICE CALL)
         tf::Stamped<tf::Pose> average_pose_map_frame, average_pose_local_map_frame;
         average_pose_local_map_frame.frame_id_ = "local_map";
-        average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose(0), average_pose(1), average_pose(2)));
+        average_pose_local_map_frame.setOrigin(tf::Vector3(average_pose_total(0), average_pose_total(1), average_pose_total(2)));
         average_pose_local_map_frame.setRotation(tf::createIdentityQuaternion());
         // Transform pose from "local_map" to "map"
         try
@@ -1857,13 +1883,27 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
-            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
+            double dx = (RTK_local_map_frame.getOrigin().getX() - average_pose_total(0));
+            double dy = (RTK_local_map_frame.getOrigin().getY() - average_pose_total(1));
+            double distance1 = sqrt(dx * dx + dy * dy);
+
+            dx = (RTK_local_map_frame.getOrigin().getX() - average_pose_cluster(0));
+            dy = (RTK_local_map_frame.getOrigin().getY() - average_pose_cluster(1));
+            double distance2 = sqrt(dx * dx + dy * dy);
+            /*RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
+                         average_pose_total(0) << " " << average_pose_total(1) << " " << average_pose_total(2) << " " <<
                          roll << " " << pitch << " " << yaw << " " <<
                          average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
                          tot_score / current_layout_shared.size() << " " <<
                          to_lat << " " << to_lon << " " <<
-                         average_distance << "\n";
+                         average_distance_total << "\n";*/
+            RLE_out_file << visualOdometryMsg.header.seq << ";" << setprecision(16) <<
+                         average_distance_total << ";" <<
+                         average_distance_cluster << ";" <<
+                         distance1 << ";" <<
+                         distance2 << ";" <<
+                         varianza_total << ";" <<
+                         varianza_cluster << ";" << "\n";
             RLE_out_file.flush();
 
 
@@ -1984,14 +2024,27 @@ void LayoutManager::roadLaneCallback(const road_layout_estimation::msg_lines &ms
 void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &msg_lines)
 {
 
-    ROS_INFO_STREAM("> Entering roadStateCallback");
+    ROS_WARN_STREAM("> Entering roadStateCallback");
+
+    ira_open_street_map::snap_particle_xy   snapParticleRequestResponse; ///< ROS parameter for service call
+    //ira_open_street_map::oneway             oneWayRequestResponse;       ///< ROS parameter for service call
 
     road_layout_estimation::msg_lines modified_msg_lines;
     modified_msg_lines = msg_lines;
     vector<shared_ptr<Particle>>::iterator particle_itr;
+    ROS_WARN_STREAM("DETECTOR WIDTH: " << msg_lines.width << ", NAIVE: " << msg_lines.naive_width);
 
     for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
     {
+        tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame((*particle_itr)->getParticleState().getPosition());
+        snapParticleRequestResponse.request.x = tf_pose_map_frame.getOrigin().getX();
+        snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
+        snapParticleRequestResponse.request.max_distance_radius = 20;  // TODO: parametrize this value
+        if (snap_particle_xy_client.call(snapParticleRequestResponse))
+        {
+            //ROS_WARN_STREAM("ID: "<<snapParticleRequestResponse.response.way_id);
+            modified_msg_lines.way_id = snapParticleRequestResponse.response.way_id;
+        }
 
         LayoutComponent_RoadState* RoadStateComponentPtr = (*particle_itr)->giveMeThatComponent<LayoutComponent_RoadState>();
         RoadStateComponentPtr->setMsg_lines(modified_msg_lines);
