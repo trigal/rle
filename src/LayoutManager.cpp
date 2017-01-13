@@ -1705,7 +1705,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ifstream RTK;
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
-        int start_frame = visualOdometryMsg.header.seq + 800; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
+        int start_frame = visualOdometryMsg.header.seq + 850; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
         cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/ROAD/2011_10_03_drive_0042_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
         RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/ROAD/2011_10_03_drive_0042_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())

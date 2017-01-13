@@ -351,7 +351,7 @@ private:
     /// Components enablers
     bool componentEnabled_OSMDistance   = true;
     bool componentEnabled_RoadLane      = false;
-    bool componentEnabled_RoadState     = true;
+    bool componentEnabled_RoadState     = false;
     bool componentEnabled_Building      = false;
     bool componentEnabled_Crossing      = false;
 

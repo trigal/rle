@@ -39,6 +39,8 @@ class LayoutComponent_RoadState : public LayoutComponent
 private:
 
     double state_width;
+    double OSMWidth;
+    int number_of_lanes;
 
     // Description msg_lines
     // Header header
@@ -139,6 +141,8 @@ public:
         //this->way_id=way_id;
 
         this->state_width = road_width;
+        this->OSMWidth = 0.;
+        this->number_of_lanes = 1;
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);
         this->component_cov = MatrixXd::Zero(12, 12);
@@ -165,6 +169,8 @@ public:
         this->roadState_distribution_alpha = roadState_distribution_alpha;
 
         this->state_width = 5.;
+        this->OSMWidth = 0.;
+        this->number_of_lanes = 1;
 
         this->component_weight = 0;
         this->component_state = VectorXd::Zero(12);

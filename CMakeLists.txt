@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
 #RelWithDebInfo
-#SET (CMAKE_BUILD_TYPE Debug)
-#SET (ROS_BUILD_TYPE Debug)
-#SET (CMAKE_CXX_FLAGS "-O0 -std=c++11") #RelWithDebInfo Release
-SET (CMAKE_BUILD_TYPE Release)
-SET (ROS_BUILD_TYPE Release)
-SET (CMAKE_CXX_FLAGS "-O3 -std=c++11")
+SET (CMAKE_BUILD_TYPE Debug)
+SET (ROS_BUILD_TYPE Debug)
+SET (CMAKE_CXX_FLAGS "-O0 -std=c++11") #RelWithDebInfo Release
+#SET (CMAKE_BUILD_TYPE Release)
+#SET (ROS_BUILD_TYPE Release)
+#SET (CMAKE_CXX_FLAGS "-O3 -std=c++11")
 
 
 ## Find catkin macros and libraries
@@ -146,6 +146,9 @@ add_executable(visual_odometry_nvm
 add_executable(fake_callback
         src/fake_callback.cpp
 )
+add_executable(lane
+        src/lane.cpp
+)
 
 add_executable(shared_test
         src/shared_test.cpp
@@ -159,6 +162,9 @@ add_executable(shared_test
 
 add_dependencies(fake_callback ${PROJECT_NAME}_gencfg)
 add_dependencies(fake_callback ${PROJECT_NAME}_generate_messages_cpp)
+
+add_dependencies(lane ${PROJECT_NAME}_gencfg)
+add_dependencies(lane ${PROJECT_NAME}_generate_messages_cpp)
 
 add_dependencies(road_layout_estimation ${PROJECT_NAME}_gencfg)
 add_dependencies(road_layout_estimation ${PROJECT_NAME}_generate_messages_cpp)
@@ -193,5 +199,8 @@ target_link_libraries(visual_odometry_nvm
 )
 
 target_link_libraries(fake_callback
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(lane
   ${catkin_LIBRARIES}
 )
