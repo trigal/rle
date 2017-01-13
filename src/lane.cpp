@@ -16,7 +16,7 @@ Eigen::MatrixXd stateTransitionMatrix;
 bool first = true;
 
 int howManyLanes;                   ///< The number of lanes in the current hypothesis
-double standardLaneWidth = 5.0f;    // maybe minLaneWidth
+double standardLaneWidth = 3.5f;    // maybe minLaneWidth
 int MAX_COUNT = 10;
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
@@ -63,12 +63,12 @@ void setStateTransitionMatrix()
     else if (howManyLanes == 3)
     {
         stateTransitionMatrix.resize(6, 6);
-        stateTransitionMatrix << 0.63,  0.269,  0.091,  0.006,  0.003,  0.001,
-                              0.228, 0.534,  0.228,  0.002,  0.006,  0.002,
-                              0.091, 0.269,  0.63,   0.001,  0.003,  0.006,
-                              0.063, 0.027,  0.009,  0.567,  0.243,  0.091,
+        stateTransitionMatrix << 0.63,  0.279,  0.001,  0.0869,  0.003,  0.0001,
+                              0.139, 0.63,  0.139,  0.003,  0.086,  0.003,
+                              0.001, 0.279,  0.63,   0.0001,  0.003,  0.0869,
+                              0.1519, 0.027,  0.0001,  0.567,  0.253,  0.001,
                               0.023, 0.054,  0.023,  0.208,  0.484,  0.208,
-                              0.009, 0.027,  0.063,  0.091,  0.243,  0.567;
+                              0.0001, 0.027,  0.1519,  0.001,  0.253,  0.567;
 
 
     }
@@ -112,7 +112,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     cout << "================================================================" << endl << endl;
     Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
-    cout << megavariabile.sum() << endl;
+    cout << msg_lines.header.seq << endl;
     ROS_ASSERT( (1 - megavariabile.sum()) <= 0.00001f);
 
     // from excel, unified-transition matrix with 2 lanes + broken-sensor
@@ -167,56 +167,11 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     double width = 0;
     if (validAndSorted.size() > 0)
         width = validAndSorted[0].offset - validAndSorted[msg_lines.goodLines - 1].offset;
-    if (width > standardLaneWidth)
+
+    for (int i = 0; i < msg_lines.goodLines; i++)
     {
-        /// msg_lines.width is grater than standardLaneWidth and we have
-        /// more than 1 good-tracked-line. Using the offsets, we can create
-        /// some guesses
-
-        while (extra_corsie + 1)
+        if (validAndSorted.at(i).offset > standardLaneWidth || validAndSorted.at(i).offset < -standardLaneWidth)
         {
-            /// In quale delle corsie su hypothesisCurrentLanes sono?
-            int toadd = corsie;
-            for (int i = 0; i < msg_lines.goodLines; i++)
-            {
-                if (std::fabs(validAndSorted[i].offset) < standardLaneWidth)
-                {
-                    if (toadd <= 0)
-                        break;
-                    tentative(toadd - 1) = tentative(toadd - 1) + 1;
-                    //ROS_ASSERT \((toadd-1)>=1); //Stop if some value in the array is > 1, at the moment no-value should ..
-                    break;
-                }
-                else
-                    toadd--;
-            }
-            corsie--;
-            extra_corsie--;
-        }
-        cout << "Tentative: \t" << tentative(0) << " | " << tentative(1) << " | " << tentative(2) << endl;
-
-        /// Does some couple of lines create a plausible "lane?"
-        /*for (int i = 0; i < validAndSorted.size() - 1; i++)
-        {
-            double sum = (std::fabs(validAndSorted.at(i).offset) + std::fabs(validAndSorted.at(i + 1).offset));
-            double threshold = standardLaneWidth / 2.0f;
-            if ((validAndSorted.at(i).offset > 0.0f) && (validAndSorted.at(i + 1).offset < 0.0f))
-                if ( (sum > (standardLaneWidth - threshold)) &&
-                        (sum < (standardLaneWidth + threshold)) )
-                    ROS_INFO_STREAM("Inside a lane created by lines " << i << " and " << i + 1 << " " << sum);
-            //ROS_INFO_STREAM("Inside a lane created by lines " << i << " and " << i + 1 << " " << sum);
-        }*/
-
-    }
-    else if (msg_lines.goodLines == 1)
-    {
-        if (validAndSorted.at(0).offset > standardLaneWidth || validAndSorted.at(0).offset < -standardLaneWidth)
-        {
-            /// msg_lines.width is grater than standardLaneWidth, meaning that
-            /// the only detected line should not be part of the "current lane".
-            /// Thus, we can say that we're somewhere else but not in that lane
-
-            ROS_WARN_STREAM("Not enough goodLines: " << msg_lines.goodLines << " - width: " << msg_lines.width );
 
             // standardLaneWidth > Threshold BUT goodLines = 1 AKA
             // only one line away from me more than 1 LANE threshold
@@ -226,15 +181,15 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
             // The following two IF could be merged, but in this way it is "pretty" clear =)
             int corsie = hypothesisCurrentLanes - 1;
 
-            if (validAndSorted.at(0).offset > 0)
+            if (validAndSorted.at(i).offset > 0)
             {
                 // adding ONES to all LEFT lanes compatible with the ONELINE offset
                 // i.e. all lines farther than validAndSorted, with the value on the RIGHT
                 double tot = standardLaneWidth;
                 while (corsie >= 0)
                 {
-                    if (validAndSorted.at(0).offset < (tot))
-                        tentative(corsie) = 1;
+                    if (validAndSorted.at(i).offset < (tot))
+                        tentative(corsie)++;
 
                     tot += standardLaneWidth;
                     corsie--;
@@ -247,8 +202,8 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                 double tot = standardLaneWidth;
                 while (corsie >= 0)
                 {
-                    if (std::fabs(validAndSorted.at(0).offset) < (tot))
-                        tentative(hypothesisCurrentLanes - corsie - 1) = 1;
+                    if (std::fabs(validAndSorted.at(i).offset) < (tot))
+                        tentative(hypothesisCurrentLanes - corsie - 1)++;
 
                     tot += standardLaneWidth;
                     corsie--;
@@ -259,30 +214,29 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
             //tentative += 0.001f;
             //tentative /= tentative.sum();
         }
-
-        else if (validAndSorted.at(0).continuous == true)
+        else if (validAndSorted.at(i).continuous == true)
         {
-            if (validAndSorted.at(0).offset < 0)
+            if (validAndSorted.at(i).offset < 0)
             {
                 tentative(0)++;
             }
             else
                 tentative(howManyLanes - 1)++;
         }
-        else
-        {
-            /// msg_lines.width is less than standardLaneWidth. We're close to the
-            /// only one detected line, so I can't say nothing at all.
+    }
+    if (tentative.sum() <= 0)
+    {
+        /// msg_lines.width is less than standardLaneWidth. We're close to the
+        /// only one detected line, so I can't say nothing at all.
 
-            tentative.setConstant(corsie, 1.0f / corsie);
-            //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
-            string s;
-            for (int i = 0; i <= tentative.cols(); i++)
-                s = s + " " + std::to_string(tentative[i]);
-            ROS_WARN_STREAM(s);
-            //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " ** Detected width less than standardLaneWidth (" << standardLaneWidth << "): " << msg_lines.width);
-            //ROS_WARN_STREAM("Detected width less than standardLaneWidth: " << msg_lines.width);
-        }
+        tentative.setConstant(corsie, 1.0f / corsie);
+        //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " " << tentative[2]);
+        string s;
+        for (int i = 0; i <= tentative.cols(); i++)
+            s = s + " " + std::to_string(tentative[i]);
+        ROS_WARN_STREAM(s);
+        //ROS_WARN_STREAM(tentative[0] << " " << tentative[1] << " ** Detected width less than standardLaneWidth (" << standardLaneWidth << "): " << msg_lines.width);
+        //ROS_WARN_STREAM("Detected width less than standardLaneWidth: " << msg_lines.width);
     }
 
     /// Add noise to every guess and normalize
@@ -330,7 +284,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     a.setZero(howManyLanes);
     b.setZero(howManyLanes);
     sensor_bad_state.setZero(howManyLanes);
-    double weight = 0.4;
+    double weight = 0.6;
     double p1, p2, p3;
     //p1 = (megavariabile(0) + megavariabile(2)) * weight;
     //p1 += 0.5 * (1 - weight);
@@ -353,8 +307,8 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     sensor.setZero(howManyLanes * 2);
     sensor << a, b;
 
-    cout << "SensorState:\t" << sensor_bad_state << endl;
-    cout << "Tentative  :\t" << tentative << endl;
+    //cout << "SensorState:\t" << sensor_bad_state << endl;
+    cout << "Tentative  :\t" << tentative.transpose().format(CleanFmt) << endl;
     cout << "sensor     :\t" << sensor.transpose().format(CleanFmt) << endl;
     cout << "prediction :\t" << prediction.transpose().format(CleanFmt) << endl;
     Eigen::VectorXd update;
@@ -389,7 +343,7 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
-    howManyLanes = 2;
+    howManyLanes = 3;
     //megavariabile.resize(4);
     //megavariabile.setConstant(1.0f / 4.0f);
     setStateTransitionMatrix();
