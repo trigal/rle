@@ -331,6 +331,7 @@ private:
     ofstream LIBVISO_out_file;                              ///< output file, for framework evaluation
     ofstream RLE_out_file;                                  ///< output file, for framework evaluation
     ofstream RTK_GPS_out_file;                              ///< output file, for framework evaluation
+    ofstream roadLaneFile;
 
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::MarkerArray marker_array_distances;
@@ -351,7 +352,7 @@ private:
     /// Components enablers
     bool componentEnabled_OSMDistance   = true;
     bool componentEnabled_RoadLane      = false;
-    bool componentEnabled_RoadState     = false;
+    bool componentEnabled_RoadState     = true;
     bool componentEnabled_Building      = false;
     bool componentEnabled_Crossing      = false;
 

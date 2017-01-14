@@ -79,19 +79,18 @@ void LayoutComponent_RoadState::calculateComponentScore()
         return;
     }
 
-
     boost::math::normal mixture2(this->OSMWidth, 1);
     boost::math::normal mixture3(this->OSMWidth + laneWidth, 1);
 
-    double weight_mixture1 = 0.25;
-    double weight_mixture2 = 0.5;
-    double weight_mixture3 = 0.25;
+    double weight_mixture1 = 0.2;
+    double weight_mixture2 = 0.6;
+    double weight_mixture3 = 0.2;
     double max_pdf, component_pdf;
     if (getHighwayInfo.response.number_of_lanes == 1)
     {
         weight_mixture1 = 0;
-        weight_mixture2 = 0.7;
-        weight_mixture3 = 0.3;
+        weight_mixture2 = 0.8;
+        weight_mixture3 = 0.2;
 
         max_pdf = weight_mixture2 * pdf(mixture2, this->OSMWidth) + weight_mixture3 * pdf(mixture3, this->OSMWidth);
         component_pdf = weight_mixture2 * pdf(mixture2, this->state_width) + weight_mixture3 * pdf(mixture3, this->state_width);
@@ -235,12 +234,12 @@ void LayoutComponent_RoadState::componentPoseEstimation(int index)
     if (msg_lines.width > 0)
     {
         detector_width = msg_lines.width;
-        detector_weight = 0.99;
+        detector_weight = 0.9;
     }
     else if (msg_lines.naive_width > 0)
     {
         detector_width = msg_lines.naive_width * this->number_of_lanes;
-        detector_weight = 0.99;
+        detector_weight = 0.7;
 
     }
     else

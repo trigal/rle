@@ -142,7 +142,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/circle
       Name: GPS Uncertainty
       Namespaces:
-        {}
+        gauss_sigma: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -150,7 +150,7 @@ Visualization Manager:
       Marker Topic: /road_layout_estimation/layout_manager/circle2
       Name: GPS Mean Init
       Namespaces:
-        {}
+        gauss_sigma: true
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -211,7 +211,7 @@ Visualization Manager:
       Draw Behind: true
       Enabled: true
       Name: AerialMapDisplay
-      Object URI: http://ecn.t1.tiles.virtualearth.net/tiles/a{quad}.jpeg?g=3653
+      Object URI: http://a.tiles.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiYXVndXN0b2JhbGxhcmRpbmkiLCJhIjoiY2lmNTg3eWlvMDAxZXRpbTRwMzkyZTIyeSJ9.2b11noBCoWe-urJQrcsEIg
       Topic: /kitti_player/oxts/gps_initial
       Value: true
       Zoom: 19
@@ -308,22 +308,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 271.702
+      Distance: 402.338
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 552.87
-        Y: -342.592
-        Z: -1.72434e-05
+        X: 596.318
+        Y: -343.396
+        Z: 6.54914e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.519797
+      Pitch: 0.789797
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 2.63856
+      Yaw: 2.51856
     Saved: ~
 Window Geometry:
   Displays:
@@ -345,5 +345,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 930
-  X: 939
+  X: 979
   Y: 14

@@ -77,6 +77,7 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     LIBVISO_out_file.open   ("/home/cattaneod/Desktop/LIBVISO_distance.txt");
     RLE_out_file.open       ("/home/cattaneod/Desktop/RLE_distance.txt");
     RTK_GPS_out_file.open   ("/home/cattaneod/Desktop/RTK_distance.txt");
+    roadLaneFile.open   ("/home/cattaneod/Desktop/roadState.txt");
 
     //RLE_out_file.open("/home/cattaneod/RLE_distance.txt", ios::trunc);
     //RTK_GPS_out_file.open("/home/cattaneod/RTK_distance.txt", ios::trunc);
@@ -1516,8 +1517,34 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    // LANEEEE
+    ira_open_street_map::snap_particle_xy   snapParticleRequestResponse;
+
+    int cont_road1 = 0, cont_road2 = 0;
+    for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+    {
+
+        tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame((*particle_itr)->getParticleState().getPosition());
+        snapParticleRequestResponse.request.x = tf_pose_map_frame.getOrigin().getX();
+        snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
+        int wayid = -1;
+        snapParticleRequestResponse.request.max_distance_radius = 100;  // TODO: parametrize this value
+        if (snap_particle_xy_client.call(snapParticleRequestResponse))
+        {
+            wayid = snapParticleRequestResponse.response.way_id;
+            if (wayid == -36804 || wayid == -36800 || wayid == 179175843)
+                cont_road2++;
+            else if (wayid == -36802 || wayid == -36798)
+                cont_road1++;
+            //ROS_WARN_STREAM("CLUSTER ID: "<<snapParticleRequestResponse.response.way_id);
+        }
+    }
+    ROS_WARN_STREAM("CONT: " << cont_road1 << "\t" << cont_road2);
+    roadLaneFile << cont_road1 << ";" << cont_road2 << "\n";
+    roadLaneFile.flush();
+    ///////////////////////////////////////////////////////////////////////////
     // CLUSTERING PHASE
-    bool enabled_clustering = true;
+    bool enabled_clustering = false;
     int best_cluster = -1;
     int best_cluster_size = 0;
     double cluster_score = 0.0f;
@@ -1539,7 +1566,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         int cluster_INDEX = 0;
         double euclidean_distance = 0.0f;
         double angle_distance = 0.0f;
-        double euclidean_threshold = 5.00f; //meters
+        double euclidean_threshold = 2.00f; //meters
         double angle_threshold     = 0.20f; //radians
         vector<shared_ptr<Particle>>::iterator inner_particle_itr;
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
@@ -1547,6 +1574,10 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
             if ((*particle_itr)->in_cluster == -1)
                 (*particle_itr)->in_cluster = cluster_INDEX++;
+        }
+
+        for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
+        {
 
             for ( inner_particle_itr = current_layout_shared.begin(); inner_particle_itr != current_layout_shared.end(); inner_particle_itr++ )
             {
@@ -1575,8 +1606,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
                 angle_distance = t1.angleShortestPath(t2);
 
                 if (euclidean_distance < euclidean_threshold)
-                    if (angle_distance < angle_threshold)
-                        (*inner_particle_itr)->in_cluster  = (*particle_itr)->in_cluster;
+                    // if (angle_distance < angle_threshold)
+                    (*inner_particle_itr)->in_cluster  = (*particle_itr)->in_cluster;
 
             }
         }
@@ -1585,10 +1616,12 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         ///////////////////////////////////////////////////////////////////////////
         //STEP3 - searching best cluster
         vector<double> clusters;
+        vector<int> cluster_cont(cluster_INDEX, 0);
         clusters.resize(cluster_INDEX);
         for ( particle_itr = current_layout_shared.begin(); particle_itr != current_layout_shared.end(); particle_itr++ )
         {
             clusters[(*particle_itr)->in_cluster] += (*particle_itr)->getParticleScore() / tot_score;
+            cluster_cont[(*particle_itr)->in_cluster]++;
         }
 
         best_cluster = -1;
@@ -1611,8 +1644,15 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
                 best_cluster_size++;
             }
         }
+        int aaaa = 0;
+        for (int i = 0; i < cluster_INDEX; i++)
+        {
+            if (cluster_cont[i] > 0)
+                aaaa++;
+        }
         cout << "Best cluster size: " << best_cluster_size << endl;
-        ROS_ERROR_STREAM("CLUSTERING\t" << ttcluster.toc());
+        //ROS_ERROR_STREAM("CLUSTERING\t" << ttcluster.toc());
+        ROS_ERROR_STREAM("Numero Cluster: " << aaaa);
         ///////////////////////////////////////////////////////////////////////////
     }
 
@@ -1622,7 +1662,7 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
 
     pcl::console::TicToc ttstat, ttstat1, ttstat2, ttstat3, ttstat4;
     ttstat.tic();
-    bool enabled_statistics = true;
+    bool enabled_statistics = false;
     if (enabled_statistics)
     {
         double average_distance_total = 0.0f;
@@ -2039,7 +2079,7 @@ void LayoutManager::roadStateCallback(const road_layout_estimation::msg_lines &m
         tf::Stamped<tf::Pose> tf_pose_map_frame = toGlobalFrame((*particle_itr)->getParticleState().getPosition());
         snapParticleRequestResponse.request.x = tf_pose_map_frame.getOrigin().getX();
         snapParticleRequestResponse.request.y = tf_pose_map_frame.getOrigin().getY();
-        snapParticleRequestResponse.request.max_distance_radius = 20;  // TODO: parametrize this value
+        snapParticleRequestResponse.request.max_distance_radius = 100;  // TODO: parametrize this value
         if (snap_particle_xy_client.call(snapParticleRequestResponse))
         {
             //ROS_WARN_STREAM("ID: "<<snapParticleRequestResponse.response.way_id);

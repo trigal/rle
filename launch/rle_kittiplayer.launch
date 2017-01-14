@@ -3,7 +3,7 @@
         <!-- RLE Parameters -->
         <param name="/road_layout_estimation/resampling_interval"               value="8"/>
         <param name="/road_layout_estimation/particles_number"                  value="80"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/rle_frequency"                     value="0.5"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
         <param name="/road_layout_estimation/street_distribution_alpha"        value="5"/>     <!--these values should be greater than zero-->
@@ -30,12 +30,12 @@
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="2011_10_03_drive_0042_sync" />
+            <arg name="bagfile" default="alcala-seq-0004" />
             <!--<arg name="bagfile" default="2011_09_26_drive_0005_sync" />-->
             <!--<arg name="bagfile" default="2011_09_26_drive_0059_sync" />-->
-            <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
+            <arg name="camera" default="/kitti_player" />                                                               <!-- The namespace where images are published -->
             <arg name="publish_rate" default="0.1" />
-            <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
+            <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso_mapbox.rviz" />
             <arg name="map" default="$(find ira_open_street_map)/maps/$(arg bagfile).osm" />
 
         <!--disabled since added inside the sgbm-building-detector node--> <!-- ADDED AGAIN ON MASTER MERGE -->
