@@ -72,6 +72,19 @@ void setStateTransitionMatrix()
 
 
     }
+    else if (howManyLanes == 4)
+    {
+        stateTransitionMatrix.resize(8, 8);
+        stateTransitionMatrix << 0.641734,  0.244611,   0.013547,   0.000109,   0.071304,   0.027179,   0.001505,   1.21114E-05,
+                              0.192354,   0.504639,   0.192354,   0.010653,   0.021373,   0.056071,   0.021373,   0.00118364,
+                              0.010653,   0.192354,   0.504639,   0.192354,   0.001184,   0.021373,   0.056071,   0.021372669,
+                              0.000109,   0.013547,   0.244611,   0.641734,   1.21E-05,   0.001505,   0.027179,   0.071303744,
+                              0.128347,   0.048922,   0.002709,   2.18E-05,   0.513387,   0.195688,   0.010837,   8.72022E-05,
+                              0.038471,   0.100928,   0.038471,   0.002131,   0.153883,   0.403711,   0.153883,   0.008522208,
+                              0.002131,   0.038471,   0.100928,   0.038471,   0.008522,   0.153883,   0.403711,   0.153883217,
+                              2.18E-05,   0.002709,   0.048922,   0.128347,   8.72E-05,   0.010837,   0.195688,   0.513386957;
+
+    }
 }
 
 void resetMegavariabile(int lanes)
@@ -210,6 +223,18 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                 }
             }
 
+            if (validAndSorted.at(i).continuous == true)
+            {
+                int corsia_attuale = validAndSorted.at(i).offset / standardLaneWidth;
+                if (corsia_attuale > 0)
+                    corsia_attuale = howManyLanes - corsia_attuale - 1;
+                else if (corsia_attuale < 0)
+                    corsia_attuale = -corsia_attuale;
+
+                if (corsia_attuale >= 0 && corsia_attuale < howManyLanes)
+                    tentative(corsia_attuale) += 2;
+            }
+
             /// Add noise to every guess (moved outside the if)
             //tentative += 0.001f;
             //tentative /= tentative.sum();
@@ -285,7 +310,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     b.setZero(howManyLanes);
     sensor_bad_state.setZero(howManyLanes);
     double weight = 0.6;
-    double p1, p2, p3;
+    /*double p1, p2, p3, p4;
     //p1 = (megavariabile(0) + megavariabile(2)) * weight;
     //p1 += 0.5 * (1 - weight);
     p1 = tentative(0)  * weight;
@@ -300,6 +325,13 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         p2 +=  (megavariabile(1) + megavariabile(howManyLanes + 1)) * (1 - weight);
         p3 = 1.0 - p1 - p2;
         sensor_bad_state << p1, p2, p3;
+    }*/
+    double p[howManyLanes];
+    for (int i = 0; i < howManyLanes; i++)
+    {
+        p[i] = tentative(i)  * weight;
+        p[i] +=  (megavariabile(i) + megavariabile(howManyLanes + i)) * (1 - weight);
+        sensor_bad_state(i) = p[i];
     }
     //sensor_bad_state << 0.5, 0.5;
     a = (tentative * SensorOK ) ; //<< endl;
@@ -321,8 +353,10 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     cout << "update     :\t" << update.transpose().format(CleanFmt) << endl;
     if (howManyLanes == 2)
         cout << "summarize  :\t" << update(0) + update(2) << " | " << update(1) + update(3) << endl;
-    else
+    else if (howManyLanes == 3)
         cout << "summarize  :\t" << update(0) + update(3) << " | " << update(1) + update(4) << " | " << update(2) + update(5) << endl;
+    else if (howManyLanes == 4)
+        cout << "summarize  :\t" << update(0) + update(4) << " | " << update(1) + update(5) << " | " << update(2) + update(6) << " | " << update(3) + update(7) << endl;
 
     ROS_ASSERT( (1 - update.sum()) <= 0.00001f);
 
@@ -343,7 +377,7 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
-    howManyLanes = 3;
+    howManyLanes = 4;
     //megavariabile.resize(4);
     //megavariabile.setConstant(1.0f / 4.0f);
     setStateTransitionMatrix();
