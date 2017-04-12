@@ -8,6 +8,9 @@
 
 #include <eigen3/Eigen/Core>
 
+#include <fstream>
+#include <std_msgs/Bool.h>
+
 using namespace std;
 
 Eigen::VectorXd sensor;
@@ -18,6 +21,8 @@ bool first = true;
 int howManyLanes;                   ///< The number of lanes in the current hypothesis
 double standardLaneWidth = 3.5f;    // maybe minLaneWidth
 int MAX_COUNT = 10;
+
+ros::Publisher *chatter_pub ;
 
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
 {
@@ -362,12 +367,32 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     megavariabile = update;
 
+    ofstream myfile;
+        myfile.open ("/home/ballardini/Desktop/lane.txt", ios::app);
+        myfile << msg_lines.header.seq  << ";" << SensorOK << ";" << SensorBAD << ";"
+               << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+               << sensor(0) << ";" << sensor(1) << ";" << sensor(2) << ";" << sensor(3) << ";"
+               << sensor(4) << ";" << sensor(5) << ";" << sensor(6) << ";" << sensor(7) << ";"
+               << prediction(0) << ";" << prediction(1) << ";" << prediction(2) << ";" << prediction(3) << ";"
+               << prediction(4) << ";" << prediction(5) << ";" << prediction(6) << ";" << prediction(7) << ";"
+               << update(0) << ";" << update(1) << ";" << update(2) << ";" << update(3) << ";"
+               << update(4) << ";" << update(5) << ";" << update(6) << ";" << update(7) << ";"
+               << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+                  ;
+        myfile.close();
+
+        std_msgs::Bool msg;
+        msg.data=false;
+        chatter_pub->publish(msg);
+
 }
 
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "listener");
+
+    ros::init(argc, argv, "lane");
+    ros::NodeHandle n;
 
     /// This sets the logger level; use this to disable all ROS prints
     if ( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) )
@@ -375,7 +400,8 @@ int main(int argc, char **argv)
     else
         std::cout << "Error while setting the logger level!" << std::endl;
 
-    ros::NodeHandle n;
+    chatter_pub = new ros::Publisher;
+    *chatter_pub = n.advertise<std_msgs::Bool>("/sync", 1);
 
     howManyLanes = 4;
     //megavariabile.resize(4);
