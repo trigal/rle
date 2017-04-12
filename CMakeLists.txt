@@ -29,7 +29,7 @@ find_package(catkin REQUIRED COMPONENTS     roscpp
 
 find_package( PCL 1.8 REQUIRED )
 find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
