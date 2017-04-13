@@ -154,9 +154,9 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     unsigned int hypothesisCurrentLanes = 0.0f; //hypothesis of current lane
 
     //hypothesisCurrentLanesNaive = round(msg_lines.naive_width / standardLaneWidth );
-    if (msg_lines.width > 0)
-        hypothesisCurrentLanes =      round(msg_lines.width / standardLaneWidth );
-    else
+    //if (msg_lines.width > 0)
+    //    hypothesisCurrentLanes =      round(msg_lines.width / standardLaneWidth );
+    //else
         hypothesisCurrentLanes = howManyLanes;
 
     /// Sorting lines
@@ -237,7 +237,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
                     corsia_attuale = -corsia_attuale;
 
                 if (corsia_attuale >= 0 && corsia_attuale < howManyLanes)
-                    tentative(corsia_attuale) += 2;
+                    tentative(corsia_attuale) += 1;
             }
 
             /// Add noise to every guess (moved outside the if)
@@ -248,10 +248,10 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         {
             if (validAndSorted.at(i).offset < 0)
             {
-                tentative(0)++;
+                tentative(0)+=1;
             }
             else
-                tentative(howManyLanes - 1)++;
+                tentative(howManyLanes - 1)+=1;
         }
     }
     if (tentative.sum() <= 0)
@@ -367,19 +367,26 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     megavariabile = update;
 
+    ///STATS
     ofstream myfile;
-        myfile.open ("/home/ballardini/Desktop/lane.txt", ios::app);
-        myfile << msg_lines.header.seq  << ";" << SensorOK << ";" << SensorBAD << ";"
-               << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
-               << sensor(0) << ";" << sensor(1) << ";" << sensor(2) << ";" << sensor(3) << ";"
-               << sensor(4) << ";" << sensor(5) << ";" << sensor(6) << ";" << sensor(7) << ";"
-               << prediction(0) << ";" << prediction(1) << ";" << prediction(2) << ";" << prediction(3) << ";"
-               << prediction(4) << ";" << prediction(5) << ";" << prediction(6) << ";" << prediction(7) << ";"
-               << update(0) << ";" << update(1) << ";" << update(2) << ";" << update(3) << ";"
-               << update(4) << ";" << update(5) << ";" << update(6) << ";" << update(7) << ";"
-               << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
-                  ;
-        myfile.close();
+    myfile.open ("/home/catta/lane.txt", ios::app);
+    myfile << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
+           << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+           << sensor(0) << ";" << sensor(1) << ";" << sensor(2) << ";" << sensor(3) << ";"
+           << sensor(4) << ";" << sensor(5) << ";" << sensor(6) << ";" << sensor(7) << ";"
+           << prediction(0) << ";" << prediction(1) << ";" << prediction(2) << ";" << prediction(3) << ";"
+           << prediction(4) << ";" << prediction(5) << ";" << prediction(6) << ";" << prediction(7) << ";"
+           << update(0) << ";" << update(1) << ";" << update(2) << ";" << update(3) << ";"
+           << update(4) << ";" << update(5) << ";" << update(6) << ";" << update(7) << ";"
+           << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+    myfile.close();
+
+    ofstream myfile2;
+    myfile2.open ("/home/catta/lane-short.txt", ios::app);
+    myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
+           << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+           << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+    myfile2.close();
 
         std_msgs::Bool msg;
         msg.data=false;
