@@ -9,6 +9,7 @@ SET (CMAKE_BUILD_TYPE Release)
 SET (ROS_BUILD_TYPE Release)
 SET (CMAKE_CXX_FLAGS "-O3 -std=c++11")
 
+add_definitions (-DEXEC_TEST=12)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
