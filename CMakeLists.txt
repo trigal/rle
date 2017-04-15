@@ -2,26 +2,29 @@ cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
 #RelWithDebInfo
-SET (CMAKE_BUILD_TYPE Release)
-SET (ROS_BUILD_TYPE Release)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}-O3 -std=c++11")
+SET (CMAKE_BUILD_TYPE Debug)
+SET (ROS_BUILD_TYPE Debug)
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++11")
 
 find_package(catkin REQUIRED COMPONENTS     roscpp
                                             geometry_msgs
                                             cmake_modules
                                             message_generation
                                             std_msgs
+                                            rosbag
 )
 
 find_package(PCL 1.8 REQUIRED )
+find_package(Eigen REQUIRED)
 find_package(message_generation)
 
 include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
+add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
-add_definitions(-DSYNCMODE=1)
-add_definitions(-DSAVEPATH="/home/catta/lane.txt")
+add_definitions(-DEXEC_TEST=12) #test number for transition matrix
+#add_definitions(-DSYNCMODE)  #send the sync for isis.player?
+add_definitions(-DSAVEPATH="/home/ballardini/lane.txt") #path for output
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
