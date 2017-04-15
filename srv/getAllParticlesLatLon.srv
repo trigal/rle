@@ -1,9 +1,0 @@
-#request
----
-#response
-float64[] latitudes
-float64[] longitudes
-int64[]   way_ids
-uint64    particleNumber
-float64[] particleScores
-

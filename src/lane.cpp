@@ -157,7 +157,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     //if (msg_lines.width > 0)
     //    hypothesisCurrentLanes =      round(msg_lines.width / standardLaneWidth );
     //else
-        hypothesisCurrentLanes = howManyLanes;
+    hypothesisCurrentLanes = howManyLanes;
 
     /// Sorting lines
     vector <road_layout_estimation::msg_lineInfo> validAndSorted;
@@ -248,10 +248,10 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
         {
             if (validAndSorted.at(i).offset < 0)
             {
-                tentative(0)+=1;
+                tentative(0) += 1;
             }
             else
-                tentative(howManyLanes - 1)+=1;
+                tentative(howManyLanes - 1) += 1;
         }
     }
     if (tentative.sum() <= 0)
@@ -369,7 +369,7 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
 
     ///STATS
     ofstream myfile;
-    myfile.open ("/home/catta/lane.txt", ios::app);
+    myfile.open (SAVEPATH_SHORT, ios::app);
     myfile << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
            << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
            << sensor(0) << ";" << sensor(1) << ";" << sensor(2) << ";" << sensor(3) << ";"
@@ -382,21 +382,20 @@ void chatterCallback(const road_layout_estimation::msg_lines & msg_lines)
     myfile.close();
 
     ofstream myfile2;
-    myfile2.open ("/home/catta/lane-short.txt", ios::app);
+    myfile2.open (SAVEPATH_SHORT, ios::app);
     myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
-           << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
-           << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+            << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+            << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
     myfile2.close();
 
-        std_msgs::Bool msg;
-        msg.data=false;
-        chatter_pub->publish(msg);
+    std_msgs::Bool msg;
+    msg.data = false;
+    chatter_pub->publish(msg);
 
 }
 
 int main(int argc, char **argv)
 {
-
 
     ros::init(argc, argv, "lane");
     ros::NodeHandle n;
@@ -406,6 +405,14 @@ int main(int argc, char **argv)
         ros::console::notifyLoggerLevelsChanged();
     else
         std::cout << "Error while setting the logger level!" << std::endl;
+
+
+#if SYNCMODE==1
+    ROS_INFO_STREAM("Running " << ros::this_node::getName() << " with SYNCMODE on");
+#else
+    ROS_INFO_STREAM("Running " << ros::this_node::getName() << " with SYNCMODE off");
+#endif
+
 
     chatter_pub = new ros::Publisher;
     *chatter_pub = n.advertise<std_msgs::Bool>("/sync", 1);
