@@ -52,33 +52,8 @@ void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
 void setTestName(double sigma1, double P1, double P2, double sigma2 = -1.0f);
+void setupEnv();
 
-
-void setTestName(double sigma1, double P1, double P2, double sigma2)
-{
-    stringstream stream;
-    stream << fixed << setprecision(2) << sigma1;
-    string s1 = stream.str();
-    stream.str("");
-    stream.clear();
-    stream << fixed << setprecision(2) << P1;
-    string s2 = stream.str();
-    stream.str("");
-    stream.clear();
-    stream << fixed << setprecision(2) << P2;
-    string s3 = stream.str();
-    stream.str("");
-    stream.clear();
-    stream << fixed << setprecision(2) << sigma2;
-    string s4 = stream.str();
-    stream.str("");
-    stream.clear();
-
-    if (sigma2 < 0)
-        testname = s1 + "+" + s2 + "+" + s3;
-    else
-        testname = s1 + "+" + s4 + "+" + s2 + "+" + s3;
-}
 
 void makeTransitionMatrix(double sigma, double P1, double P2)
 {
@@ -154,7 +129,6 @@ void makeTransitionMatrix(double sigma, double P1, double P2)
 #endif
 
 }
-
 void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
 {
     // just for printing purposes
@@ -190,6 +164,7 @@ void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
 #ifdef VERBOSE_MODEL
     // print it (debug)
     cout << buildingTransition1.format(CleanFmt) << endl << endl;
+    cout << buildingTransition2.format(CleanFmt) << endl << endl;
 #endif
 
     // normalize each row using the sum. WARNING: here are the cols ...
@@ -240,7 +215,6 @@ void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
 #endif
 
 }
-
 inline double normalDistributionAt(double x, double mean, double sigma)
 {
     normal distribution(mean, sigma);
@@ -798,17 +772,6 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 }
 /// END
 
-void deletefiles()
-{
-    string file_1 = SAVEPATH + testname + ".txt";
-    string file_2 = SAVEPATH + testname + ".short.txt";
-    if ( remove(file_1.c_str()) != 0 )
-        ROS_ERROR_STREAM( "Error deleting file" );
-
-    if ( remove(file_2.c_str()) != 0 )
-        ROS_ERROR_STREAM( "Error deleting file" );
-}
-
 /// EVALUATION PART
 double evaluate()
 {
@@ -863,8 +826,8 @@ double evaluate()
 
     double fitness_gain = static_cast<double>(model_total - detector_total) / static_cast<double>(detector_total);
 
-    ROS_INFO_STREAM("Detector Total:\t" << detector_total << " accuracy " << static_cast<double>(detector_total) / static_cast<double>(total));
-    ROS_INFO_STREAM("Model Total:\t"    << model_total    << " accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
+    ROS_INFO_STREAM("Detector Total:\t" << detector_total << "/" << total << ", accuracy " << static_cast<double>(detector_total) / static_cast<double>(total));
+    ROS_INFO_STREAM("Model Total:\t"    << model_total    << "/" << total << ", accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
     ROS_INFO_STREAM("Model Gain: \t"    << fitness_gain);
 
     return fitness_gain;
@@ -873,9 +836,63 @@ double evaluate()
 
 /// END
 
+/// MISC FUNCTIONS
+void deletefiles()
+{
+    string file_1 = SAVEPATH + testname + ".txt";
+    string file_2 = SAVEPATH + testname + ".short.txt";
+    if ( remove(file_1.c_str()) != 0 )
+        ROS_ERROR_STREAM( "Error deleting file" );
+
+    if ( remove(file_2.c_str()) != 0 )
+        ROS_ERROR_STREAM( "Error deleting file" );
+}
+void setTestName(double sigma1, double P1, double P2, double sigma2)
+{
+    stringstream stream;
+    stream << fixed << setprecision(2) << sigma1;
+    string s1 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << P1;
+    string s2 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << P2;
+    string s3 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << sigma2;
+    string s4 = stream.str();
+    stream.str("");
+    stream.clear();
+
+    if (sigma2 < 0)
+        testname = s1 + "+" + s2 + "+" + s3;
+    else
+        testname = s1 + "+" + s4 + "+" + s2 + "+" + s3;
+}
+void setupEnv()
+{
+    howManyLanes = 4;
+
+#ifdef MAKETRANSITIONSMATRICES
+    ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
+    //makeTransitionMatrix(0.9f, 0.6f, 0.4f);
+    makeTransitionMatrixS2(0.72f, 0.22f, 0.9f, 0.2f);
+#else
+    ROS_INFO_STREAM("Transition Matrices HARDCODED");
+    setStateTransitionMatrix();
+#endif
+
+    resetMegavariabile(howManyLanes);
+    resetSensor(howManyLanes);
+}
+
+/// END
+
 int main(int argc, char **argv)
 {
-
     ros::init(argc, argv, "lane");
     ros::NodeHandle n;
 
@@ -885,27 +902,14 @@ int main(int argc, char **argv)
     //    std::cout << "Error while setting the logger level!" << std::endl;
 
 
-    howManyLanes = 4;
-#ifdef MAKETRANSITIONSMATRICES
-    ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
-    //makeTransitionMatrix(0.9f, 0.6f, 0.4f);
-    makeTransitionMatrix(0.72f, 0.9f, 0.2f);
-#else
-    ROS_INFO_STREAM("Transition Matrices HARDCODED");
-    setStateTransitionMatrix();
-#endif
-
-
-
-    resetMegavariabile(howManyLanes);
-    resetSensor(howManyLanes);
-
 #if SYNCMODE
+
     ROS_INFO_STREAM("Running " << ros::this_node::getName() << " in SYNCMOD");
     ros::Subscriber sub = n.subscribe("/isis_line_detector/lines", 1000, executeTest);
     sync_publisher = new ros::Publisher;
     *sync_publisher = n.advertise<std_msgs::Bool>("/sync", 1);
     ros::spin();
+
 #else
     ROS_INFO_STREAM("Running " << ros::this_node::getName() << " in BAGMODE");
     rosbag::Bag bag;
@@ -917,9 +921,9 @@ int main(int argc, char **argv)
     topics.push_back(std::string("/isis_line_detector/lines"));
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-
     for (int i = 2; i < 3; i++)
     {
+        setupEnv();
         plus_corsie_continue = i;
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
@@ -931,6 +935,7 @@ int main(int argc, char **argv)
             msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
             ROS_ASSERT(msg_lines != NULL);
 
+            // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
         }
         ROS_INFO_STREAM("Evaluating results");
@@ -941,5 +946,5 @@ int main(int argc, char **argv)
 #endif
 
 
-    return 0;
+    return 1;
 }
