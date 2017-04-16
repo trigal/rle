@@ -39,11 +39,12 @@ static ros::Publisher *sync_publisher ;
 bool isFalse(road_layout_estimation::msg_lineInfo a);
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b);
 double evaluate();
-void makeTransitionMatrix(double sigma, double P1, double P2);
 inline double normalDistributionAt(double x, double mean, double sigma);
 int lanesFromLines(int goodLines);
 void deletefiles();
 void executeTest(const road_layout_estimation::msg_lines & msg_lines);
+void makeTransitionMatrix(double sigma, double sigma2, double P1, double P2);
+void makeTransitionMatrixS2(double sigma, double P1, double P2);
 void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
@@ -95,6 +96,83 @@ void makeTransitionMatrix(double sigma, double P1, double P2)
 
     a2 = buildingTransition * P2;
     b2 = buildingTransition * (1.0f - P2);
+
+    // create the [ A1 | B1 ] and [ A2 | B2 ] as c1 and c2
+    Eigen::MatrixXd c1(a1.rows() + b1.rows(), +a1.cols());
+    Eigen::MatrixXd c2(a2.rows() + b2.rows(), +a2.cols());
+    c1 << a1, b1;
+    c2 << a2, b2;
+
+    // print it (debug)
+    cout << c1.transpose().format(CleanFmt) << endl << endl;
+    cout << c2.transpose().format(CleanFmt) << endl << endl;
+
+    // concatenate c1 and c2 into stateTransitionMatrix
+    stateTransitionMatrix << c1.transpose(), c2.transpose();
+
+    // print it (debug)
+    cout << stateTransitionMatrix.format(CleanFmt) << endl << endl;
+
+}
+
+void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
+{
+    // just for printing purposes
+    Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
+
+    // resize the final transition matrix
+    stateTransitionMatrix.resize(8, 8);
+
+    // create support matrices. populate a vector with the PDF normal values
+    Eigen::MatrixXd buildingTransition1,buildingTransition2, a1, b1, a2, b2;
+    vector<double> valuesForTransition1,valuesForTransition2;
+
+    buildingTransition1.resize(4, 4);
+    buildingTransition2.resize(4, 4);
+
+    for (int mean = 1; mean < 5; mean++)
+        for (int x = 1; x < 5; x++){
+            valuesForTransition1.push_back(normalDistributionAt(x, mean, sigma1));
+            valuesForTransition2.push_back(normalDistributionAt(x, mean, sigma2));
+        }
+
+    // push the values from the vector into the support matrix (eigen)
+    buildingTransition1 << valuesForTransition1[0], valuesForTransition1[1], valuesForTransition1[2], valuesForTransition1[3],
+                       valuesForTransition1[4], valuesForTransition1[5], valuesForTransition1[6], valuesForTransition1[7],
+                       valuesForTransition1[8], valuesForTransition1[9], valuesForTransition1[10], valuesForTransition1[11],
+                       valuesForTransition1[12], valuesForTransition1[13], valuesForTransition1[14], valuesForTransition1[15];
+
+    buildingTransition2 << valuesForTransition2[0],  valuesForTransition2 [1],  valuesForTransition2[2],  valuesForTransition2[3],
+                           valuesForTransition2[4],  valuesForTransition2 [5],  valuesForTransition2[6],  valuesForTransition2[7],
+                           valuesForTransition2[8],  valuesForTransition2 [9],  valuesForTransition2[10], valuesForTransition2[11],
+                           valuesForTransition2[12], valuesForTransition2 [13], valuesForTransition2[14], valuesForTransition2[15];
+
+    // print it (debug)
+    cout << buildingTransition1.format(CleanFmt) << endl << endl;
+
+    // normalize each row using the sum. WARNING: here are the cols ...
+    for (int i = 0; i < 4; i++){
+        buildingTransition1.col(i) /= buildingTransition1.col(i).sum();
+        buildingTransition2.col(i) /= buildingTransition2.col(i).sum();
+    }
+
+    // print it (debug)
+    cout << buildingTransition1.format(CleanFmt) << endl << endl;
+
+    // The final matrix will be like this. First create the 4 sub-matrices
+    // [    A1    |    B1    ]
+    // [    A2    |    B2    ]
+
+    // in the support matrix a1 and b1, multiply the normalized matrix by P1
+    a1 = buildingTransition1 * P1;
+    b1 = buildingTransition1 * (1.0f - P1);
+
+    // print it (debug)
+    //cout << a1.format(CleanFmt) << endl << endl;
+    //cout << b1.format(CleanFmt) << endl << endl;
+
+    a2 = buildingTransition2 * P2;
+    b2 = buildingTransition2 * (1.0f - P2);
 
     // create the [ A1 | B1 ] and [ A2 | B2 ] as c1 and c2
     Eigen::MatrixXd c1(a1.rows() + b1.rows(), +a1.cols());
@@ -749,7 +827,7 @@ double evaluate()
 int main(int argc, char **argv)
 {
 
-    makeTransitionMatrix(0.9f, 0.9f, 0.2f);
+    makeTransitionMatrixS2(0.9f, 0.9f, 0.9f, 0.2f);
     return 0;
 
     ros::init(argc, argv, "lane");
