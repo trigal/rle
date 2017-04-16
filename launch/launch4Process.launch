@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="road_layout_estimation" type="lane" name="t1" output="screen" args="1"/>
+	<node pkg="road_layout_estimation" type="lane" name="t2" output="screen" args="2"/>	
+	<node pkg="road_layout_estimation" type="lane" name="t3" output="screen" args="3"/>
+</launch>
