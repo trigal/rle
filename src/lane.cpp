@@ -679,7 +679,8 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     a.setZero(howManyLanes);
     b.setZero(howManyLanes);
     sensor_bad_state.setZero(howManyLanes);
-    double weight = 0.6;
+    //TODO:  PARAMETRIZZARE ANCHE QUESTO!!
+    double weight = 0.6; //                      Wright è la media tra lo stato precedente e quello che dice il sensore, nel caso di bad state
     /*double p1, p2, p3, p4;
     //p1 = (megavariabile(0) + megavariabile(2)) * weight;
     //p1 += 0.5 * (1 - weight);
@@ -827,7 +828,8 @@ double evaluate()
     ROS_INFO_STREAM("Model Total:\t"    << model_total    << "/" << total << ", accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
     ROS_INFO_STREAM("Model Gain: \t"    << fitness_gain);
 
-    return fitness_gain;
+//    return fitness_gain;
+    return static_cast<double>(model_total) / static_cast<double>(total);
 
 }
 
@@ -890,6 +892,65 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
 
 /// END
 
+void randomSearch(rosbag::View &view)
+{
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double>  gen_sigma1(0.0, 3.0);
+    std::uniform_real_distribution<double>  gen_sigma2(0.0, 3.0);
+    std::uniform_real_distribution<double>  gen_P1(0.0, 1.0);
+    std::uniform_real_distribution<double>  gen_P2(0.0, 1.0);
+    std::uniform_int_distribution<int>      gen_pluscorsie(0, 9);
+
+    double sigma1, sigma2, P1, P2;
+    int pluscorsie, lanes_number;
+    double fitness = 0.0;
+
+    while (ros::ok())
+    {
+        sigma1 = gen_sigma1(generator);
+        sigma2 = gen_sigma1(generator);
+        P1 = gen_P1(generator);
+        P2 = gen_P2(generator);
+        pluscorsie = gen_pluscorsie(generator);
+        lanes_number = 4;
+
+        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number);
+
+        unsigned int counter = 0;
+        foreach (rosbag::MessageInstance const messageInstance, view)
+        {
+            ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
+            ROS_DEBUG_STREAM("READ " << counter++);
+
+            road_layout_estimation::msg_lines::ConstPtr msg_lines;
+            msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
+            ROS_ASSERT(msg_lines != NULL);
+
+            // this will create the files needed in the evaluate() routine
+            executeTest(*msg_lines);
+        }
+        ROS_INFO_STREAM("Evaluating results");
+        double tmp_fitness=evaluate();
+
+        if (tmp_fitness > fitness)
+        {
+            fitness = tmp_fitness;
+            ROS_INFO_STREAM("NEW CONFIGURATION FOUND!");
+
+            // save configuration
+            ofstream myfile;
+            ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH << "RANDOMSEARCH.txt");
+            myfile.open (SAVEPATH "RANDOMSEARCH.txt", ios::app);
+            myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<endl;
+            myfile.close();
+        }
+
+
+        deletefiles();
+    }
+}
+
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "lane");
@@ -920,9 +981,13 @@ int main(int argc, char **argv)
     topics.push_back(std::string("/isis_line_detector/lines"));
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
+    randomSearch(view);
+
+    return 1;
+
     for (int i = 2; i < 3; i++)
     {
-        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i,4);
+        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
