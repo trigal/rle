@@ -4,6 +4,7 @@
 #include <eigen3/Eigen/Core>
 #include <fstream>
 #include <limits>
+#include <random>
 #include "road_layout_estimation/msg_lineInfo.h"
 #include "road_layout_estimation/msg_lines.h"
 #include <rosbag/bag.h>
@@ -15,11 +16,13 @@
 #include <string>
 #include <vector>
 
+#include <boost/math/distributions/normal.hpp>
 
 #define foreach BOOST_FOREACH
 // #define VERBOSE_MODEL
 
 using namespace std;
+using boost::math::normal;
 
 static Eigen::VectorXd sensor;
 static Eigen::ArrayXd megavariabile;
@@ -32,6 +35,18 @@ static int plus_corsie_continue = 2;
 static string testname;
 
 static ros::Publisher *sync_publisher ;
+
+Eigen::MatrixXd makeTransitionMatrix(double mean,double sigma,double P1,double P2)
+{
+
+
+}
+
+inline double normalDistributionAt(double x, double mean, double sigma)
+{
+    normal distribution(mean,sigma);
+    return pdf (distribution, x);
+}
 
 /// LANE ALGORITHM PART
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b)
@@ -584,33 +599,48 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 }
 /// END
 
+void deletefiles()
+{
+    string file_1 = SAVEPATH + testname + ".txt";
+    string file_2 = SAVEPATH + testname + ".short.txt";
+    if ( remove(file_1.c_str()) != 0 )
+        ROS_ERROR_STREAM( "Error deleting file" );
+
+    if ( remove(file_2.c_str()) != 0 )
+        ROS_ERROR_STREAM( "Error deleting file" );
+}
 
 /// EVALUATION PART
 double evaluate()
 {
 
-    string testfile_=SAVEPATH+testname+".short.txt";
-    string gtfile_=SAVEPATH GTFILE;
+    string testfile_ = SAVEPATH + testname + ".short.txt";
+    string gtfile_ = SAVEPATH GTFILE;
     io::CSVReader<11, io::trim_chars<>, io::no_quote_escape<';'> > testfile(testfile_);
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<';'> > gtfile(gtfile_);
 
     testfile.set_header("seq", "v1", "v2", "tentative1", "tentative2", "tentative3", "tentative4", "summarize1", "summarize2", "summarize3", "summarize4");
     gtfile.set_header("seq", "GT", "GTFLAG");
 
-    int testfile_seq,gtfile_seq;
-    int GT,GTFLAG;
+    int testfile_seq, gtfile_seq;
+    int GT, GTFLAG;
     double v1, v2;
     vector<double> tentative(4);
     vector<double> summarize(4);
 
 
     int total = 0;
-    int detector_total=0;
-    int model_total=0;
+    int detector_total = 0;
+    int model_total = 0;
 
     while (testfile.read_row(testfile_seq, v1, v2, tentative[0], tentative[1], tentative[2], tentative[3], summarize[0], summarize[1], summarize[2], summarize[3]))
     {
-        if (!gtfile.read_row(gtfile_seq,GT,GTFLAG)) {ROS_ERROR_STREAM("Wrong GT File");ROS_ASSERT(1);return -1;}
+        if (!gtfile.read_row(gtfile_seq, GT, GTFLAG))
+        {
+            ROS_ERROR_STREAM("Wrong GT File");
+            ROS_ASSERT(1);
+            return -1;
+        }
 
         auto tentative_biggest = std::max_element(std::begin(tentative), std::end(tentative));
         auto tentative_unique = std::count (std::begin(tentative), std::end(tentative), *tentative_biggest);
@@ -632,10 +662,10 @@ double evaluate()
         total++;
     }
 
-    double fitness_gain = static_cast<double>(model_total - detector_total)/static_cast<double>(detector_total);
+    double fitness_gain = static_cast<double>(model_total - detector_total) / static_cast<double>(detector_total);
 
-    ROS_INFO_STREAM("Detector Total:\t" << detector_total << " accuracy " << static_cast<double>(detector_total)/static_cast<double>(total));
-    ROS_INFO_STREAM("Model Total:\t"    << model_total    << " accuracy " << static_cast<double>(model_total   )/static_cast<double>(total));
+    ROS_INFO_STREAM("Detector Total:\t" << detector_total << " accuracy " << static_cast<double>(detector_total) / static_cast<double>(total));
+    ROS_INFO_STREAM("Model Total:\t"    << model_total    << " accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
     ROS_INFO_STREAM("Model Gain: \t"    << fitness_gain);
 
     return fitness_gain;
@@ -646,6 +676,55 @@ double evaluate()
 
 int main(int argc, char **argv)
 {
+
+    stateTransitionMatrix.resize(8, 8);
+    //stateTransitionMatrix <<
+    //cout << normalDistributionAt(1.0f,1.0f,0.9f);
+
+    Eigen::MatrixXd buildingTransition,a1,b1,a2,b2;
+    vector<double> values;
+    buildingTransition.resize(4,4);
+    for (int mean=1;mean<5;mean++){
+        for (int x=1;x<5;x++)
+            values.push_back(normalDistributionAt(x,mean,0.9f));
+    }
+
+    buildingTransition << values[0], values[1], values[2], values[3],
+                          values[4], values[5], values[6], values[7],
+                          values[8], values[9], values[10], values[11],
+                          values[12], values[13], values[14], values[15];
+
+    Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
+    cout << buildingTransition.format(CleanFmt) << endl << endl;
+    for (int i=0;i<4;i++)
+        buildingTransition.col(i)/=buildingTransition.col(i).sum();
+    cout << buildingTransition.format(CleanFmt) << endl << endl;
+
+    double transitionFirstP1 = 0.9f;
+    double transitionFirstP2 = 0.2f;
+
+    a1 = buildingTransition * transitionFirstP1;
+    cout << a1.format(CleanFmt) << endl << endl;
+    b1 = buildingTransition * (1.0f-transitionFirstP1);
+    cout << b1.format(CleanFmt) << endl << endl;
+
+    a2 = buildingTransition * transitionFirstP2;
+    b2 = buildingTransition * (1.0f-transitionFirstP2);
+
+    //Eigen::MatrixXd c1(a1.rows(), a1.cols()+b1.cols());
+    //Eigen::MatrixXd c2(a2.rows(), a2.cols()+b2.cols());
+    Eigen::MatrixXd c1(a1.rows()+b1.rows(),+a1.cols());
+    Eigen::MatrixXd c2(a2.rows()+b2.rows(),+a2.cols());
+    c1 << a1,b1;
+    c2 << a2,b2;
+
+    cout << c1.transpose().format(CleanFmt) << endl << endl;
+    cout << c2.transpose().format(CleanFmt) << endl << endl;
+
+    stateTransitionMatrix << c1.transpose(),c2.transpose();
+    cout << stateTransitionMatrix.format(CleanFmt) << endl << endl;
+
+    return 0;
 
     ros::init(argc, argv, "lane");
     ros::NodeHandle n;
@@ -679,21 +758,25 @@ int main(int argc, char **argv)
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
 
-    unsigned int counter = 0;
-    foreach (rosbag::MessageInstance const messageInstance, view)
-    {        
-        ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
-        ROS_DEBUG_STREAM("READ " << counter++);
+    for (int i = 0; i < 10; i++)
+    {
+        plus_corsie_continue = i;
+        unsigned int counter = 0;
+        foreach (rosbag::MessageInstance const messageInstance, view)
+        {
+            ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
+            ROS_DEBUG_STREAM("READ " << counter++);
 
-        road_layout_estimation::msg_lines::ConstPtr msg_lines;
-        msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
-        ROS_ASSERT(msg_lines != NULL);
+            road_layout_estimation::msg_lines::ConstPtr msg_lines;
+            msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
+            ROS_ASSERT(msg_lines != NULL);
 
-        executeTest(*msg_lines);
+            executeTest(*msg_lines);
+        }
+        ROS_INFO_STREAM("Evaluating results");
+        evaluate();
+        deletefiles();
     }
-
-    ROS_INFO_STREAM("Evaluating results");
-    evaluate();
 
 #endif
 
