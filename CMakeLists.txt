@@ -3,7 +3,6 @@ project(road_layout_estimation)
 
 #RelWithDebInfo
 SET (CMAKE_BUILD_TYPE Debug)
-SET (ROS_BUILD_TYPE Debug)
 SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++11")
 
 find_package(catkin REQUIRED COMPONENTS     roscpp
@@ -24,7 +23,8 @@ add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
 add_definitions(-DEXEC_TEST=12) #test number for transition matrix
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
-add_definitions(-DSAVEPATH="/home/ballardini/lane.txt") #path for output
+add_definitions(-DSAVEPATH="/home/ballardini/") #path for output
+add_definitions(-DGTFILE="GT-A4-5_1.txt")
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
