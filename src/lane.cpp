@@ -3,6 +3,7 @@
 #include <csv.h>
 #include <eigen3/Eigen/Core>
 #include <fstream>
+#include <iomanip> // setprecision
 #include <limits>
 #include <random>
 #include "road_layout_estimation/msg_lineInfo.h"
@@ -11,10 +12,12 @@
 #include <rosbag/view.h>
 #include <ros/console.h>
 #include "ros/ros.h"
+#include <sstream> // stringstream
 #include <stdio.h>
 #include <std_msgs/Bool.h>
 #include <string>
 #include <vector>
+
 
 #include <boost/math/distributions/normal.hpp>
 
@@ -48,10 +51,39 @@ void makeTransitionMatrixS2(double sigma, double P1, double P2);
 void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
+void setTestName(double sigma1, double P1, double P2, double sigma2 = -1.0f);
 
+
+void setTestName(double sigma1, double P1, double P2, double sigma2)
+{
+    stringstream stream;
+    stream << fixed << setprecision(2) << sigma1;
+    string s1 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << P1;
+    string s2 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << P2;
+    string s3 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(2) << sigma2;
+    string s4 = stream.str();
+    stream.str("");
+    stream.clear();
+
+    if (sigma2 < 0)
+        testname = s1 + "+" + s2 + "+" + s3;
+    else
+        testname = s1 + "+" + s4 + "+" + s2 + "+" + s3;
+}
 
 void makeTransitionMatrix(double sigma, double P1, double P2)
 {
+    setTestName(sigma, P1, P2);
+
     // just for printing purposes
     Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
 
@@ -73,14 +105,18 @@ void makeTransitionMatrix(double sigma, double P1, double P2)
                        values[12], values[13], values[14], values[15];
 
     // print it (debug)
+#ifdef VERBOSE_MODEL
     cout << buildingTransition.format(CleanFmt) << endl << endl;
+#endif
 
     // normalize each row using the sum. WARNING: here are the cols ...
     for (int i = 0; i < 4; i++)
         buildingTransition.col(i) /= buildingTransition.col(i).sum();
 
     // print it (debug)
+#ifdef VERBOSE_MODEL
     cout << buildingTransition.format(CleanFmt) << endl << endl;
+#endif
 
     // The final matrix will be like this. First create the 4 sub-matrices
     // [    A1    |    B1    ]
@@ -103,15 +139,19 @@ void makeTransitionMatrix(double sigma, double P1, double P2)
     c1 << a1, b1;
     c2 << a2, b2;
 
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << c1.transpose().format(CleanFmt) << endl << endl;
     cout << c2.transpose().format(CleanFmt) << endl << endl;
+#endif
 
     // concatenate c1 and c2 into stateTransitionMatrix
     stateTransitionMatrix << c1.transpose(), c2.transpose();
 
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << stateTransitionMatrix.format(CleanFmt) << endl << endl;
+#endif
 
 }
 
@@ -124,40 +164,45 @@ void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
     stateTransitionMatrix.resize(8, 8);
 
     // create support matrices. populate a vector with the PDF normal values
-    Eigen::MatrixXd buildingTransition1,buildingTransition2, a1, b1, a2, b2;
-    vector<double> valuesForTransition1,valuesForTransition2;
+    Eigen::MatrixXd buildingTransition1, buildingTransition2, a1, b1, a2, b2;
+    vector<double> valuesForTransition1, valuesForTransition2;
 
     buildingTransition1.resize(4, 4);
     buildingTransition2.resize(4, 4);
 
     for (int mean = 1; mean < 5; mean++)
-        for (int x = 1; x < 5; x++){
+        for (int x = 1; x < 5; x++)
+        {
             valuesForTransition1.push_back(normalDistributionAt(x, mean, sigma1));
             valuesForTransition2.push_back(normalDistributionAt(x, mean, sigma2));
         }
 
     // push the values from the vector into the support matrix (eigen)
     buildingTransition1 << valuesForTransition1[0], valuesForTransition1[1], valuesForTransition1[2], valuesForTransition1[3],
-                       valuesForTransition1[4], valuesForTransition1[5], valuesForTransition1[6], valuesForTransition1[7],
-                       valuesForTransition1[8], valuesForTransition1[9], valuesForTransition1[10], valuesForTransition1[11],
-                       valuesForTransition1[12], valuesForTransition1[13], valuesForTransition1[14], valuesForTransition1[15];
+                        valuesForTransition1[4], valuesForTransition1[5], valuesForTransition1[6], valuesForTransition1[7],
+                        valuesForTransition1[8], valuesForTransition1[9], valuesForTransition1[10], valuesForTransition1[11],
+                        valuesForTransition1[12], valuesForTransition1[13], valuesForTransition1[14], valuesForTransition1[15];
 
     buildingTransition2 << valuesForTransition2[0],  valuesForTransition2 [1],  valuesForTransition2[2],  valuesForTransition2[3],
-                           valuesForTransition2[4],  valuesForTransition2 [5],  valuesForTransition2[6],  valuesForTransition2[7],
-                           valuesForTransition2[8],  valuesForTransition2 [9],  valuesForTransition2[10], valuesForTransition2[11],
-                           valuesForTransition2[12], valuesForTransition2 [13], valuesForTransition2[14], valuesForTransition2[15];
-
+                        valuesForTransition2[4],  valuesForTransition2 [5],  valuesForTransition2[6],  valuesForTransition2[7],
+                        valuesForTransition2[8],  valuesForTransition2 [9],  valuesForTransition2[10], valuesForTransition2[11],
+                        valuesForTransition2[12], valuesForTransition2 [13], valuesForTransition2[14], valuesForTransition2[15];
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << buildingTransition1.format(CleanFmt) << endl << endl;
+#endif
 
     // normalize each row using the sum. WARNING: here are the cols ...
-    for (int i = 0; i < 4; i++){
+    for (int i = 0; i < 4; i++)
+    {
         buildingTransition1.col(i) /= buildingTransition1.col(i).sum();
         buildingTransition2.col(i) /= buildingTransition2.col(i).sum();
     }
 
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << buildingTransition1.format(CleanFmt) << endl << endl;
+#endif
 
     // The final matrix will be like this. First create the 4 sub-matrices
     // [    A1    |    B1    ]
@@ -180,15 +225,19 @@ void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
     c1 << a1, b1;
     c2 << a2, b2;
 
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << c1.transpose().format(CleanFmt) << endl << endl;
     cout << c2.transpose().format(CleanFmt) << endl << endl;
+#endif
 
     // concatenate c1 and c2 into stateTransitionMatrix
     stateTransitionMatrix << c1.transpose(), c2.transpose();
 
+#ifdef VERBOSE_MODEL
     // print it (debug)
     cout << stateTransitionMatrix.format(CleanFmt) << endl << endl;
+#endif
 
 }
 
@@ -827,9 +876,6 @@ double evaluate()
 int main(int argc, char **argv)
 {
 
-    makeTransitionMatrixS2(0.9f, 0.9f, 0.9f, 0.2f);
-    return 0;
-
     ros::init(argc, argv, "lane");
     ros::NodeHandle n;
 
@@ -840,7 +886,17 @@ int main(int argc, char **argv)
 
 
     howManyLanes = 4;
+#ifdef MAKETRANSITIONSMATRICES
+    ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
+    //makeTransitionMatrix(0.9f, 0.6f, 0.4f);
+    makeTransitionMatrix(0.72f, 0.9f, 0.2f);
+#else
+    ROS_INFO_STREAM("Transition Matrices HARDCODED");
     setStateTransitionMatrix();
+#endif
+
+
+
     resetMegavariabile(howManyLanes);
     resetSensor(howManyLanes);
 
@@ -862,7 +918,7 @@ int main(int argc, char **argv)
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 2; i < 3; i++)
     {
         plus_corsie_continue = i;
         unsigned int counter = 0;

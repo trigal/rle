@@ -21,7 +21,8 @@ include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
-add_definitions(-DEXEC_TEST=12) #test number for transition matrix
+add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (Excel trans matrices)
+#add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
 add_definitions(-DSAVEPATH="/home/ballardini/") #path for output
 add_definitions(-DGTFILE="GT-A4-5_1.txt")
