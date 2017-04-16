@@ -589,10 +589,10 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 double evaluate()
 {
 
-    string testfile_=SAVEPATH+testname+".txt";
+    string testfile_=SAVEPATH+testname+".short.txt";
     string gtfile_=SAVEPATH GTFILE;
-    io::CSVReader<11, io::trim_chars<>, io::no_quote_escape<';'> > testfile("/home/ballardini/0.9+0604.short.txt");
-    io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<';'> > gtfile("/home/ballardini/GT-A4-5_1.txt");
+    io::CSVReader<11, io::trim_chars<>, io::no_quote_escape<';'> > testfile(testfile_);
+    io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<';'> > gtfile(gtfile_);
 
     testfile.set_header("seq", "v1", "v2", "tentative1", "tentative2", "tentative3", "tentative4", "summarize1", "summarize2", "summarize3", "summarize4");
     gtfile.set_header("seq", "GT", "GTFLAG");
@@ -671,7 +671,7 @@ int main(int argc, char **argv)
     ROS_INFO_STREAM("Running " << ros::this_node::getName() << " in BAGMODE");
     rosbag::Bag bag;
     ROS_INFO_STREAM("Opening bagfile...");
-    bag.open("/home/ballardini/catkin_ws/src/road_layout_estimation/bag/A4-5_1_msglines.bag", rosbag::bagmode::Read);
+    bag.open(BAGFILE, rosbag::bagmode::Read);
     ROS_INFO_STREAM("Opened, OK!");
 
     std::vector<std::string> topics;
