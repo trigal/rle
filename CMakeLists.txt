@@ -61,9 +61,7 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-add_executable(lane
-        src/lane.cpp
-)
+add_executable(lane src/lane.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

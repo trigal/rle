@@ -17,13 +17,10 @@
 #include <std_msgs/Bool.h>
 #include <string>
 #include <vector>
-
-
 #include <boost/math/distributions/normal.hpp>
 
 #define foreach BOOST_FOREACH
 // #define VERBOSE_MODEL
-
 using namespace std;
 using boost::math::normal;
 
@@ -52,7 +49,7 @@ void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
 void setTestName(double sigma1, double P1, double P2, double sigma2 = -1.0f);
-void setupEnv();
+void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number);
 
 
 void makeTransitionMatrix(double sigma, double P1, double P2)
@@ -772,7 +769,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 }
 /// END
 
-/// EVALUATION PART
+/// EVALUATION PART (returns fitnessgain)
 double evaluate()
 {
 
@@ -847,6 +844,7 @@ void deletefiles()
     if ( remove(file_2.c_str()) != 0 )
         ROS_ERROR_STREAM( "Error deleting file" );
 }
+
 void setTestName(double sigma1, double P1, double P2, double sigma2)
 {
     stringstream stream;
@@ -872,14 +870,15 @@ void setTestName(double sigma1, double P1, double P2, double sigma2)
     else
         testname = s1 + "+" + s4 + "+" + s2 + "+" + s3;
 }
-void setupEnv()
+
+void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number)
 {
-    howManyLanes = 4;
+    howManyLanes = lanes_number;
+    plus_corsie_continue = pluscorsie;
 
 #ifdef MAKETRANSITIONSMATRICES
     ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
-    //makeTransitionMatrix(0.9f, 0.6f, 0.4f);
-    makeTransitionMatrixS2(0.72f, 0.22f, 0.9f, 0.2f);
+    makeTransitionMatrixS2(sigma1, sigma2, P1, P2);
 #else
     ROS_INFO_STREAM("Transition Matrices HARDCODED");
     setStateTransitionMatrix();
@@ -923,8 +922,8 @@ int main(int argc, char **argv)
 
     for (int i = 2; i < 3; i++)
     {
-        setupEnv();
-        plus_corsie_continue = i;
+        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i,4);
+
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
