@@ -24,6 +24,8 @@
 using namespace std;
 using boost::math::normal;
 
+string multiprocess;
+
 static Eigen::VectorXd sensor;
 static Eigen::ArrayXd megavariabile;
 static Eigen::MatrixXd stateTransitionMatrix;
@@ -788,7 +790,6 @@ double evaluate()
     vector<double> tentative(4);
     vector<double> summarize(4);
 
-
     int total = 0;
     int detector_total = 0;
     int model_total = 0;
@@ -940,7 +941,7 @@ void randomSearch(rosbag::View &view)
             // save configuration
             ofstream myfile;
             ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH << "RANDOMSEARCH.txt");
-            myfile.open (SAVEPATH "RANDOMSEARCH.txt", ios::app);
+            myfile.open (SAVEPATH "RANDOMSEARCH."+multiprocess+".txt", ios::app);
             myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<endl;
             myfile.close();
         }
@@ -960,6 +961,11 @@ int main(int argc, char **argv)
     //    ros::console::notifyLoggerLevelsChanged();
     //else
     //    std::cout << "Error while setting the logger level!" << std::endl;
+
+    if (argc==2){
+        multiprocess=argv[1];
+        cout << multiprocess << endl;
+    }
 
 
 #if SYNCMODE
