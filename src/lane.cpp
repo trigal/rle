@@ -877,6 +877,8 @@ void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2)
         testname = s5 + "+" + s1 + "+" + s2 + "+" + s3;
     else
         testname = s5 + "+" + s1 + "+" + s4 + "+" + s2 + "+" + s3;
+
+    ROS_INFO_STREAM("Multiprocess: " << multiprocess << "\tTESTNAME: "  << testname);
 }
 
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number)
@@ -902,7 +904,7 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
 
 void randomSearch(rosbag::View &view)
 {
-    std::default_random_engine generator;
+    std::default_random_engine generator(std::random_device{}());
     std::uniform_real_distribution<double>  gen_sigma1(0.0, 3.0);
     std::uniform_real_distribution<double>  gen_sigma2(0.0, 3.0);
     std::uniform_real_distribution<double>  gen_P1(0.0, 1.0);
@@ -1007,8 +1009,8 @@ int main(int argc, char **argv)
     topics.push_back(std::string("/isis_line_detector/lines"));
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-    //randomSearch(view);
-    //return 1;
+    randomSearch(view);
+    return 1;
 
     for (int i = 1; i <= 4; i++)
     {
