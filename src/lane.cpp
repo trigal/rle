@@ -956,7 +956,7 @@ void randomSearch(rosbag::View &view)
             ofstream myfile;
             ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH << "RANDOMSEARCH.txt");
             myfile.open (SAVEPATH "RANDOMSEARCH."+multiprocess+".txt", ios::app);
-            myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<endl;
+            myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<";"<<ave_weight<<endl;
             myfile.close();
 
             ROS_WARN_STREAM("TESTING CONFIG:\t" <<sigma1<<";"<<  sigma2<<";"<<  P1<<";"<<  P2<<";"<<  pluscorsie<<";"<< lanes_number);
