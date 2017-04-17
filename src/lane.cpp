@@ -48,14 +48,12 @@ void makeTransitionMatrixS2(double sigma, double P1, double P2);
 void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
-void setTestName(double sigma1, double P1, double P2, double sigma2 = -1.0f);
+void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f);
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number);
 
 
 void makeTransitionMatrix(double sigma, double P1, double P2)
 {
-    setTestName(sigma, P1, P2);
-
     // just for printing purposes
     Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
 
@@ -797,8 +795,9 @@ double evaluate()
     {
         if (!gtfile.read_row(gtfile_seq, GT, GTFLAG))
         {
+            deletefiles();
             ROS_ERROR_STREAM("Wrong GT File");
-            ROS_ASSERT(1);
+            ROS_ASSERT(0);
             return -1;
         }
 
@@ -828,6 +827,7 @@ double evaluate()
     ROS_INFO_STREAM("Model Total:\t"    << model_total    << "/" << total << ", accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
     ROS_INFO_STREAM("Model Gain: \t"    << fitness_gain);
 
+    deletefiles();
 //    return fitness_gain;
     return static_cast<double>(model_total) / static_cast<double>(total);
 
@@ -847,7 +847,7 @@ void deletefiles()
         ROS_ERROR_STREAM( "Error deleting file" );
 }
 
-void setTestName(double sigma1, double P1, double P2, double sigma2)
+void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2)
 {
     stringstream stream;
     stream << fixed << setprecision(2) << sigma1;
@@ -866,17 +866,23 @@ void setTestName(double sigma1, double P1, double P2, double sigma2)
     string s4 = stream.str();
     stream.str("");
     stream.clear();
+    stream << fixed << setprecision(2) << lanes;
+    string s5 = stream.str();
+    stream.str("");
+    stream.clear();
 
     if (sigma2 < 0)
-        testname = s1 + "+" + s2 + "+" + s3;
+        testname = s5 + "+" + s1 + "+" + s2 + "+" + s3;
     else
-        testname = s1 + "+" + s4 + "+" + s2 + "+" + s3;
+        testname = s5 + "+" + s1 + "+" + s4 + "+" + s2 + "+" + s3;
 }
 
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number)
 {
     howManyLanes = lanes_number;
     plus_corsie_continue = pluscorsie;
+
+    setTestName(lanes_number,sigma1, P1, P2, sigma2);
 
 #ifdef MAKETRANSITIONSMATRICES
     ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
@@ -929,6 +935,7 @@ void randomSearch(rosbag::View &view)
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
         }
+
         ROS_INFO_STREAM("Evaluating results");
         double tmp_fitness=evaluate();
 
@@ -943,10 +950,22 @@ void randomSearch(rosbag::View &view)
             myfile.open (SAVEPATH "RANDOMSEARCH.txt", ios::app);
             myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<endl;
             myfile.close();
+
+            ROS_WARN_STREAM("TESTING CONFIG:\t" <<sigma1<<";"<<  sigma2<<";"<<  P1<<";"<<  P2<<";"<<  pluscorsie<<";"<< lanes_number);
+            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number);
+            foreach (rosbag::MessageInstance const messageInstance, view)
+            {
+                road_layout_estimation::msg_lines::ConstPtr msg_lines;
+                msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
+                ROS_ASSERT(msg_lines != NULL);
+                executeTest(*msg_lines);
+            }
+            double check_fitness=evaluate();
+            ROS_WARN_STREAM("fitness 1:\t" << fitness);
+            ROS_WARN_STREAM("fitness 2:\t" << check_fitness);
+
+
         }
-
-
-        deletefiles();
     }
 }
 
@@ -982,13 +1001,11 @@ int main(int argc, char **argv)
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
     randomSearch(view);
-
     return 1;
 
-    for (int i = 2; i < 3; i++)
+    for (int i = 1; i <= 4; i++)
     {
-        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
-
+        //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
@@ -1004,7 +1021,6 @@ int main(int argc, char **argv)
         }
         ROS_INFO_STREAM("Evaluating results");
         evaluate();
-        deletefiles();
     }
 
 #endif
