@@ -2,4 +2,48 @@
 	<node pkg="road_layout_estimation" type="lane" name="t1" output="screen" args="1"/>
 	<node pkg="road_layout_estimation" type="lane" name="t2" output="screen" args="2"/>	
 	<node pkg="road_layout_estimation" type="lane" name="t3" output="screen" args="3"/>
+	<node pkg="road_layout_estimation" type="lane" name="t4" output="screen" args="4"/>
+	<node pkg="road_layout_estimation" type="lane" name="t5" output="screen" args="5"/>
+	<node pkg="road_layout_estimation" type="lane" name="t6" output="screen" args="6"/>
+	<node pkg="road_layout_estimation" type="lane" name="t7" output="screen" args="7"/>
+	<node pkg="road_layout_estimation" type="lane" name="t8" output="screen" args="8"/>
+	<node pkg="road_layout_estimation" type="lane" name="t9" output="screen" args="9"/>
+	<node pkg="road_layout_estimation" type="lane" name="t10" output="screen" args="10"/>
+	<node pkg="road_layout_estimation" type="lane" name="t11" output="screen" args="11"/>
+	<node pkg="road_layout_estimation" type="lane" name="t12" output="screen" args="12"/>
+	<node pkg="road_layout_estimation" type="lane" name="t13" output="screen" args="13"/>
+	<node pkg="road_layout_estimation" type="lane" name="t14" output="screen" args="14"/>
+	<node pkg="road_layout_estimation" type="lane" name="t15" output="screen" args="15"/>
+	<node pkg="road_layout_estimation" type="lane" name="t16" output="screen" args="16"/>
+	<node pkg="road_layout_estimation" type="lane" name="t17" output="screen" args="17"/>
+	<node pkg="road_layout_estimation" type="lane" name="t18" output="screen" args="18"/>
+	<node pkg="road_layout_estimation" type="lane" name="t19" output="screen" args="19"/>
+	<node pkg="road_layout_estimation" type="lane" name="t20" output="screen" args="20"/>
+	<node pkg="road_layout_estimation" type="lane" name="t21" output="screen" args="21"/>
+	<node pkg="road_layout_estimation" type="lane" name="t22" output="screen" args="22"/>
+	<node pkg="road_layout_estimation" type="lane" name="t23" output="screen" args="23"/>
+	<node pkg="road_layout_estimation" type="lane" name="t24" output="screen" args="24"/>
+	<node pkg="road_layout_estimation" type="lane" name="t25" output="screen" args="25"/>
+	<node pkg="road_layout_estimation" type="lane" name="t26" output="screen" args="26"/>
+	<node pkg="road_layout_estimation" type="lane" name="t27" output="screen" args="27"/>
+	<node pkg="road_layout_estimation" type="lane" name="t28" output="screen" args="28"/>
+	<node pkg="road_layout_estimation" type="lane" name="t29" output="screen" args="29"/>
+	<node pkg="road_layout_estimation" type="lane" name="t30" output="screen" args="30"/>
+	<node pkg="road_layout_estimation" type="lane" name="t31" output="screen" args="31"/>
+	<node pkg="road_layout_estimation" type="lane" name="t32" output="screen" args="32"/>
+	<node pkg="road_layout_estimation" type="lane" name="t33" output="screen" args="33"/>
+	<node pkg="road_layout_estimation" type="lane" name="t34" output="screen" args="34"/>
+	<node pkg="road_layout_estimation" type="lane" name="t35" output="screen" args="35"/>
+	<node pkg="road_layout_estimation" type="lane" name="t36" output="screen" args="36"/>
+	<node pkg="road_layout_estimation" type="lane" name="t37" output="screen" args="37"/>
+	<node pkg="road_layout_estimation" type="lane" name="t38" output="screen" args="38"/>
+	<node pkg="road_layout_estimation" type="lane" name="t39" output="screen" args="39"/>
+	<node pkg="road_layout_estimation" type="lane" name="t40" output="screen" args="40"/>
+	<node pkg="road_layout_estimation" type="lane" name="t41" output="screen" args="41"/>
+	<node pkg="road_layout_estimation" type="lane" name="t42" output="screen" args="42"/>
+	<node pkg="road_layout_estimation" type="lane" name="t43" output="screen" args="43"/>
+	<node pkg="road_layout_estimation" type="lane" name="t44" output="screen" args="44"/>
+	<node pkg="road_layout_estimation" type="lane" name="t45" output="screen" args="45"/>
+	<node pkg="road_layout_estimation" type="lane" name="t46" output="screen" args="46"/>
+	<node pkg="road_layout_estimation" type="lane" name="t47" output="screen" args="47"/>
 </launch>
