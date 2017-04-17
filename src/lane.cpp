@@ -35,6 +35,7 @@ static double standardLaneWidth = 3.5f;    // maybe minLaneWidth
 static int MAX_COUNT = 10;
 static int plus_corsie_continue = 2;
 static string testname;
+static double average_weight = 0.6;        //media tra stato precedente e quello che dice il sensore, nel caso di bad state
 
 static ros::Publisher *sync_publisher ;
 
@@ -51,10 +52,10 @@ void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
 void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f);
-void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number);
+void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight);
 
 
-void makeTransitionMatrix(double sigma, double P1, double P2)
+ROS_DEPRECATED void makeTransitionMatrix(double sigma, double P1, double P2)
 {
     // just for printing purposes
     Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
@@ -680,7 +681,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     b.setZero(howManyLanes);
     sensor_bad_state.setZero(howManyLanes);
     //TODO:  PARAMETRIZZARE ANCHE QUESTO!!
-    double weight = 0.6; //                      Wright è la media tra lo stato precedente e quello che dice il sensore, nel caso di bad state
+    double weight = average_weight; //0.6; //                      Wright è la media tra lo stato precedente e quello che dice il sensore, nel caso di bad state
     /*double p1, p2, p3, p4;
     //p1 = (megavariabile(0) + megavariabile(2)) * weight;
     //p1 += 0.5 * (1 - weight);
@@ -881,10 +882,11 @@ void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2)
     ROS_INFO_STREAM("Multiprocess: " << multiprocess << "\tTESTNAME: "  << testname);
 }
 
-void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number)
+void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight)
 {
     howManyLanes = lanes_number;
     plus_corsie_continue = pluscorsie;
+    average_weight = av_weight;
 
     setTestName(lanes_number,sigma1, P1, P2, sigma2);
 
@@ -910,8 +912,9 @@ void randomSearch(rosbag::View &view)
     std::uniform_real_distribution<double>  gen_P1(0.0, 1.0);
     std::uniform_real_distribution<double>  gen_P2(0.0, 1.0);
     std::uniform_int_distribution<int>      gen_pluscorsie(0, 9);
+    std::uniform_real_distribution<double>  gen_ave_weight(0.0, 1.0);
 
-    double sigma1, sigma2, P1, P2;
+    double sigma1, sigma2, P1, P2, ave_weight;
     int pluscorsie, lanes_number;
     double fitness = 0.0;
 
@@ -923,8 +926,9 @@ void randomSearch(rosbag::View &view)
         P2 = gen_P2(generator);
         pluscorsie = gen_pluscorsie(generator);
         lanes_number = 4;
+        ave_weight = gen_ave_weight(generator);
 
-        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number);
+        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number,ave_weight);
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
@@ -956,7 +960,7 @@ void randomSearch(rosbag::View &view)
             myfile.close();
 
             ROS_WARN_STREAM("TESTING CONFIG:\t" <<sigma1<<";"<<  sigma2<<";"<<  P1<<";"<<  P2<<";"<<  pluscorsie<<";"<< lanes_number);
-            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number);
+            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number,ave_weight);
             foreach (rosbag::MessageInstance const messageInstance, view)
             {
                 road_layout_estimation::msg_lines::ConstPtr msg_lines;
@@ -1016,7 +1020,7 @@ int main(int argc, char **argv)
     {
         //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
         //setupEnv(0.116786,0.391961,0.0455318,0.161657,9,4);
-        setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4);
+        setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4,0.6);
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
