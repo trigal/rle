@@ -849,24 +849,25 @@ void deletefiles()
 
 void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2)
 {
+    int precision_naming=8;
     stringstream stream;
-    stream << fixed << setprecision(2) << sigma1;
+    stream << fixed << setprecision(precision_naming) << sigma1;
     string s1 = stream.str();
     stream.str("");
     stream.clear();
-    stream << fixed << setprecision(2) << P1;
+    stream << fixed << setprecision(precision_naming) << P1;
     string s2 = stream.str();
     stream.str("");
     stream.clear();
-    stream << fixed << setprecision(2) << P2;
+    stream << fixed << setprecision(precision_naming) << P2;
     string s3 = stream.str();
     stream.str("");
     stream.clear();
-    stream << fixed << setprecision(2) << sigma2;
+    stream << fixed << setprecision(precision_naming) << sigma2;
     string s4 = stream.str();
     stream.str("");
     stream.clear();
-    stream << fixed << setprecision(2) << lanes;
+    stream << fixed << setprecision(precision_naming) << lanes;
     string s5 = stream.str();
     stream.str("");
     stream.clear();
@@ -1000,12 +1001,15 @@ int main(int argc, char **argv)
     topics.push_back(std::string("/isis_line_detector/lines"));
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-    randomSearch(view);
-    return 1;
+    //randomSearch(view);
+    //return 1;
 
     for (int i = 1; i <= 4; i++)
     {
         //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
+        //setupEnv(0.116786,0.391961,0.0455318,0.161657,9,4);
+        setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4);
+
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
