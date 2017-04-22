@@ -41,7 +41,7 @@ static ros::Publisher *sync_publisher ;
 
 bool isFalse(road_layout_estimation::msg_lineInfo a);
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b);
-double evaluate();
+double evaluate(bool deletefiles_ = true);
 inline double normalDistributionAt(double x, double mean, double sigma);
 int lanesFromLines(int goodLines);
 void deletefiles();
@@ -53,6 +53,7 @@ void resetSensor(int lanes);
 void setStateTransitionMatrix();
 void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f, double weight = 0.6f);
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight);
+void oneShot(rosbag::View &view);
 
 
 ROS_DEPRECATED void makeTransitionMatrix(double sigma, double P1, double P2)
@@ -772,7 +773,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 /// END
 
 /// EVALUATION PART (returns fitnessgain)
-double evaluate()
+double evaluate(bool deletefiles_)
 {
     string testfile_ = SAVEPATH + testname + ".short.txt";
     string gtfile_ = SAVEPATH GTFILE;
@@ -842,15 +843,18 @@ double evaluate()
         total++;
     }
 
+    double detector_accuracy = static_cast<double>(detector_total) / static_cast<double>(total);
+    double model_accuracy = static_cast<double>(model_total   ) / static_cast<double>(total);
     double fitness_gain = static_cast<double>(model_total - detector_total) / static_cast<double>(detector_total);
 
-    ROS_INFO_STREAM("Detector Total:\t" << detector_total << "/" << total << ", accuracy " << static_cast<double>(detector_total) / static_cast<double>(total));
-    ROS_INFO_STREAM("Model Total:\t"    << model_total    << "/" << total << ", accuracy " << static_cast<double>(model_total   ) / static_cast<double>(total));
+    ROS_INFO_STREAM("Detector Total:\t" << detector_total << "/" << total << ", accuracy " << detector_accuracy);
+    ROS_INFO_STREAM("Model Total:\t"    << model_total    << "/" << total << ", accuracy " << model_accuracy);
     ROS_INFO_STREAM("Model Gain: \t"    << fitness_gain);
 
-    deletefiles();
+    if (deletefiles_)
+        deletefiles();
 //    return fitness_gain;
-    return static_cast<double>(model_total) / static_cast<double>(total);
+    return model_accuracy;
 
 }
 
@@ -928,6 +932,34 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
 }
 
 /// END
+
+void oneShot(rosbag::View &view)
+{
+    unsigned int counter = 0;
+    setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
+    foreach (rosbag::MessageInstance const messageInstance, view)
+    {
+        ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
+        ROS_DEBUG_STREAM("READ " << counter);
+        counter++;
+
+        // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+        if (counter < 239)
+            continue;
+        if (counter > 10190)
+            break;
+
+        road_layout_estimation::msg_lines::ConstPtr msg_lines;
+        msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
+        ROS_ASSERT(msg_lines != NULL);
+
+        // this will create the files needed in the evaluate() routine
+        executeTest(*msg_lines);
+    }
+    ROS_INFO_STREAM("Evaluating results, processed " << counter << " ");
+    evaluate(false);
+    ROS_INFO_STREAM("End.");
+}
 
 void randomSearch(rosbag::View &view)
 {
@@ -1057,19 +1089,28 @@ int main(int argc, char **argv)
     topics.push_back(std::string("/isis_line_detector/lines"));
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-    randomSearch(view);
+    unsigned int counter = 0;
+
+    // One Shot
+    oneShot(view);
     return 1;
 
+    // Random Search
+    //randomSearch(view);
+    //return 1;
+
+    // Increase number of plusCorsie
     for (int increasePlusCorsie = 1; increasePlusCorsie <= 4; increasePlusCorsie++)
     {
-        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, increasePlusCorsie, 4, 0.6);
+        //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, increasePlusCorsie, 4, 0.6);
         //setupEnv(0.116786,0.391961,0.0455318,0.161657,9,4);
         //setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4);
         //setupEnv(0.188789,0.315906,0.447387,0.257911,7,4,0.6); // BEST DOMENICA i-5
         //setupEnv(0.228095,0.766402,0.675454,0.872998,1,4,0.6);
         //setupEnv(0.347901,0.367047,0.334395,0.692325,9,4,0.219284); // BEST 48CORE before Maurino...
+        setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
 
-        unsigned int counter = 0;
+        counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
             ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
