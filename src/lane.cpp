@@ -51,7 +51,7 @@ void makeTransitionMatrixS2(double sigma, double P1, double P2);
 void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
-void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f);
+void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f, double weight = 0.6f);
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight);
 
 
@@ -774,9 +774,28 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 /// EVALUATION PART (returns fitnessgain)
 double evaluate()
 {
-
     string testfile_ = SAVEPATH + testname + ".short.txt";
     string gtfile_ = SAVEPATH GTFILE;
+
+    // Check lines one each file.
+    std::ifstream check_testfile_(testfile_);
+    std::ifstream check_getfile_(gtfile_);
+    std::string line;
+    int lines_testfile_ = 0;
+    int lines_gtfile_ = 0;
+    while (std::getline(check_testfile_, line))
+        ++lines_testfile_;
+    while (std::getline(check_getfile_, line))
+        ++lines_gtfile_;
+    ROS_INFO_STREAM("Lines inside testfile: " << lines_testfile_);
+    ROS_INFO_STREAM("Lines inside gtfile  : " << lines_gtfile_);
+    if (lines_testfile_ > lines_gtfile_)
+        ROS_WARN_STREAM("Lines inside " + testname + " are >>> than " GTFILE);
+    if (lines_testfile_ < lines_gtfile_)
+        ROS_WARN_STREAM("Lines inside " GTFILE  " are >>> than " + testname);
+    if (lines_testfile_ == lines_gtfile_)
+        ROS_INFO_STREAM("Good! Same number of experiments and GT!");
+
     io::CSVReader<11, io::trim_chars<>, io::no_quote_escape<';'> > testfile(testfile_);
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<';'> > gtfile(gtfile_);
 
@@ -843,43 +862,49 @@ void deletefiles()
     string file_1 = SAVEPATH + testname + ".txt";
     string file_2 = SAVEPATH + testname + ".short.txt";
     if ( remove(file_1.c_str()) != 0 )
-        ROS_ERROR_STREAM( "Error deleting file" );
+        ROS_ERROR_STREAM( "Error deleting file file_1" );
 
     if ( remove(file_2.c_str()) != 0 )
-        ROS_ERROR_STREAM( "Error deleting file" );
+        ROS_ERROR_STREAM( "Error deleting file file_2" );
 }
 
-void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2)
+void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2, double weight)
 {
-    int precision_naming=8;
+    int precision_naming = 8;
     stringstream stream;
     stream << fixed << setprecision(precision_naming) << sigma1;
-    string s1 = stream.str();
+    string s_sigma1 = stream.str();
     stream.str("");
     stream.clear();
     stream << fixed << setprecision(precision_naming) << P1;
-    string s2 = stream.str();
+    string s_P1 = stream.str();
     stream.str("");
     stream.clear();
     stream << fixed << setprecision(precision_naming) << P2;
-    string s3 = stream.str();
+    string s_P2 = stream.str();
     stream.str("");
     stream.clear();
     stream << fixed << setprecision(precision_naming) << sigma2;
-    string s4 = stream.str();
+    string s_sigma2 = stream.str();
     stream.str("");
     stream.clear();
     stream << fixed << setprecision(precision_naming) << lanes;
-    string s5 = stream.str();
+    string s_lanes = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(precision_naming) << weight;
+    string s_weight = stream.str();
     stream.str("");
     stream.clear();
 
     if (sigma2 < 0)
-        testname = s5 + "+" + s1 + "+" + s2 + "+" + s3;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_P1 + "+" + s_P2;
     else
-        testname = s5 + "+" + s1 + "+" + s4 + "+" + s2 + "+" + s3;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_sigma2 + "+" + s_P1 + "+" + s_P2;
 
     ROS_INFO_STREAM("Multiprocess: " << multiprocess << "\tTESTNAME: "  << testname);
+    ROS_INFO_STREAM("Active BAGFILE: " << BAGFILE);
+    ROS_INFO_STREAM("Active GTFILE:  " << GTFILE);
 }
 
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight)
@@ -888,7 +913,7 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
     plus_corsie_continue = pluscorsie;
     average_weight = av_weight;
 
-    setTestName(lanes_number,sigma1, P1, P2, sigma2);
+    setTestName(lanes_number, sigma1, P1, P2, sigma2, av_weight);
 
 #ifdef MAKETRANSITIONSMATRICES
     ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
@@ -920,21 +945,29 @@ void randomSearch(rosbag::View &view)
 
     while (ros::ok())
     {
+        // Generate Parameters.
+        lanes_number = 4; // this is fixed, same lanes always.
         sigma1 = gen_sigma1(generator);
         sigma2 = gen_sigma1(generator);
         P1 = gen_P1(generator);
         P2 = gen_P2(generator);
         pluscorsie = gen_pluscorsie(generator);
-        lanes_number = 4;
-        ave_weight = gen_ave_weight(generator);
+        ave_weight = 0.6; //gen_ave_weight(generator);
 
-        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number,ave_weight);
+        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number, ave_weight);
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
             ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
-            ROS_DEBUG_STREAM("READ " << counter++);
+            ROS_DEBUG_STREAM("READ " << counter);
+            counter++;
+
+            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+            if (counter < 239)
+                continue;
+            if (counter > 10190)
+                break;
 
             road_layout_estimation::msg_lines::ConstPtr msg_lines;
             msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
@@ -944,36 +977,46 @@ void randomSearch(rosbag::View &view)
             executeTest(*msg_lines);
         }
 
-        ROS_INFO_STREAM("Evaluating results");
-        double tmp_fitness=evaluate();
+        ROS_INFO_STREAM("Evaluating results, processed " << counter << " ");
+        double tmp_fitness = evaluate();
 
         if (tmp_fitness > fitness)
         {
+            counter = 0;
             fitness = tmp_fitness;
             ROS_INFO_STREAM("NEW CONFIGURATION FOUND!");
 
             // save configuration
             ofstream myfile;
+            char separator = ',';
             ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH << "RANDOMSEARCH.txt");
-            myfile.open (SAVEPATH "RANDOMSEARCH."+multiprocess+".txt", ios::app);
-            myfile<<fitness<<";"<<sigma1<<";"<<sigma2<<";"<<P1<<";"<<P2<<";"<<pluscorsie<<";"<<lanes_number<<";"<<ave_weight<<endl;
+            myfile.open (SAVEPATH "RANDOMSEARCH." + multiprocess + ".txt", ios::app);
+            myfile << fitness << separator << sigma1 << separator << sigma2 << separator << P1 << separator << P2 << separator << pluscorsie << separator << lanes_number << separator << ave_weight << endl;
             myfile.close();
 
-            ROS_WARN_STREAM("TESTING CONFIG:\t" <<sigma1<<";"<<  sigma2<<";"<<  P1<<";"<<  P2<<";"<<  pluscorsie<<";"<< lanes_number);
-            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number,ave_weight);
+            ROS_WARN_STREAM("TESTING CONFIG:\t" << sigma1 << ";" <<  sigma2 << ";" <<  P1 << ";" <<  P2 << ";" <<  pluscorsie << ";" << lanes_number << ";" << ave_weight);
+            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number, ave_weight);
             foreach (rosbag::MessageInstance const messageInstance, view)
             {
+                counter++;
+                // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+                if (counter < 239)
+                    continue;
+                if (counter > 10190)
+                    break;
+
+
                 road_layout_estimation::msg_lines::ConstPtr msg_lines;
                 msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
                 ROS_ASSERT(msg_lines != NULL);
                 executeTest(*msg_lines);
             }
-            double check_fitness=evaluate();
+            double check_fitness = evaluate();
             ROS_WARN_STREAM("fitness 1:\t" << fitness);
             ROS_WARN_STREAM("fitness 2:\t" << check_fitness);
-
-
         }
+
+        ROS_INFO_STREAM("================================================");
     }
 }
 
@@ -988,8 +1031,9 @@ int main(int argc, char **argv)
     //else
     //    std::cout << "Error while setting the logger level!" << std::endl;
 
-    if (argc==2){
-        multiprocess=argv[1];
+    if (argc == 2)
+    {
+        multiprocess = argv[1];
         cout << multiprocess << endl;
     }
 
@@ -1016,17 +1060,27 @@ int main(int argc, char **argv)
     randomSearch(view);
     return 1;
 
-    for (int i = 1; i <= 4; i++)
+    for (int increasePlusCorsie = 1; increasePlusCorsie <= 4; increasePlusCorsie++)
     {
-        //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, i, 4);
+        setupEnv(0.72f, 0.72f, 0.9f, 0.2f, increasePlusCorsie, 4, 0.6);
         //setupEnv(0.116786,0.391961,0.0455318,0.161657,9,4);
-        setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4,0.6);
+        //setupEnv(0.0521648,0.0580163,0.170258,0.42129,6,4);
+        //setupEnv(0.188789,0.315906,0.447387,0.257911,7,4,0.6); // BEST DOMENICA i-5
+        //setupEnv(0.228095,0.766402,0.675454,0.872998,1,4,0.6);
+        //setupEnv(0.347901,0.367047,0.334395,0.692325,9,4,0.219284); // BEST 48CORE before Maurino...
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
         {
             ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
-            ROS_DEBUG_STREAM("READ " << counter++);
+            ROS_DEBUG_STREAM("READ " << counter);
+            counter++;
+
+            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+            if (counter < 239)
+                continue;
+            if (counter > 10190)
+                break;
 
             road_layout_estimation::msg_lines::ConstPtr msg_lines;
             msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
@@ -1035,8 +1089,9 @@ int main(int argc, char **argv)
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
         }
-        ROS_INFO_STREAM("Evaluating results");
+        ROS_INFO_STREAM("Evaluating results, processed " << counter << " ");
         evaluate();
+        ROS_INFO_STREAM("================================================");
     }
 
 #endif
