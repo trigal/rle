@@ -936,7 +936,9 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
 void oneShot(rosbag::View &view)
 {
     unsigned int counter = 0;
-    setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
+    setupEnv(0.72f, 0.72f, 0.9f, 0.2f, 2, 4, 0.6);
+    //setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
+
     foreach (rosbag::MessageInstance const messageInstance, view)
     {
         ROS_INFO_STREAM_ONCE("Parsing bagfile ... ");
@@ -1092,12 +1094,12 @@ int main(int argc, char **argv)
     unsigned int counter = 0;
 
     // One Shot
-    oneShot(view);
-    return 1;
+    //oneShot(view);
+    //return 1;
 
     // Random Search
-    //randomSearch(view);
-    //return 1;
+    randomSearch(view);
+    return 1;
 
     // Increase number of plusCorsie
     for (int increasePlusCorsie = 1; increasePlusCorsie <= 4; increasePlusCorsie++)
