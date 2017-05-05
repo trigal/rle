@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
 #RelWithDebInfo
-SET (CMAKE_BUILD_TYPE Release)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
+SET (CMAKE_BUILD_TYPE RelWithDebInfo)
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++11")
 
 find_package(catkin REQUIRED COMPONENTS     roscpp
                                             geometry_msgs
@@ -16,6 +16,11 @@ find_package(catkin REQUIRED COMPONENTS     roscpp
 find_package(PCL 1.8 REQUIRED )
 find_package(Eigen REQUIRED)
 find_package(message_generation)
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
 include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include)
 link_directories(${PCL_LIBRARY_DIRS})
@@ -24,12 +29,12 @@ add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (Excel trans matrices)
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
-add_definitions(-DSAVEPATH="/home/ballardini/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
+add_definitions(-DSAVEPATH="/home/catta/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
 #add_definitions(-DGTFILE="GT-A4-5_1.txt")
-#add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/A4-5_1_msglines.bag")
+add_definitions(-DBAGFILE="/home/catta/catkin_ws/src/road_layout_estimation/bag/ISIS_01-full.bag")
 
-add_definitions(-DGTFILE="GT-A4FULL.txt")
-add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/A4-5FULL_msglines.bag")
+add_definitions(-DGTFILE="ISIS_01.txt")
+#add_definitions(-DBAGFILE="/home/catta/catkin_ws/src/road_layout_estimation/bag/A4-5FULL_msglines.bag")
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
