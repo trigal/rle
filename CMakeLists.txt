@@ -25,8 +25,8 @@ add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
 add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
-add_definitions(-DGTFILE="GT-A4-5_1.txt")
-add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/A4-5_1_msglines.bag")
+add_definitions(-DGTFILE="GT-A4FULL.txt")
+add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/A4-5FULL_msglines.bag")
 
 #add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
 #add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")

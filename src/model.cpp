@@ -16,7 +16,8 @@ class LaneModel
     report_ns* err;
 
 public:
-    LaneModel(int n, float P1, float P2, float sigma_trans, float sigma_obs);
+    LaneModel(int n, float P1, float P2, float P3, float P4, float sigma_trans, float sigma_obs);
+    ~LaneModel();
     //double * prediction();
     const float * update(float * ev_detector, float * ev_RI);
 
@@ -25,10 +26,17 @@ private:
 
 };
 
+LaneModel::~LaneModel()
+{
+    res = CloseNetica_bn (env, mesg);
+    printf ("%s\n", mesg);
+}
 
-LaneModel::LaneModel(int n, float P1, float P2, float sigma_trans, float sigma_obs)
+LaneModel::LaneModel(int n, float P1, float P2, float P3, float P4, float sigma_trans, float sigma_obs)
 {
     num_lane = n;
+    res = CloseNetica_bn (env, mesg);
+    printf ("%s\n", mesg);
 
     env = NewNeticaEnviron_ns(NULL, NULL, NULL);
     res = InitNetica2_bn(env, mesg);
@@ -115,11 +123,11 @@ LaneModel::LaneModel(int n, float P1, float P2, float sigma_trans, float sigma_o
     SetNodeProbs(detector, "Lane3", "Not_Working", 0.25, 0.25, 0.25, 0.25 );
     SetNodeProbs(detector, "Lane4", "Not_Working", 0.25, 0.25, 0.25, 0.25 );
 
-    SetNodeProbs(RI, "Working", 0.8, 0.2);
-    SetNodeProbs(RI, "Not_Working", 0.2, 0.8);
+    SetNodeProbs(RI, "Working", P3, 1.0 - P3);
+    SetNodeProbs(RI, "Not_Working", 1.0 - P4, P4);
 
 
-    WriteNet_bn (net,  NewFileStream_ns ("/home/cattaneod/catkin_ws/src/road_layout_estimation/LaneModel.dne", env, NULL));
+    //WriteNet_bn (net,  NewFileStream_ns ("/home/cattaneod/catkin_ws/src/road_layout_estimation/LaneModel.dne", env, NULL));
 
 
     CompileNet_bn (net);

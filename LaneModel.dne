@@ -1,6 +1,6 @@
 // ~->[DNET-1]->~
 
-// File created by an unlicensed user using Netica 5.04 on 11/29/17 at 10:45:53.
+// File created by an unlicensed user using Netica 5.04 on 11/29/17 at 13:45:27.
 
 bnet LaneModel {
 autoupdate = FALSE;
@@ -24,8 +24,8 @@ node sensorStateT2 {
 	parents = (sensorStateT1);
 	probs = 
 		// Working      Not Working   // sensorStateT1 
-		  (0.7,         0.3,          // Working       
-		   0.4,         0.6);         // Not Working   ;
+		  (0.8044062,   0.1955938,    // Working       
+		   0.07851291,  0.9214871);   // Not Working   ;
 	};
 
 node laneT1 {
@@ -47,13 +47,13 @@ node detector {
 	parents = (laneT1, sensorStateT1);
 	probs = 
 		// Lane1        Lane2        Lane3        Lane4         // laneT1 sensorStateT1 
-		  (0.7259895,   0.2616813,   0.01225462,  7.456097e-5,  // Lane1  Working       
+		  (0.9975941,   0.002405937, 3.375015e-11,2.753771e-24, // Lane1  Working       
 		   0.25,        0.25,        0.25,        0.25,         // Lane1  Not Working   
-		   0.2074191,   0.5754484,   0.2074191,   0.009713501,  // Lane2  Working       
+		   0.002400162, 0.9951996,   0.002400162, 3.366914e-11, // Lane2  Working       
 		   0.25,        0.25,        0.25,        0.25,         // Lane2  Not Working   
-		   0.0097135,   0.2074191,   0.5754483,   0.2074191,    // Lane3  Working       
+		   3.366914e-11,0.002400162, 0.9951996,   0.002400162,  // Lane3  Working       
 		   0.25,        0.25,        0.25,        0.25,         // Lane3  Not Working   
-		   7.456096e-5, 0.01225462,  0.2616813,   0.7259895,    // Lane4  Working       
+		   2.753771e-24,3.375015e-11,0.002405937, 0.9975941,    // Lane4  Working       
 		   0.25,        0.25,        0.25,        0.25);        // Lane4  Not Working   ;
 	};
 
@@ -77,9 +77,9 @@ node laneT2 {
 	parents = (laneT1);
 	probs = 
 		// Lane1        Lane2        Lane3        Lane4         // laneT1 
-		  (0.7979433,   0.1989689,   0.003084787, 2.973661e-6,  // Lane1  
-		   0.1659505,   0.6655263,   0.1659505,   0.002572873,  // Lane2  
-		   0.002572873, 0.1659504,   0.6655262,   0.1659504,    // Lane3  
-		   2.973661e-6, 0.003084787, 0.1989689,   0.7979433);   // Lane4  ;
+		  (0.3216594,   0.2959386,   0.2304717,   0.1519303,    // Lane1  
+		   0.2586857,   0.2811688,   0.2586857,   0.2014598,    // Lane2  
+		   0.2014598,   0.2586857,   0.2811688,   0.2586857,    // Lane3  
+		   0.1519303,   0.2304717,   0.2959386,   0.3216594);   // Lane4  ;
 	};
 };

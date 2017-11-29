@@ -40,7 +40,7 @@ static double average_weight = 0.6;        //media tra stato precedente e quello
 
 static ros::Publisher *sync_publisher ;
 
-LaneModel modello(4, 0.7, 0.6, 0.6, 0.7);
+LaneModel *modello;
 
 bool isFalse(road_layout_estimation::msg_lineInfo a);
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b);
@@ -55,7 +55,7 @@ void resetMegavariabile(int lanes);
 void resetSensor(int lanes);
 void setStateTransitionMatrix();
 void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f, double weight = 0.6f);
-void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight);
+void setupEnv(double sigma1, double sigma2, double P1, double P2, double P3, double P4, int pluscorsie, int lanes_number, double av_weight);
 void oneShot(rosbag::View &view);
 
 ROS_DEPRECATED void makeTransitionMatrix(double sigma, double P1, double P2)
@@ -739,7 +739,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     prob_bn RI [2] = {SensorOK, SensorBAD};
     const float * model_update;
 
-    model_update = modello.update(soft_evidence, RI);
+    model_update = modello->update(soft_evidence, RI);
 
 
 #ifdef VERBOSE_MODEL
@@ -774,9 +774,19 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     ofstream myfile2;
     ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH + testname + ".short.txt");
     myfile2.open (SAVEPATH + testname + ".short.txt", ios::app);
-    myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
-            << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
-            << update[0] << ";" << update[1] << ";" << update[2] << ";" << update[3] << "\n";
+    if (true)
+    {
+        myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
+                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+                << update[0] << ";" << update[1] << ";" << update[2] << ";" << update[3] << "\n";
+    }
+    else
+    {
+        myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
+                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+                << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+
+    }
     myfile2.close();
 
 #if SYNCMODE
@@ -888,7 +898,7 @@ void deletefiles()
         ROS_ERROR_STREAM( "Error deleting file file_2" );
 }
 
-void setTestName(int lanes, double sigma1, double P1, double P2, int pluscorsie, double sigma2, double weight)
+void setTestName(int lanes, double sigma1, double P1, double P2, double P3, double P4, int pluscorsie, double sigma2, double weight)
 {
     int precision_naming = 8;
     stringstream stream;
@@ -902,6 +912,14 @@ void setTestName(int lanes, double sigma1, double P1, double P2, int pluscorsie,
     stream.clear();
     stream << fixed << setprecision(precision_naming) << P2;
     string s_P2 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(precision_naming) << P3;
+    string s_P3 = stream.str();
+    stream.str("");
+    stream.clear();
+    stream << fixed << setprecision(precision_naming) << P4;
+    string s_P4 = stream.str();
     stream.str("");
     stream.clear();
     stream << fixed << setprecision(precision_naming) << sigma2;
@@ -922,22 +940,22 @@ void setTestName(int lanes, double sigma1, double P1, double P2, int pluscorsie,
     stream.clear();
 
     if (sigma2 < 0)
-        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_P1 + "+" + s_P2 + "+" + s_plus;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_P1 + "+" + s_P2 + "+" + s_P3 + "+" + s_P4 + "+" + s_plus;
     else
-        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_sigma2 + "+" + s_P1 + "+" + s_P2 + "+" + s_plus;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_sigma2 + "+" + s_P1 + "+" + s_P2 + "+" + s_P3 + "+" + s_P4 + "+" + s_plus;
 
     ROS_INFO_STREAM("Multiprocess: " << multiprocess << "\tTESTNAME: "  << testname);
     ROS_INFO_STREAM("Active BAGFILE: " << BAGFILE);
     ROS_INFO_STREAM("Active GTFILE:  " << GTFILE);
 }
 
-void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight)
+void setupEnv(double sigma1, double sigma2, double P1, double P2, double P3, double P4, int pluscorsie, int lanes_number, double av_weight)
 {
     howManyLanes = lanes_number;
     plus_corsie_continue = pluscorsie;
     average_weight = av_weight;
 
-    setTestName(lanes_number, sigma1, P1, P2, pluscorsie, sigma2, av_weight);
+    setTestName(lanes_number, sigma1, P1, P2, P3, P4, pluscorsie, sigma2, av_weight);
 
 #ifdef MAKETRANSITIONSMATRICES
     ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
@@ -946,6 +964,10 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
     ROS_INFO_STREAM("Transition Matrices HARDCODED");
     setStateTransitionMatrix();
 #endif
+
+    //modello->~LaneModel();
+    //free(modello);
+    modello = new LaneModel(4, P1, P2, P3, P4, sigma1, sigma2);
 
     resetMegavariabile(howManyLanes);
     resetSensor(howManyLanes);
@@ -956,7 +978,7 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
 void oneShot(rosbag::View &view)
 {
     unsigned int counter = 0;
-    setupEnv(0.72f, 0.72f, 0.9f, 0.2f, 2, 4, 0.6);
+    //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, 2, 4, 0.6);
     //setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
 
     foreach (rosbag::MessageInstance const messageInstance, view)
@@ -990,10 +1012,12 @@ void randomSearch(rosbag::View &view)
     std::uniform_real_distribution<double>  gen_sigma2(0.0, 3.0);
     std::uniform_real_distribution<double>  gen_P1(0.0, 1.0);
     std::uniform_real_distribution<double>  gen_P2(0.0, 1.0);
-    std::uniform_int_distribution<int>      gen_pluscorsie(0, 9);
+    std::uniform_real_distribution<double>  gen_P3(0.0, 1.0);
+    std::uniform_real_distribution<double>  gen_P4(0.0, 1.0);
+    std::uniform_int_distribution<int>      gen_pluscorsie(1, 9);
     std::uniform_real_distribution<double>  gen_ave_weight(0.0, 1.0);
 
-    double sigma1, sigma2, P1, P2, ave_weight;
+    double sigma1, sigma2, P1, P2, P3, P4, ave_weight;
     int pluscorsie, lanes_number;
     double fitness = 0.0;
 
@@ -1005,10 +1029,13 @@ void randomSearch(rosbag::View &view)
         sigma2 = gen_sigma1(generator);
         P1 = gen_P1(generator);
         P2 = gen_P2(generator);
+        P3 = gen_P3(generator);
+        P4 = gen_P4(generator);
         pluscorsie = gen_pluscorsie(generator);
         ave_weight = 0.6; //gen_ave_weight(generator);
 
-        setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number, ave_weight);
+        setupEnv( sigma1,  sigma2,  P1,  P2, P3, P4, pluscorsie, lanes_number, ave_weight);
+
 
         unsigned int counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
@@ -1045,11 +1072,13 @@ void randomSearch(rosbag::View &view)
             char separator = ',';
             ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH << "RANDOMSEARCH.txt");
             myfile.open (SAVEPATH "RANDOMSEARCH." + multiprocess + ".txt", ios::app);
-            myfile << fitness << separator << sigma1 << separator << sigma2 << separator << P1 << separator << P2 << separator << pluscorsie << separator << lanes_number << separator << ave_weight << endl;
+
+            //myfile << fitness << separator << sigma1 << separator << sigma2 << separator << P1 << separator << P2 << separator << pluscorsie << separator << lanes_number << separator << ave_weight << endl;
+            myfile << fitness << ";" << testname << endl;
             myfile.close();
 
             ROS_WARN_STREAM("TESTING CONFIG:\t" << sigma1 << ";" <<  sigma2 << ";" <<  P1 << ";" <<  P2 << ";" <<  pluscorsie << ";" << lanes_number << ";" << ave_weight);
-            setupEnv( sigma1,  sigma2,  P1,  P2,  pluscorsie, lanes_number, ave_weight);
+            setupEnv( sigma1,  sigma2,  P1,  P2, P3, P4,  pluscorsie, lanes_number, ave_weight);
             foreach (rosbag::MessageInstance const messageInstance, view)
             {
                 counter++;
@@ -1065,7 +1094,7 @@ void randomSearch(rosbag::View &view)
                 ROS_ASSERT(msg_lines != NULL);
                 executeTest(*msg_lines);
             }
-            double check_fitness = evaluate();
+            double check_fitness = evaluate(false);
             ROS_WARN_STREAM("fitness 1:\t" << fitness);
             ROS_WARN_STREAM("fitness 2:\t" << check_fitness);
         }
@@ -1162,7 +1191,7 @@ int main(int argc, char **argv)
         //setupEnv(0.188789,0.315906,0.447387,0.257911,7,4,0.6); // BEST DOMENICA i-5
         //setupEnv(0.228095,0.766402,0.675454,0.872998,1,4,0.6);
         //setupEnv(0.347901,0.367047,0.334395,0.692325,9,4,0.219284); // BEST 48CORE before Maurino...
-        setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
+        //setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
 
         counter = 0;
         foreach (rosbag::MessageInstance const messageInstance, view)
