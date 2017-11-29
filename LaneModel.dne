@@ -1,0 +1,85 @@
+// ~->[DNET-1]->~
+
+// File created by an unlicensed user using Netica 5.04 on 11/29/17 at 10:45:53.
+
+bnet LaneModel {
+autoupdate = FALSE;
+
+node sensorStateT1 {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Working, Not_Working);
+	parents = ();
+	probs = 
+		// Working      Not Working  
+		  (0.5,         0.5);
+	};
+
+node sensorStateT2 {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Working, Not_Working);
+	parents = (sensorStateT1);
+	probs = 
+		// Working      Not Working   // sensorStateT1 
+		  (0.7,         0.3,          // Working       
+		   0.4,         0.6);         // Not Working   ;
+	};
+
+node laneT1 {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Lane1, Lane2, Lane3, Lane4);
+	parents = ();
+	probs = 
+		// Lane1        Lane2        Lane3        Lane4        
+		  (0.25,        0.25,        0.25,        0.25);
+	};
+
+node detector {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Lane1, Lane2, Lane3, Lane4);
+	parents = (laneT1, sensorStateT1);
+	probs = 
+		// Lane1        Lane2        Lane3        Lane4         // laneT1 sensorStateT1 
+		  (0.7259895,   0.2616813,   0.01225462,  7.456097e-5,  // Lane1  Working       
+		   0.25,        0.25,        0.25,        0.25,         // Lane1  Not Working   
+		   0.2074191,   0.5754484,   0.2074191,   0.009713501,  // Lane2  Working       
+		   0.25,        0.25,        0.25,        0.25,         // Lane2  Not Working   
+		   0.0097135,   0.2074191,   0.5754483,   0.2074191,    // Lane3  Working       
+		   0.25,        0.25,        0.25,        0.25,         // Lane3  Not Working   
+		   7.456096e-5, 0.01225462,  0.2616813,   0.7259895,    // Lane4  Working       
+		   0.25,        0.25,        0.25,        0.25);        // Lane4  Not Working   ;
+	};
+
+node RI {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Working, Not_Working);
+	parents = (sensorStateT1);
+	probs = 
+		// Working      Not Working   // sensorStateT1 
+		  (0.8,         0.2,          // Working       
+		   0.2,         0.8);         // Not Working   ;
+	};
+
+node laneT2 {
+	kind = NATURE;
+	discrete = TRUE;
+	chance = CHANCE;
+	states = (Lane1, Lane2, Lane3, Lane4);
+	parents = (laneT1);
+	probs = 
+		// Lane1        Lane2        Lane3        Lane4         // laneT1 
+		  (0.7979433,   0.1989689,   0.003084787, 2.973661e-6,  // Lane1  
+		   0.1659505,   0.6655263,   0.1659505,   0.002572873,  // Lane2  
+		   0.002572873, 0.1659504,   0.6655262,   0.1659504,    // Lane3  
+		   2.973661e-6, 0.003084787, 0.1989689,   0.7979433);   // Lane4  ;
+	};
+};

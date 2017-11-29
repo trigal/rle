@@ -3,7 +3,7 @@ project(road_layout_estimation)
 
 #RelWithDebInfo
 SET (CMAKE_BUILD_TYPE Release)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -lrt -lnetica -lm")
 
 find_package(catkin REQUIRED COMPONENTS     roscpp
                                             geometry_msgs
@@ -17,19 +17,19 @@ find_package(PCL 1.8 REQUIRED )
 find_package(Eigen REQUIRED)
 find_package(message_generation)
 
-include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include)
-link_directories(${PCL_LIBRARY_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} include include/netica)
+link_directories(${PCL_LIBRARY_DIRS} include/netica)
 add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
 add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (Excel trans matrices)
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
-add_definitions(-DSAVEPATH="/home/ballardini/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
-#add_definitions(-DGTFILE="GT-A4-5_1.txt")
-#add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/A4-5_1_msglines.bag")
+add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
+add_definitions(-DGTFILE="GT-A4-5_1.txt")
+add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/A4-5_1_msglines.bag")
 
-add_definitions(-DGTFILE="GT-A4FULL.txt")
-add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/A4-5FULL_msglines.bag")
+#add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
+#add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
@@ -73,4 +73,7 @@ add_dependencies(lane ${PROJECT_NAME}_gencfg)
 add_dependencies(lane ${PROJECT_NAME}_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(lane  ${catkin_LIBRARIES} pthread)
+target_link_libraries(lane  ${catkin_LIBRARIES} pthread netica)
+FILE(GLOB_RECURSE LibFiles "include/*")
+add_custom_target(headers SOURCES src/model.cpp)
+add_custom_target(netica SOURCES ${LibFiles})

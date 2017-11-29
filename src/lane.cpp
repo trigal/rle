@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <boost/math/distributions/normal.hpp>
+#include "model.cpp"
 
 #define foreach BOOST_FOREACH
 // #define VERBOSE_MODEL
@@ -39,6 +40,8 @@ static double average_weight = 0.6;        //media tra stato precedente e quello
 
 static ros::Publisher *sync_publisher ;
 
+LaneModel modello(4, 0.7, 0.6, 0.6, 0.7);
+
 bool isFalse(road_layout_estimation::msg_lineInfo a);
 bool myCompare(road_layout_estimation::msg_lineInfo a, road_layout_estimation::msg_lineInfo b);
 double evaluate(bool deletefiles_ = true);
@@ -54,7 +57,6 @@ void setStateTransitionMatrix();
 void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2 = -1.0f, double weight = 0.6f);
 void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie, int lanes_number, double av_weight);
 void oneShot(rosbag::View &view);
-
 
 ROS_DEPRECATED void makeTransitionMatrix(double sigma, double P1, double P2)
 {
@@ -726,6 +728,20 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     double sum = update.sum();
     //cout << "norm. fact :\t" << sum << endl;
     update /= sum;
+
+
+    //NEW MODEL
+    prob_bn* soft_evidence = (prob_bn*)malloc (corsie * sizeof (prob_bn));
+    for (int i = 0; i < corsie; i++)
+    {
+        soft_evidence[i] = tentative(i);
+    }
+    prob_bn RI [2] = {SensorOK, SensorBAD};
+    const float * model_update;
+
+    model_update = modello.update(soft_evidence, RI);
+
+
 #ifdef VERBOSE_MODEL
     cout << "update     :\t" << update.transpose().format(CleanFmt) << endl;
     if (howManyLanes == 2)
@@ -760,7 +776,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     myfile2.open (SAVEPATH + testname + ".short.txt", ios::app);
     myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
             << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
-            << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
+            << update[0] << ";" << update[1] << ";" << update[2] << ";" << update[3] << "\n";
     myfile2.close();
 
 #if SYNCMODE
@@ -797,8 +813,8 @@ double evaluate(bool deletefiles_)
     if (lines_testfile_ == lines_gtfile_)
         ROS_INFO_STREAM("Good! Same number of experiments and GT!");
 
-    io::CSVReader<11, io::trim_chars<>, io::no_quote_escape<';'> > testfile(testfile_);
-    io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<';'> > gtfile(gtfile_);
+    io::CSVReader < 11, io::trim_chars<>, io::no_quote_escape < ';' > > testfile(testfile_);
+    io::CSVReader < 3, io::trim_chars<>, io::no_quote_escape < ';' > > gtfile(gtfile_);
 
     testfile.set_header("seq", "v1", "v2", "tentative1", "tentative2", "tentative3", "tentative4", "summarize1", "summarize2", "summarize3", "summarize4");
     gtfile.set_header("seq", "GT", "GTFLAG");
@@ -872,7 +888,7 @@ void deletefiles()
         ROS_ERROR_STREAM( "Error deleting file file_2" );
 }
 
-void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2, double weight)
+void setTestName(int lanes, double sigma1, double P1, double P2, int pluscorsie, double sigma2, double weight)
 {
     int precision_naming = 8;
     stringstream stream;
@@ -900,11 +916,15 @@ void setTestName(int lanes, double sigma1, double P1, double P2, double sigma2, 
     string s_weight = stream.str();
     stream.str("");
     stream.clear();
+    stream << fixed << setprecision(precision_naming) << pluscorsie;
+    string s_plus = stream.str();
+    stream.str("");
+    stream.clear();
 
     if (sigma2 < 0)
-        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_P1 + "+" + s_P2;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_P1 + "+" + s_P2 + "+" + s_plus;
     else
-        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_sigma2 + "+" + s_P1 + "+" + s_P2;
+        testname = s_weight + "+" + s_lanes + "+" + s_sigma1 + "+" + s_sigma2 + "+" + s_P1 + "+" + s_P2 + "+" + s_plus;
 
     ROS_INFO_STREAM("Multiprocess: " << multiprocess << "\tTESTNAME: "  << testname);
     ROS_INFO_STREAM("Active BAGFILE: " << BAGFILE);
@@ -917,7 +937,7 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, int pluscorsie
     plus_corsie_continue = pluscorsie;
     average_weight = av_weight;
 
-    setTestName(lanes_number, sigma1, P1, P2, sigma2, av_weight);
+    setTestName(lanes_number, sigma1, P1, P2, pluscorsie, sigma2, av_weight);
 
 #ifdef MAKETRANSITIONSMATRICES
     ROS_INFO_STREAM("Generate Transition Matrices ACTIVE");
@@ -965,7 +985,7 @@ void oneShot(rosbag::View &view)
 
 void randomSearch(rosbag::View &view)
 {
-    std::default_random_engine generator(std::random_device{}());
+    std::default_random_engine generator(std::random_device {}());
     std::uniform_real_distribution<double>  gen_sigma1(0.0, 3.0);
     std::uniform_real_distribution<double>  gen_sigma2(0.0, 3.0);
     std::uniform_real_distribution<double>  gen_P1(0.0, 1.0);
@@ -1054,9 +1074,41 @@ void randomSearch(rosbag::View &view)
     }
 }
 
-
 int main(int argc, char **argv)
 {
+    /*
+    prob_bn soft_evidence [4] = {0.7, 0.1, 0.1, 0.1};
+    prob_bn RI [2] = {0.7, 0.3};
+    const float * update;
+
+    update = modello.update(soft_evidence, RI);
+
+    cout << "Update: "<< update[0] <<"\t , \t"<< update[1] <<"\t , \t"<< update[2] <<"\t , \t"<< update[3] <<"\n";
+
+    prob_bn soft_evidence2 [4] = {0.2, 0.5, 0.2, 0.1};
+    prob_bn RI2 [2] = {0.7, 0.3};
+
+    update = modello.update(soft_evidence2, RI2);
+
+    cout << "Update: "<< update[0] <<"\t , \t"<< update[1] <<"\t , \t"<< update[2] <<"\t , \t"<< update[3] <<"\n";
+
+    prob_bn soft_evidence3 [4] = {1., 0., 0., 0.};
+    prob_bn RI3 [2] = {0.6, 0.4};
+
+    update = modello.update(soft_evidence3, RI3);
+
+    cout << "Update: "<< update[0] <<"\t , \t"<< update[1] <<"\t , \t"<< update[2] <<"\t , \t"<< update[3] <<"\n";
+
+    prob_bn soft_evidence4 [4] = {0., 0.1, 0.1, 0.8};
+    prob_bn RI4 [2] = {0.2, 0.8};
+
+    update = modello.update(soft_evidence4, RI4);
+
+    cout << "Update: "<< update[0] <<"\t , \t"<< update[1] <<"\t , \t"<< update[2] <<"\t , \t"<< update[3] <<"\n";
+
+    return 0;*/
+
+
     ros::init(argc, argv, "lane");
     ros::NodeHandle n;
 
