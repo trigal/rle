@@ -757,7 +757,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     megavariabile = update;
 
     ///STATS
-    ofstream myfile;
+    /*ofstream myfile;
     ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH + testname + ".txt");
     myfile.open (SAVEPATH + testname + ".txt", ios::app);
     myfile << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
@@ -769,7 +769,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
            << update(0) << ";" << update(1) << ";" << update(2) << ";" << update(3) << ";"
            << update(4) << ";" << update(5) << ";" << update(6) << ";" << update(7) << ";"
            << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
-    myfile.close();
+    myfile.close();*/
 
     ofstream myfile2;
     ROS_DEBUG_STREAM("Saving results in: " << SAVEPATH + testname + ".short.txt");
@@ -778,7 +778,7 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     {
         myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
                 << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
-                << update[0] << ";" << update[1] << ";" << update[2] << ";" << update[3] << "\n";
+                << model_update[0] << ";" << model_update[1] << ";" << model_update[2] << ";" << model_update[3] << "\n";
     }
     else
     {
@@ -988,14 +988,15 @@ void oneShot(rosbag::View &view)
         counter++;
 
         // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-        if (counter < 239)
-            continue;
-        if (counter > 10190)
-            break;
 
         road_layout_estimation::msg_lines::ConstPtr msg_lines;
         msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
         ROS_ASSERT(msg_lines != NULL);
+
+        if ((*msg_lines).way_id < 239)
+            continue;
+        if ((*msg_lines).way_id >= 10190)
+            break;
 
         // this will create the files needed in the evaluate() routine
         executeTest(*msg_lines);
@@ -1044,15 +1045,15 @@ void randomSearch(rosbag::View &view)
             ROS_DEBUG_STREAM("READ " << counter);
             counter++;
 
-            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-            if (counter < 239)
-                continue;
-            if (counter > 10190)
-                break;
-
             road_layout_estimation::msg_lines::ConstPtr msg_lines;
             msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
             ROS_ASSERT(msg_lines != NULL);
+
+            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+            if ((*msg_lines).way_id < 239)
+                continue;
+            if ((*msg_lines).way_id >= 10190)
+                break;
 
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
@@ -1082,16 +1083,16 @@ void randomSearch(rosbag::View &view)
             foreach (rosbag::MessageInstance const messageInstance, view)
             {
                 counter++;
-                // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-                if (counter < 239)
-                    continue;
-                if (counter > 10190)
-                    break;
 
 
                 road_layout_estimation::msg_lines::ConstPtr msg_lines;
                 msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
                 ROS_ASSERT(msg_lines != NULL);
+                // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+                if ((*msg_lines).way_id < 239)
+                    continue;
+                if ((*msg_lines).way_id > 10190)
+                    break;
                 executeTest(*msg_lines);
             }
             double check_fitness = evaluate(false);
@@ -1200,15 +1201,15 @@ int main(int argc, char **argv)
             ROS_DEBUG_STREAM("READ " << counter);
             counter++;
 
-            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-            if (counter < 239)
-                continue;
-            if (counter > 10190)
-                break;
-
             road_layout_estimation::msg_lines::ConstPtr msg_lines;
             msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
             ROS_ASSERT(msg_lines != NULL);
+
+            // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
+            if ((*msg_lines).way_id < 239)
+                continue;
+            if ((*msg_lines).way_id >= 10190)
+                break;
 
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
