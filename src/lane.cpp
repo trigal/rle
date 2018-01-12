@@ -741,6 +741,8 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 
     model_update = modello->update(soft_evidence, RI);
 
+    free(soft_evidence);
+
 
 #ifdef VERBOSE_MODEL
     cout << "update     :\t" << update.transpose().format(CleanFmt) << endl;
