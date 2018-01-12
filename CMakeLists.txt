@@ -25,11 +25,14 @@ add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
 add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
-add_definitions(-DGTFILE="GT-A4FULL.txt")
-add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/A4-5FULL_msglines.bag")
+#add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/GT-A4FULL.txt")
+#add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/mldhighway.a4.001_2017-12-18-12-38-52.bag")
 
 #add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
 #add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")
+
+add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
+add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/special.issue.spain.stereo.noClothoid.yesLines.bag")
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files

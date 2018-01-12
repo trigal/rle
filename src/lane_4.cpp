@@ -21,7 +21,7 @@
 #include "model.cpp"
 
 #define foreach BOOST_FOREACH
-//#define VERBOSE_MODEL
+// #define VERBOSE_MODEL
 using namespace std;
 using boost::math::normal;
 
@@ -132,35 +132,36 @@ ROS_DEPRECATED void makeTransitionMatrix(double sigma, double P1, double P2)
 }
 void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
 {
-
     // just for printing purposes
     Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, ", ", "\n", "[", "]");
 
     // resize the final transition matrix
-    stateTransitionMatrix.resize(howManyLanes * 2, howManyLanes * 2);
+    stateTransitionMatrix.resize(8, 8);
 
     // create support matrices. populate a vector with the PDF normal values
     Eigen::MatrixXd buildingTransition1, buildingTransition2, a1, b1, a2, b2;
     vector<double> valuesForTransition1, valuesForTransition2;
 
-    buildingTransition1.resize(howManyLanes, howManyLanes);
-    buildingTransition2.resize(howManyLanes, howManyLanes);
-    int cont=0;
-    for (int mean = 1; mean <= howManyLanes; mean++) {
-        for (int x = 1; x <= howManyLanes; x++)
-        {cont++;
+    buildingTransition1.resize(4, 4);
+    buildingTransition2.resize(4, 4);
+
+    for (int mean = 1; mean < 5; mean++)
+        for (int x = 1; x < 5; x++)
+        {
             valuesForTransition1.push_back(normalDistributionAt(x, mean, sigma1));
             valuesForTransition2.push_back(normalDistributionAt(x, mean, sigma2));
         }
-      }
+
     // push the values from the vector into the support matrix (eigen)
     buildingTransition1 << valuesForTransition1[0], valuesForTransition1[1], valuesForTransition1[2], valuesForTransition1[3],
                         valuesForTransition1[4], valuesForTransition1[5], valuesForTransition1[6], valuesForTransition1[7],
-                        valuesForTransition1[8];
+                        valuesForTransition1[8], valuesForTransition1[9], valuesForTransition1[10], valuesForTransition1[11],
+                        valuesForTransition1[12], valuesForTransition1[13], valuesForTransition1[14], valuesForTransition1[15];
 
     buildingTransition2 << valuesForTransition2[0],  valuesForTransition2 [1],  valuesForTransition2[2],  valuesForTransition2[3],
                         valuesForTransition2[4],  valuesForTransition2 [5],  valuesForTransition2[6],  valuesForTransition2[7],
-                        valuesForTransition2[8];
+                        valuesForTransition2[8],  valuesForTransition2 [9],  valuesForTransition2[10], valuesForTransition2[11],
+                        valuesForTransition2[12], valuesForTransition2 [13], valuesForTransition2[14], valuesForTransition2[15];
 #ifdef VERBOSE_MODEL
     // print it (debug)
     cout << buildingTransition1.format(CleanFmt) << endl << endl;
@@ -168,7 +169,7 @@ void makeTransitionMatrixS2(double sigma1, double sigma2, double P1, double P2)
 #endif
 
     // normalize each row using the sum. WARNING: here are the cols ...
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         buildingTransition1.col(i) /= buildingTransition1.col(i).sum();
         buildingTransition2.col(i) /= buildingTransition2.col(i).sum();
@@ -494,7 +495,6 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     cout << "================================================================" << endl << endl;
     Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
     cout << msg_lines.header.seq << endl;
-    cout << "LANES: "<<howManyLanes<<"\n";
 #endif
 
     ROS_ASSERT( (1 - megavariabile.sum()) <= 0.00001f);
@@ -777,14 +777,14 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
     if (true)
     {
         myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
-                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";"
-                << model_update[0] << ";" << model_update[1] << ";" << model_update[2] << "\n";
+                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+                << model_update[0] << ";" << model_update[1] << ";" << model_update[2] << ";" << model_update[3] << "\n";
     }
     else
     {
         myfile2 << msg_lines.way_id  << ";" << SensorOK << ";" << SensorBAD << ";"
-                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) <<  ";"
-                << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << "\n";
+                << tentative(0) << ";" << tentative(1) << ";" << tentative(2) << ";" << tentative(3) << ";"
+                << update(0) + update(4)  << ";" << update(1) + update(5) << ";" << update(2) + update(6) << ";" << update(3) + update(7) << "\n";
 
     }
     myfile2.close();
@@ -823,23 +823,23 @@ double evaluate(bool deletefiles_)
     if (lines_testfile_ == lines_gtfile_)
         ROS_INFO_STREAM("Good! Same number of experiments and GT!");
 
-    io::CSVReader < 9, io::trim_chars<>, io::no_quote_escape < ';' > > testfile(testfile_);
+    io::CSVReader < 11, io::trim_chars<>, io::no_quote_escape < ';' > > testfile(testfile_);
     io::CSVReader < 3, io::trim_chars<>, io::no_quote_escape < ';' > > gtfile(gtfile_);
 
-    testfile.set_header("seq", "v1", "v2", "tentative1", "tentative2", "tentative3", "summarize1", "summarize2", "summarize3");
+    testfile.set_header("seq", "v1", "v2", "tentative1", "tentative2", "tentative3", "tentative4", "summarize1", "summarize2", "summarize3", "summarize4");
     gtfile.set_header("seq", "GT", "GTFLAG");
 
     int testfile_seq, gtfile_seq;
     int GT, GTFLAG;
     double v1, v2;
-    vector<double> tentative(howManyLanes);
-    vector<double> summarize(howManyLanes);
+    vector<double> tentative(4);
+    vector<double> summarize(4);
 
     int total = 0;
     int detector_total = 0;
     int model_total = 0;
 
-    while (testfile.read_row(testfile_seq, v1, v2, tentative[0], tentative[1], tentative[2], summarize[0], summarize[1], summarize[2]))
+    while (testfile.read_row(testfile_seq, v1, v2, tentative[0], tentative[1], tentative[2], tentative[3], summarize[0], summarize[1], summarize[2], summarize[3]))
     {
         if (!gtfile.read_row(gtfile_seq, GT, GTFLAG))
         {
@@ -851,7 +851,7 @@ double evaluate(bool deletefiles_)
 
         while(gtfile_seq != testfile_seq) {
           if(gtfile_seq > testfile_seq)
-            testfile.read_row(testfile_seq, v1, v2, tentative[0], tentative[1], tentative[2], summarize[0], summarize[1], summarize[2]);
+            testfile.read_row(testfile_seq, v1, v2, tentative[0], tentative[1], tentative[2], tentative[3], summarize[0], summarize[1], summarize[2], summarize[3]);
           else
             gtfile.read_row(gtfile_seq, GT, GTFLAG);
         }
@@ -975,10 +975,10 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, double P3, dou
     ROS_INFO_STREAM("Transition Matrices HARDCODED");
     setStateTransitionMatrix();
 #endif
-    ROS_INFO_STREAM("NewModel");
+
     //modello->~LaneModel();
     //free(modello);
-    modello = new LaneModel(howManyLanes, P1, P2, P3, P4, sigma1, sigma2);
+    modello = new LaneModel(4, P1, P2, P3, P4, sigma1, sigma2);
 
     resetMegavariabile(howManyLanes);
     resetSensor(howManyLanes);
@@ -991,7 +991,7 @@ void oneShot(rosbag::View &view)
     unsigned int counter = 0;
     //setupEnv(0.72f, 0.72f, 0.9f, 0.2f, 2, 4, 0.6);
     //setupEnv(1.14261, 0.493907, 0.0454398, 0.15849, 7, 4, 0.6);
-    setupEnv(0.32479364, 0.70723819, 0.22327004, 0.96337335, 0.77907344, 0.87309355, 1, 3, 0.6);
+    setupEnv(0.32479364, 0.70723819, 0.22327004, 0.96337335, 0.77907344, 0.87309355, 1, 4, 0.6);
 
     foreach (rosbag::MessageInstance const messageInstance, view)
     {
@@ -1005,10 +1005,10 @@ void oneShot(rosbag::View &view)
         msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
         ROS_ASSERT(msg_lines != NULL);
 
-        /*if ((*msg_lines).way_id < 239)
+        if ((*msg_lines).way_id < 239)
             continue;
         if ((*msg_lines).way_id >= 10190)
-            break;*/
+            break;
 
         // this will create the files needed in the evaluate() routine
         executeTest(*msg_lines);
@@ -1037,7 +1037,7 @@ void randomSearch(rosbag::View &view)
     while (ros::ok())
     {
         // Generate Parameters.
-        lanes_number = 3; // this is fixed, same lanes always.
+        lanes_number = 4; // this is fixed, same lanes always.
         sigma1 = gen_sigma1(generator);
         sigma2 = gen_sigma1(generator);
         P1 = gen_P1(generator);
@@ -1062,10 +1062,10 @@ void randomSearch(rosbag::View &view)
             ROS_ASSERT(msg_lines != NULL);
 
             // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-            /*if ((*msg_lines).way_id < 239)
+            if ((*msg_lines).way_id < 239)
                 continue;
             if ((*msg_lines).way_id >= 10190)
-                break;*/
+                break;
 
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
@@ -1101,10 +1101,10 @@ void randomSearch(rosbag::View &view)
                 msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
                 ROS_ASSERT(msg_lines != NULL);
                 // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-                /*if ((*msg_lines).way_id < 239)
+                if ((*msg_lines).way_id < 239)
                     continue;
                 if ((*msg_lines).way_id > 10190)
-                    break;*/
+                    break;
                 executeTest(*msg_lines);
             }
             double check_fitness = evaluate(false);
@@ -1188,12 +1188,12 @@ int main(int argc, char **argv)
     unsigned int counter = 0;
 
     // One Shot
-    //oneShot(view);
-    //return 1;
+    oneShot(view);
+    return 1;
 
     // Random Search
-    randomSearch(view);
-    return 1;
+    //randomSearch(view);
+    //return 1;
 
     // Increase number of plusCorsie
     for (int increasePlusCorsie = 1; increasePlusCorsie <= 4; increasePlusCorsie++)
@@ -1218,10 +1218,10 @@ int main(int argc, char **argv)
             ROS_ASSERT(msg_lines != NULL);
 
             // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-           /* if ((*msg_lines).way_id < 239)
+            if ((*msg_lines).way_id < 239)
                 continue;
             if ((*msg_lines).way_id >= 10190)
-                break;*/
+                break;
 
             // this will create the files needed in the evaluate() routine
             executeTest(*msg_lines);
