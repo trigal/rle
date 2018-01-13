@@ -32,7 +32,7 @@ add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files
 #add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")
 
 add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
-add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/special.issue.spain.stereo.noClothoid.yesLines.bag")
+add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/special.issue.spain.stereo.noClothoid.yesLines.left.bag")
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
