@@ -24,15 +24,18 @@ add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (Excel trans matrices)
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
-add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
-#add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/GT-A4FULL.txt")
-#add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/mldhighway.a4.001_2017-12-18-12-38-52.bag")
+add_definitions(-DSAVEPATH="/home/ballardini/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
+add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/GT-A4FULL.txt")
+add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/special.issue.italy.stereo.noClothoid.yesLines.bag")
 
 #add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
 #add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")
 
-add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
-add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/special.issue.spain.stereo.noClothoid.yesLines.left.bag")
+#add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
+#add_definitions(-DBAGFILE="/home/ballardini/specialissuebags/special.issue.spain.mono.noClothoid.yesLines.left._2018-01-13-23-56-11.bag")
+
+
+
 
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
@@ -67,16 +70,21 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-add_executable(lane src/lane.cpp)
+add_executable(lane_3 src/lane_3.cpp)
+add_executable(lane_4 src/lane_4.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(road_layout_estimation_node road_layout_estimation_generate_messages_cpp)
-add_dependencies(lane ${PROJECT_NAME}_gencfg)
-add_dependencies(lane ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(lane_3 ${PROJECT_NAME}_gencfg)
+add_dependencies(lane_4 ${PROJECT_NAME}_gencfg)
+add_dependencies(lane_3 ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(lane_4 ${PROJECT_NAME}_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(lane  ${catkin_LIBRARIES} pthread netica)
+target_link_libraries(lane_3  ${catkin_LIBRARIES} pthread netica)
+target_link_libraries(lane_4  ${catkin_LIBRARIES} pthread netica)
+
 FILE(GLOB_RECURSE LibFiles "include/*")
 add_custom_target(headers SOURCES src/model.cpp)
 add_custom_target(netica SOURCES ${LibFiles})

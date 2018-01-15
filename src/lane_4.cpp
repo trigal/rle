@@ -310,14 +310,14 @@ void setStateTransitionMatrix()
         {
             ROS_INFO_STREAM("Executing test " + std::to_string(EXEC_TEST));
             testname = "0.8+0902";
-            stateTransitionMatrix << 0.59894023, 0.27421482, 0.02631560, 0.00052936, 0.06654891, 0.03046831, 0.00292396, 0.00005882,
+            stateTransitionMatrix << 0.59894023, 0.27421482, 0.02631560, 0.00052936, 0.06654891, 0.03046831, 0.00292386, 0.00005882,
                                   0.21027213, 0.45927655, 0.21027213, 0.02017920, 0.02336357, 0.05103073, 0.02336357, 0.00224213,
                                   0.02017920, 0.21027213, 0.45927655, 0.21027213, 0.00224213, 0.02336357, 0.05103073, 0.02336357,
-                                  0.00052936, 0.02631560, 0.27421482, 0.59894023, 0.00005882, 0.00292396, 0.03046831, 0.06654891,
-                                  0.13309783, 0.06093663, 0.00584791, 0.00011764, 0.53239131, 0.24374650, 0.02339164, 0.00047054,
+                                  0.00052936, 0.02631560, 0.27421482, 0.59894023, 0.00005882, 0.00292386, 0.03046831, 0.06654891,
+                                  0.13309783, 0.06093663, 0.00584791, 0.00011764, 0.53238131, 0.24374650, 0.02339164, 0.00047054,
                                   0.04672714, 0.10206145, 0.04672714, 0.00448427, 0.18690856, 0.40824582, 0.18690856, 0.01793707,
                                   0.00448427, 0.04672714, 0.10206145, 0.04672714, 0.01793707, 0.18690856, 0.40824582, 0.18690856,
-                                  0.00011764, 0.00584791, 0.06093663, 0.13309783, 0.00047054, 0.02339164, 0.24374650, 0.53239131;
+                                  0.00011764, 0.00584791, 0.06093663, 0.13309783, 0.00047054, 0.02339164, 0.24374650, 0.53238131;
         }
         //
         if (EXEC_TEST == 4)
@@ -353,8 +353,8 @@ void setStateTransitionMatrix()
             ROS_INFO_STREAM("Executing test " + std::to_string(EXEC_TEST));
             testname = "1.5+0902";
             stateTransitionMatrix << 0.38343804, 0.30703318, 0.15763609, 0.05189270, 0.04260423, 0.03411480, 0.01751512, 0.00576586,
-                                  0.23921754, 0.29874655, 0.23921754, 0.12281838, 0.02657973, 0.03319406, 0.02657973, 0.01364649,
-                                  0.12281838, 0.23921754, 0.29874655, 0.23921754, 0.01364649, 0.02657973, 0.03319406, 0.02657973,
+                                  0.23821754, 0.29874655, 0.23821754, 0.12281838, 0.02657973, 0.03319406, 0.02657973, 0.01364649,
+                                  0.12281838, 0.23821754, 0.29874655, 0.23821754, 0.01364649, 0.02657973, 0.03319406, 0.02657973,
                                   0.05189270, 0.15763609, 0.30703318, 0.38343804, 0.00576586, 0.01751512, 0.03411480, 0.04260423,
                                   0.08520845, 0.06822960, 0.03503024, 0.01153171, 0.34083381, 0.27291838, 0.14012097, 0.04612684,
                                   0.05315945, 0.06638812, 0.05315945, 0.02729297, 0.21263781, 0.26555249, 0.21263781, 0.10917189,
@@ -754,6 +754,8 @@ void executeTest(const road_layout_estimation::msg_lines & msg_lines)
 
     ROS_ASSERT( (1 - update.sum()) <= 0.00001f);
 
+
+    free(soft_evidence);
     megavariabile = update;
 
     ///STATS
@@ -1005,7 +1007,7 @@ void oneShot(rosbag::View &view)
         msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
         ROS_ASSERT(msg_lines != NULL);
 
-        if ((*msg_lines).way_id < 239)
+        if ((*msg_lines).way_id < 238)
             continue;
         if ((*msg_lines).way_id >= 10190)
             break;
@@ -1062,7 +1064,7 @@ void randomSearch(rosbag::View &view)
             ROS_ASSERT(msg_lines != NULL);
 
             // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-            if ((*msg_lines).way_id < 239)
+            if ((*msg_lines).way_id < 238)
                 continue;
             if ((*msg_lines).way_id >= 10190)
                 break;
@@ -1101,9 +1103,9 @@ void randomSearch(rosbag::View &view)
                 msg_lines = messageInstance.instantiate<road_layout_estimation::msg_lines>();
                 ROS_ASSERT(msg_lines != NULL);
                 // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-                if ((*msg_lines).way_id < 239)
+                if ((*msg_lines).way_id < 238)
                     continue;
-                if ((*msg_lines).way_id > 10190)
+                if ((*msg_lines).way_id >= 10190)
                     break;
                 executeTest(*msg_lines);
             }
@@ -1188,12 +1190,12 @@ int main(int argc, char **argv)
     unsigned int counter = 0;
 
     // One Shot
-    oneShot(view);
-    return 1;
+    //oneShot(view);
+    //return 1;
 
     // Random Search
-    //randomSearch(view);
-    //return 1;
+    randomSearch(view);
+    return 1;
 
     // Increase number of plusCorsie
     for (int increasePlusCorsie = 1; increasePlusCorsie <= 4; increasePlusCorsie++)
@@ -1218,7 +1220,7 @@ int main(int argc, char **argv)
             ROS_ASSERT(msg_lines != NULL);
 
             // FOR THE FULL A4-5FULL GT, SKIP SOME VALUES AND FINISH BEFORE THE EAST-MILANO BARRIER
-            if ((*msg_lines).way_id < 239)
+            if ((*msg_lines).way_id < 238)
                 continue;
             if ((*msg_lines).way_id >= 10190)
                 break;
