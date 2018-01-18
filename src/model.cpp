@@ -14,6 +14,7 @@ class LaneModel
     char mesg[MESG_LEN_ns];
     int res;
     report_ns* err;
+    float use_RI;
 
 public:
     LaneModel(int n, float P1, float P2, float P3, float P4, float sigma_trans, float sigma_obs);
@@ -36,6 +37,7 @@ LaneModel::~LaneModel()
 //LaneModel using RI
 LaneModel::LaneModel(int n, float P1, float P2, float P3, float P4, float sigma_trans, float sigma_obs)
 {
+    use_RI = true;
     num_lane = n;
     res = CloseNetica_bn (env, mesg);
     printf ("%s\n", mesg);
@@ -138,6 +140,7 @@ LaneModel::LaneModel(int n, float P1, float P2, float P3, float P4, float sigma_
 //LaneModel without RI
 LaneModel::LaneModel(int n, float P1, float P2, float sigma_trans, float sigma_obs)
 {
+    use_RI = false;
     num_lane = n;
     res = CloseNetica_bn (env, mesg);
     printf ("%s\n", mesg);
@@ -236,7 +239,8 @@ const float * LaneModel::update(float * ev_detector, float * ev_RI)
     const float * update;
 
     EnterNodeLikelihood_bn(detector, ev_detector);
-    EnterNodeLikelihood_bn(RI, ev_RI);
+    if(use_RI)
+        EnterNodeLikelihood_bn(RI, ev_RI);
     update = GetNodeBeliefs_bn (laneT1);
 
     const prob_bn *belief_laneT2;
@@ -249,7 +253,8 @@ const float * LaneModel::update(float * ev_detector, float * ev_RI)
     SetNodeProbs_bn(laneT1,  NULL,   belief_laneT2);
 
     RetractNodeFindings_bn(detector);
-    RetractNodeFindings_bn(RI);
+    if(use_RI)
+        RetractNodeFindings_bn(RI);
     CompileNet_bn (net);
 
     return update;

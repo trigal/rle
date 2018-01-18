@@ -980,7 +980,12 @@ void setupEnv(double sigma1, double sigma2, double P1, double P2, double P3, dou
 
     //modello->~LaneModel();
     //free(modello);
+#ifdef DONT_USE_RI
+    ROS_ERROR_STREAM("NOT USING RI");
+    modello = new LaneModel(4, P1, P2, sigma1, sigma2);    
+#else
     modello = new LaneModel(4, P1, P2, P3, P4, sigma1, sigma2);
+#endif
 
     resetMegavariabile(howManyLanes);
     resetSensor(howManyLanes);
@@ -1029,7 +1034,7 @@ void randomSearch(rosbag::View &view)
     std::uniform_real_distribution<double>  gen_P2(0.0, 1.0);
     std::uniform_real_distribution<double>  gen_P3(0.0, 1.0);
     std::uniform_real_distribution<double>  gen_P4(0.0, 1.0);
-    std::uniform_int_distribution<int>      gen_pluscorsie(1, 9);
+    std::uniform_int_distribution<int>      gen_pluscorsie(0, 9);
     std::uniform_real_distribution<double>  gen_ave_weight(0.0, 1.0);
 
     double sigma1, sigma2, P1, P2, P3, P4, ave_weight;

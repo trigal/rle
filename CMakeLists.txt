@@ -23,10 +23,11 @@ add_definitions(${EIGEN_DEFINITIONS} ${PCL_DEFINITIONS})
 
 add_definitions(-DEXEC_TEST=1)              #test number for transition matrix (Excel trans matrices)
 add_definitions(-DMAKETRANSITIONSMATRICES)  #otherwise, create the matrices in code!
+#add_definitions(-DDONT_USE_RI)             #test the model without RI
 #add_definitions(-DSYNCMODE)  #send the sync for isis.player?
-add_definitions(-DSAVEPATH="/home/ballardini/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
+add_definitions(-DSAVEPATH="/home/cattaneod/") #path for output, temporary files and so on. This are deleted with deleteFiles()!
 add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/GT-A4FULL.txt")
-add_definitions(-DBAGFILE="/home/ballardini/catkin_ws/src/road_layout_estimation/bag/special.issue.italy.stereo.noClothoid.yesLines.bag")
+add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/A4-5FULL-MONO.bag")
 
 #add_definitions(-DGTFILE="catkin_ws/src/road_layout_estimation/bag/ISIS_01.txt")
 #add_definitions(-DBAGFILE="/home/cattaneod/catkin_ws/src/road_layout_estimation/bag/ISIS_01.bag")
