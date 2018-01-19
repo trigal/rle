@@ -1054,6 +1054,9 @@ void randomSearch(rosbag::View &view)
         pluscorsie = gen_pluscorsie(generator);
         ave_weight = 0.6; //gen_ave_weight(generator);
 
+        //TEST SENZA BV, CANCELLA QUESTA RIGAAAAA!!!!
+        //pluscorsie = 0;
+
         setupEnv( sigma1,  sigma2,  P1,  P2, P3, P4, pluscorsie, lanes_number, ave_weight);
 
 
