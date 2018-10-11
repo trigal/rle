@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(road_layout_estimation)
 
-SET (CMAKE_BUILD_TYPE Debug)
-SET (ROS_BUILD_TYPE Debug)
-SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
-#SET (CMAKE_BUILD_TYPE Release)
-#SET (ROS_BUILD_TYPE Release)
-#SET (CMAKE_CXX_FLAGS "-std=c++11")
+#SET (CMAKE_BUILD_TYPE Debug)
+#SET (ROS_BUILD_TYPE Debug)
+#SET (CMAKE_CXX_FLAGS "-O0 -std=c++11")
+SET (CMAKE_BUILD_TYPE Release)
+SET (ROS_BUILD_TYPE Release)
+SET (CMAKE_CXX_FLAGS "-std=c++11")
 
 
 ## Find catkin macros and libraries
@@ -27,7 +27,8 @@ find_package(catkin REQUIRED COMPONENTS     roscpp
 )
 
 find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} include )
+find_package(OpenCV REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} include )
 add_definitions(${EIGEN_DEFINITIONS})
 
 generate_dynamic_reconfigure_options(
@@ -97,8 +98,8 @@ catkin_package(
 # )
 
 ## Declare cpp executables
-add_executable(visual_odometry_fake 
-	src/visual_odometry_fake.cpp 
+add_executable(visual_odometry_fake
+	src/visual_odometry_fake.cpp
         src/particle/State6DOF.cpp
         src/Utils.cpp
 )
@@ -118,7 +119,7 @@ add_executable(visual_odometry_test
 add_executable(road_layout_estimation
         src/road_layout_estimation.cpp
         src/Utils.cpp
-	src/LayoutManager.cpp 
+	src/LayoutManager.cpp
         src/MeasurementModel.cpp
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp
@@ -168,25 +169,31 @@ add_dependencies(roadStateComponent_fake ${PROJECT_NAME}_gencfg)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(road_layout_estimation
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(visual_odometry_fake
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(roadStateComponent_fake
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(visual_odometry_test
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(visual_odometry_nvm
 #   ${PCL_LIBRARIES}
     ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(fake_callback
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )

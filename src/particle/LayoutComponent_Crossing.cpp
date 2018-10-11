@@ -172,7 +172,7 @@ void LayoutComponent_Crossing::computeOccupancyGrid()
             const Point* ppt[1] = {polygonCV[i]};
 
             //Qua viene creata la griglia di occupazione! "riempiendo" i rettangoli creati prima.
-            fillPoly(occupancyMap2, ppt, npt, 1, Scalar(1., 1., 1.), 8);
+            cv::fillPoly(occupancyMap2, ppt, npt, 1, Scalar(1., 1., 1.), 8);
         }
     }
     ///Se l'incrocio è lontano (oppure se non è stato trovato nessun incrocio)
@@ -304,4 +304,3 @@ void LayoutComponent_Crossing::removeUknownCells()
         }
     }
 }
-

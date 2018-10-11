@@ -5,6 +5,8 @@
 #include <iostream>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/opencv.hpp>
 #include <mutex>
 
 #include "ira_open_street_map/get_closest_crossingXY.h"
@@ -199,4 +201,3 @@ public:
 };
 
 #endif // LAYOUTCOMPONENT_CROSSING_H
-
