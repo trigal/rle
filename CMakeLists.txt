@@ -100,8 +100,8 @@ catkin_package(
 # )
 
 ## Declare cpp executables
-add_executable(visual_odometry_fake 
-	src/visual_odometry_fake.cpp 
+add_executable(visual_odometry_fake
+	src/visual_odometry_fake.cpp
         src/particle/State6DOF.cpp
         src/Utils.cpp
 )
@@ -121,7 +121,7 @@ add_executable(visual_odometry_test
 add_executable(road_layout_estimation
         src/road_layout_estimation.cpp
         src/Utils.cpp
-	src/LayoutManager.cpp 
+	src/LayoutManager.cpp
         src/MeasurementModel.cpp
 	src/particle/MotionModel.cpp
 	src/particle/Particle.cpp

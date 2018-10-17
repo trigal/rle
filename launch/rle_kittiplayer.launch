@@ -1,36 +1,39 @@
 <launch>
 
         <!-- RLE Parameters -->
-        <param name="/road_layout_estimation/resampling_interval"               value="8"/>
-        <param name="/road_layout_estimation/particles_number"                  value="30"/>
-        <param name="/road_layout_estimation/rle_frequency"                     value="5"/>     <!-- RLE loop frequency HZ -->
+        <param name="/road_layout_estimation/resampling_interval"               value="2"/>
+        <param name="/road_layout_estimation/particles_number"                  value="50"/>
+        <param name="/road_layout_estimation/rle_frequency"                     value="1"/>     <!-- RLE loop frequency HZ -->
 
         <!--MAX VALUES HERE ARE 10 [10 is set in the cfg file] -->
-        <param name="/road_layout_estimation/street_distribution_alpha"        value="5"/>     <!--these values should be greater than zero-->
+        <param name="/road_layout_estimation/street_distribution_alpha"        value="15"/>     <!--these values should be greater than zero-->
         <param name="/road_layout_estimation/angle_distribution_alpha"         value="1"/>
         <param name="/road_layout_estimation/roadState_distribution_alpha"     value="1"/>
         <param name="/road_layout_estimation/roadLane_distribution_alpha "     value="1"/>
 
         <!-- PARAMETERS OSM DISTANCE COMPONENT [check max values in the .cfg file -->
-        <param name="/road_layout_estimation/street_distribution_sigma"     value="1.5"/>
-        <param name="/road_layout_estimation/angle_distribution_sigma "     value="0.15"/>
+        <param name="/road_layout_estimation/street_distribution_sigma"     value="1"/>
+<param name="/road_layout_estimation/angle_distribution_sigma "     value="0.30"/>
+
 
         <!--State6DOF ***ABSOLUTE***-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.18" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.01" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.0" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.03" /> <!-- value="0.05" />-->
-                                                                                                                        <!--                -->
-        <!--#State6DOF ***PERCENTAGE***-->                                                                              <!--                -->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.1" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.0" /> <!-- value="0.01" />-->
-        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" /> <!-- value="0.05" />-->
+ <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_x"              value="0.1" />
+ <param name="/road_layout_estimation/propagate_translational_absolute_vel_error_y"              value="0.1" />
+<param name="/road_layout_estimation/propagate_translational_absolute_vel_error_z"              value="0.0" />
+      <param name="/road_layout_estimation/propagate_rotational_absolute_vel_error"                   value="0.01" />
+
+
+        <!--#State6DOF ***PERCENTAGE***-->
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_x"            value="0.1" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_y"            value="0.01" />
+        <param name="/road_layout_estimation/propagate_translational_percentage_vel_error_z"            value="0.0" />
+        <param name="/road_layout_estimation/propagate_rotational_percentage_vel_error"                 value="0.05" />
+
 
 
         <!-- ARGUMENTS -->
             <!-- DEFAULT behavior, append bagfile:=kitti_XX to BAG in the command line-->
-            <arg name="bagfile" default="2011_09_26_drive_0059_sync" />
+            <arg name="bagfile" default="2011_09_26_drive_0095_sync" />
             <arg name="camera" default="/kitti_stereo" />                                                               <!-- The namespace where images are published -->
             <arg name="publish_rate" default="0.1" />
             <arg name="rviz" default="$(find road_layout_estimation)/rviz/visual_odometry_kitti_viso.rviz" />
@@ -52,7 +55,7 @@
                         args="0 0 0 0 0 0 local_map visual_odometry_odom_x_forward 50" />
                 <node pkg="tf" type="static_transform_publisher" name="dummy_transform"
                         args="0 0 0 0 0 0 base_link visual_odometry_camera_frame 50" />
-			
+
         <!--disabled since added inside the sgbm-building-detector node-->
         <!-- OSM QUERY NODE
             <node
@@ -73,7 +76,6 @@
         <node
 		pkg="road_layout_estimation" type="road_layout_estimation" name="road_layout_estimation"
                 required="true"
-		output="screen"
                 args="/stereo_odometer/odometry $(arg bagfile)"
         />
 

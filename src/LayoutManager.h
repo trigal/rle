@@ -144,7 +144,7 @@ public:
 
     ///DEBUG!!!
     tf::Stamped<tf::Pose> GPS_RTK_LOCAL_POSE;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr facades_cloud_;
+    pcl::PointCloud<pcl::PointXYZRGBL>::Ptr facades_cloud_;
     ros::Publisher facades_pub;
 
     MeasurementModel* measurement_model; ///< our Measurment Model created in the CLASS CONSTRUCTOR
@@ -234,7 +234,7 @@ public:
 
     void roadStateCallback(const road_layout_estimation::msg_lines& msg_lines);
 
-    void buildingsCallback(const building_detection::FacadesList& facades);
+    void buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
     // getters & setters ----------------------------------------------------------------------------
 //    MeasurementModel getVisualOdometry(){ return odometry; }
 //    void setOdometry(MeasurementModel* v_odom){ odometry = v_odom; }

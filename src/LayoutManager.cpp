@@ -11,6 +11,10 @@
  *                                                                         *
  ***************************************************************************/
 #include "LayoutManager.h"
+#include <pcl/filters/extract_indices.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
 
 bool    LayoutManager::openstreetmap_enabled = true;     ///< Check this flag if we want to initialize particle-set with OSM and GPS
 double  LayoutManager::deltaOdomTime = 1;                ///< Initialize static member value for C++ compilation
@@ -139,8 +143,8 @@ LayoutManager::LayoutManager(ros::NodeHandle& node_handler_parameter, std::strin
     //LayoutManager::roadState_sub = node_handle.subscribe("/fakeDetector/roadState"   , 3, &LayoutManager::roadStateCallback, this);  //fake detector
 
     //@@@@@@@@@@@@@@@@@BUILDINGS disabilita sergio
-    if (false)
-        LayoutManager::buildings_sub = node_handle.subscribe("/building_detector/facades", 1, &LayoutManager::buildingsCallback, this);
+    if (true)
+        LayoutManager::buildings_sub = node_handle.subscribe("/kitti_player/point_cloud", 1, &LayoutManager::buildingsCallback, this);
 
     ROS_INFO_STREAM("RLE started, listening to: " << odometry_sub.getTopic());
 
@@ -829,8 +833,8 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     geometry_msgs::PoseStamped pose_map_frame;
                     pose_map_frame.header.frame_id = "map";
                     pose_map_frame.header.stamp = ros::Time::now();
-                    pose_map_frame.pose.position.x = snapParticleXYService.response.snapped_x;
-                    pose_map_frame.pose.position.y = snapParticleXYService.response.snapped_y;
+                    pose_map_frame.pose.position.x = sample(0); // snapParticleXYService.response.snapped_x;
+                    pose_map_frame.pose.position.y = sample(1); // snapParticleXYService.response.snapped_y;
                     pose_map_frame.pose.position.z = 0.0;
 
                     snapParticleXYService.response.way_id;
@@ -855,10 +859,9 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     // Init particle's pose
                     State6DOF p_pose;
                     p_pose.setPose(Vector3d(tf_pose_local_map_frame.getOrigin().getX(), tf_pose_local_map_frame.getOrigin().getY(), 0));
+                    p_pose.addNoise(0.3,0.07,0,0);
 
-                    p_pose.addNoise(1.5,0.07,0,0);
-
-                    bool ok_direction=true; //inverte direzione, occhio che c'è opposite_direction sotto
+                    bool ok_direction=false; //inverte direzione, occhio che c'è opposite_direction sotto
                     if (ok_direction)
                     {
                     tf_pose_local_map_frame.setRotation(tf_pose_local_map_frame.getRotation().normalized());
@@ -1012,7 +1015,7 @@ void LayoutManager::reconfigureCallback(road_layout_estimation::road_layout_esti
                     /// if needed, create new "components"
                     ///
                     /// AAAAAAA CAMBIARE PER DOPPIO SENSO
-                    //if (snapParticleXYService.response.way_dir_opposite_particles)
+                    // if (snapParticleXYService.response.way_dir_opposite_particles)
                     if (false)
                     {
                         tf::Stamped<tf::Pose>  tf_pose_local_map_frame_opposite_direction;
@@ -1351,17 +1354,65 @@ void LayoutManager::publishZParticle(int id, double x1, double y1, double x2, do
     marker_z_particle.markers.push_back(line_list);
 }
 
-void LayoutManager::buildingsCallback(const building_detection::FacadesList &facades)
+void LayoutManager::buildingsCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
 {
-    std::vector<road_layout_estimation::Facade> facades_list;
-    facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZ>);
-    for (auto facade_msg : facades.facades)
-    {
-        road_layout_estimation::Facade facade(facade_msg);
-        facades_list.push_back(facade);
-        *facades_cloud_ += *(facade.pcl);
 
+    // std::vector<road_layout_estimation::Facade> facades_list;
+    facades_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBL>);
+    pcl::fromROSMsg (*cloud, *facades_cloud_);
+    Eigen::Affine3f transform;   // rotation for having x-forward
+    transform = Eigen::Affine3f::Identity(); //reset transform
+    transform.rotate (Eigen::AngleAxisf (-90.0f * M_PI / 180.0f, Eigen::Vector3f::UnitX()));
+    pcl::transformPointCloud (*facades_cloud_, *facades_cloud_, transform);
+    transform = Eigen::Affine3f::Identity(); //reset transform. otherwise u'r creating a chain
+    transform.rotate (Eigen::AngleAxisf (-90.0f * M_PI / 180.0f, Eigen::Vector3f::UnitZ()));
+    pcl::transformPointCloud (*facades_cloud_, *facades_cloud_, transform);
+    pcl::PointIndices buildings_indices;
+    for(std::size_t i = 0; i< facades_cloud_->size();i++){
+      if(facades_cloud_->at(i).label == 3){
+        buildings_indices.indices.push_back(i);
+      }
     }
+    pcl::ExtractIndices<pcl::PointXYZRGBL> extractIndices;
+    extractIndices.setIndices(boost::make_shared<const pcl::PointIndices> (buildings_indices));
+    extractIndices.setInputCloud(facades_cloud_);
+    extractIndices.filter(*facades_cloud_);
+
+    pcl::PassThrough<pcl::PointXYZRGBL> pass;
+    pass.setInputCloud (facades_cloud_);
+    pass.setFilterFieldName ("z");
+    pass.setFilterLimits (-3, 1);
+    pass.filter (*facades_cloud_);
+
+    pcl::PassThrough<pcl::PointXYZRGBL> pass_2;
+    pass_2.setInputCloud (facades_cloud_);
+    pass_2.setFilterFieldName ("x");
+    pass_2.setFilterLimits (0, 40);
+    pass_2.filter (*facades_cloud_);
+
+  //   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+  //   pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+  // // Create the segmentation object
+  //   pcl::SACSegmentation<pcl::PointXYZRGBL> seg;
+  // // Optional
+  //   seg.setOptimizeCoefficients (true);
+  // // Mandatory
+  //   seg.setModelType (pcl::SACMODEL_PLANE);
+  //   seg.setMethodType (pcl::SAC_RANSAC);
+  //   seg.setDistanceThreshold (0.5);
+  //
+  //   seg.setInputCloud (facades_cloud_);
+  //   seg.segment (*inliers, *coefficients);
+  //   extractIndices.setIndices(inliers);
+  //   extractIndices.setInputCloud(facades_cloud_);
+  //   extractIndices.filter(*facades_cloud_);
+    // for (auto facade_msg : facades.facades)
+    // {
+    //     road_layout_estimation::Facade facade(facade_msg);
+    //     facades_list.push_back(facade);
+    //     *facades_cloud_ += *(facade.pcl);
+    //
+    // }
 
     if (bestParticle)
     {
@@ -1386,10 +1437,11 @@ void LayoutManager::buildingsCallback(const building_detection::FacadesList &fac
         // Retrieve the RoadLane component from the particle-iterator
         LayoutComponent_Building* BuildingComponentPtr = (*particle_itr)->giveMeThatComponent<LayoutComponent_Building>();
         BuildingComponentPtr->getFacades()->clear();
-        for (auto facade : facades_list)
-        {
-            BuildingComponentPtr->getFacades()->push_back(facade);
-        }
+        // for (auto facade : facades_list)
+        // {
+        //     BuildingComponentPtr->getFacades()->push_back(facade);
+        // }
+        BuildingComponentPtr->setFacades_cloud(facades_cloud_);
     }
     ROS_ERROR_STREAM("< Exiting " << __PRETTY_FUNCTION__);
 }
@@ -1640,8 +1692,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
         double from_latitude, from_longitude, from_altitude, to_lat, to_lon;
         //TODO: find an alternative to this shit
         int start_frame = visualOdometryMsg.header.seq + 0; // START FRAME AAAAAAAAAAAAAAAAAAA QUI MODIFICA @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 120 o 0 qui zero non uno...
-        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
-        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/RESIDENTIAL/2011_09_30_drive_0034_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
+        cout            << "/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0095_sync/oxts/data/" << boost::str(boost::format("%010d") % start_frame) <<  ".txt" << endl;
+        RTK.open(((string)("/media/DiscoEsternoGrosso/KITTI_RAW_DATASET/CITY/2011_09_26_drive_0095_sync/oxts/data/" + boost::str(boost::format("%010d") % start_frame) + ".txt")).c_str());
         if (!RTK.is_open())
         {
             cout << "ERROR OPENING THE extraordinary kind FILE!" << endl;
@@ -1723,6 +1775,8 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             RTK_MARKER.pose.position.z = RTK_local_map_frame.getOrigin().getZ();//;
 
             marker_array_GT_RTK.markers.push_back(RTK_MARKER);
+            // Push back line_list
+            publisher_GT_RTK.publish(marker_array_GT_RTK);
 
 
             // PUBLISHING ALMOST THE SAME as POSITION (navmsg) BUT ONLY THE POSE AS A SMALL POINT LIKE THE GPS
@@ -1748,15 +1802,13 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             publisher_average_position.publish(marker_array_positions);
 
 
-            // Push back line_list
-            publisher_GT_RTK.publish(marker_array_GT_RTK);
 
-            RTK_GPS_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                             RTK_local_map_frame.getOrigin().getX() << " " << RTK_local_map_frame.getOrigin().getY() << " " << RTK_local_map_frame.getOrigin().getZ() << " " <<
-                             0 << " " << 0 << " " << 0 << " " <<
-                             0 << " " << 0 << " " << 0 << " " << 0 << " " <<
-                             tot_score / current_layout_shared.size() << " " <<
-                             query_latlon2xy.latitude << " " << query_latlon2xy.longitude << "\n";
+            RTK_GPS_out_file << visualOdometryMsg.header.seq << ", " << setprecision(16) <<
+                             RTK_local_map_frame.getOrigin().getX() << ", " << RTK_local_map_frame.getOrigin().getY() << ", " << RTK_local_map_frame.getOrigin().getZ() << ", " <<
+                             0 << ", " << 0 << ", " << 0 << ", " <<
+                             0 << ", " << 0 << ", " << 0 << ", " << 0 << ", " <<
+                             tot_score / current_layout_shared.size() << ", " <<
+                             from_latitude << ", " << from_longitude << "\n";
             RTK_GPS_out_file.flush();
 
 
@@ -1792,37 +1844,37 @@ void LayoutManager::odometryCallback(const nav_msgs::Odometry& visualOdometryMsg
             ttstat4.tic();
             tf_listener.transformPose("map", ros::Time(0), average_pose_local_map_frame, "local_map", average_pose_map_frame);
 
-            //ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
-            //ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
-            double a = average_pose_map_frame.getOrigin().getX();
-            double b = average_pose_map_frame.getOrigin().getY();
-            //query_xy2latlon.x = average_pose_map_frame.getOrigin().getX();
-            //query_xy2latlon.y = average_pose_map_frame.getOrigin().getY();
-            latlon2xy_helper(a,b);
-            to_lat = a;
-            to_lon = b;
-            //if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon, response_xy2latlon))
-            //{
-            //    // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
-            //    to_lat = response_xy2latlon.latitude;
-            //    to_lon = response_xy2latlon.longitude;
-            //}
-            //else
-            //{
-            //    ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon_2_srv' service");
-            //    ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
-            //    return;
-            //}
+            ira_open_street_map::xy_2_latlonRequest query_xy2latlon;
+            ira_open_street_map::xy_2_latlonResponse response_xy2latlon;
+            // double a = average_pose_map_frame.getOrigin().getX();
+            // double b = average_pose_map_frame.getOrigin().getY();
+            query_xy2latlon.x = average_pose_map_frame.getOrigin().getX();
+            query_xy2latlon.y = average_pose_map_frame.getOrigin().getY();
+            // latlon2xy_helper(a,b);
+            // to_lat = a;
+            // to_lon = b;
+            if (LayoutManager::xy_2_latlon_client.call(query_xy2latlon, response_xy2latlon))
+            {
+               // to_lat && to_lon are then the average values (of all particles) in LAT/LON UTM
+               to_lat = response_xy2latlon.latitude;
+               to_lon = response_xy2latlon.longitude;
+            }
+            else
+            {
+               ROS_ERROR_STREAM("   Failed to call 'xy_2_latlon_2_srv' service");
+               ros::shutdown(); // TODO: handle this, now shutdown requested. augusto debug
+               return;
+            }
 
             // -------------------------------------------------------------------------------------------------------------------------------------
             // SAVE RESULTS TO OUTPUT FILE:
             tf::Matrix3x3(average_quaternion).getRPY(roll, pitch, yaw);
-            RLE_out_file << visualOdometryMsg.header.seq << " " << setprecision(16) <<
-                         average_pose(0) << " " << average_pose(1) << " " << average_pose(2) << " " <<
-                         roll << " " << pitch << " " << yaw << " " <<
-                         average_quaternion.getX() << " " << average_quaternion.getY() << " " << average_quaternion.getZ() << " " << average_quaternion.getW() << " " <<
-                         tot_score / current_layout_shared.size() << " " <<
-                         to_lat << " " << to_lon << " " <<
+            RLE_out_file << visualOdometryMsg.header.seq << ", " << setprecision(16) <<
+                         average_pose(0) << ", " << average_pose(1) << ", " << average_pose(2) << ", " <<
+                         roll << ", " << pitch << ", " << yaw << ", " <<
+                         average_quaternion.getX() << ", " << average_quaternion.getY() << ", " << average_quaternion.getZ() << ", " << average_quaternion.getW() << ", " <<
+                         tot_score / current_layout_shared.size() << ", " <<
+                         to_lat << ", " << to_lon << ", " <<
                          average_distance << "\n";
             RLE_out_file.flush();
 
@@ -2892,7 +2944,7 @@ void LayoutManager::layoutEstimation(const ros::TimerEvent& timerEvent)
                                 //                            stat_out_file << temp_part.getId() << "\t";
                                 //                            particle_poses_statistics(k,0) = (temp_part.getParticleState().getPosition())(0);
                                 //                            particle_poses_statistics(k,1) = (temp_part.getParticleState().getPosition())(1);
-                                new_current_layout_shared.push_back(temp_part);                                
+                                new_current_layout_shared.push_back(temp_part);
                                 break;
                             }
                             ddd++;

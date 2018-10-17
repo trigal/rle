@@ -1,8 +1,11 @@
 #ifndef FACADE_H
 #define FACADE_H
+#include <sensor_msgs/PointCloud2.h>
 
+#include <ctime>
 #include <pcl/console/parse.h>
 #include <pcl/console/time.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <building_detection/Facade.h>
 #include "Edge.hpp"
 #include <boost/math/distributions/normal.hpp>
